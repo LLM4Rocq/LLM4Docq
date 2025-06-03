@@ -1,6 +1,3 @@
-Here is a some context to understand the following Coq source file from the mathcomp library:
-
-
 Here is a Coq source file from the mathcomp library:
 
 "{source}"
@@ -9,7 +6,7 @@ I need you to help me write all the docstring.
 
 To do it, write a json corresponding to a list of all docstring, in the format:
 
-[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+[{{"name": "trunc", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
 
 More precisely, I want you do it for the following:
 

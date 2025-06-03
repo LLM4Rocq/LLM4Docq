@@ -5,14 +5,24 @@ import time
 import random
 import json
 import concurrent.futures
+import re
 
 import yaml
 from openai import OpenAI
 from tqdm import tqdm
 
-"""
-Fourth step: Generate reasonings using deepseek R1.
-"""
+
+from Levenshtein import distance
+
+class NoJsonFound(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+class OutOfTolerance(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
 
 def generate_output(prompt, client, config):
     """
@@ -24,18 +34,36 @@ def generate_output(prompt, client, config):
         ],
         **config
     )
-    return {"content": completion.choices[0].message.content}
+    return json.loads(completion.choices[0].message.content)['items']
 
-def process_prompt(prompt, export_path, data, client, config, delay=0):
+def extract_json_code(content: str):
+    pattern = r"```json(.*)```"
+    match = re.search(pattern, content, flags=re.DOTALL)
+    if not match:
+        raise NoJsonFound(f"No json found in {content}")
+    return json.loads(match.group(1))
+
+def process_prompt(prompt, export_path, data, client, config, delay=0, max_retry=3, distance_tolerance=4):
     """
     Executes generation according to prompt
     """
     time.sleep(delay)
-    output_entry = generate_output(prompt, client, config)
-    result = {'data': data, 'output': output_entry}
-    with open(export_path, 'w') as file:
-        json.dump(result, file, indent=4)
-    
+    for k in range(max_retry):
+        try:
+            output_json = generate_output(prompt, client, config)
+            result = {'data': data, 'output': output_json}
+            for entry_data, entry_output in zip(data, output_json):
+                name_data = entry_data[1]['name']
+                name_output = entry_output['name']
+                if distance_tolerance < distance(name_output, name_data):
+                    print(name_output, name_data)
+                    raise OutOfTolerance(f"{name_output} not detected in output")
+            with open(export_path, 'w') as file:
+                json.dump(result, file, indent=4)
+            break
+        except OutOfTolerance:
+            with open(f"{export_path}_error_{k}", 'w') as file:
+                json.dump(result, file, indent=4)
 
 
 if __name__ == '__main__':
@@ -47,6 +75,9 @@ if __name__ == '__main__':
     parser.add_argument('--prompt-dir', default='config/step_2/prompts')
     parser.add_argument('--max-workers', default=100, type=int, help='Max number of concurrent workers')
     parser.add_argument('--mean-delay', default=10, type=int, help='Mean delay before a request is send: use this parameter to load balance')
+    
+    parser.add_argument('--max-retry', default=3, type=int, help='Max number of retry before having a correct json')
+    parser.add_argument('--distance-tolerance', default=4, type=int, help='Tolerate Levenshtein distance between keys from json output and dataset')
 
     parser.add_argument('--chunk-overlap', default=0, type=int, help='Number of lines to prepend to chunks to give some additionnal context')
     parser.add_argument('--chunk-size', default=500, type=int, help='Maximum number of lines contains in each chunk')
@@ -69,8 +100,6 @@ if __name__ == '__main__':
     to_do = []
 
     for parent, subdict in input_content.items():
-        if 'matrix' not in parent:
-            continue
         subname = parent.split('.')[-1]
         prompt_path = os.path.join(args.prompt_dir, f'prompt_{subname}.txt')
         if not os.path.exists(prompt_path):
@@ -115,10 +144,9 @@ if __name__ == '__main__':
             export_path = os.path.join(args.output, parent+f'#chunk_{k}')
             to_do.append((prompt, export_path, chunk_data))
         # break
-
     delay_max = args.mean_delay*2
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.max_workers) as executor:  # Adjust the number of workers as needed
         futures = []
-        futures += [executor.submit(process_prompt, prompt, export, entry, client, config['request_config'], delay=random.randint(0, delay_max)) for prompt, export, entry in to_do]
+        futures += [executor.submit(process_prompt, prompt, export, entry, client, config['request_config'], delay=random.randint(0, delay_max), max_retry=args.max_retry, distance_tolerance=args.distance_tolerance) for prompt, export, entry in to_do]
         for _ in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
             pass

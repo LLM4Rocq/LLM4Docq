@@ -1,3 +1,29 @@
 base_url: "https://openrouter.ai/api/v1"
 request_config:
     model: "openai/gpt-4.1"
+    response_format:
+        type: json_schema
+        json_schema:
+            name: docstring_response
+            strict: true
+            schema:
+                type: object
+                properties:
+                    items:
+                        type: array
+                        items:
+                            type: object
+                            properties:
+                                name:
+                                    type: string
+                                    description: The name of the annotated element.
+                                docstring:
+                                    type: string
+                                    description: The docstring to annotate the element.
+                            required:
+                                - name
+                                - docstring
+                            additionalProperties: false
+                required:
+                    - items
+                additionalProperties: false
