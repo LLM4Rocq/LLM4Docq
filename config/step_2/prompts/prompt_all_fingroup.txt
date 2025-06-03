@@ -1,0 +1,96 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Group Actions, Morphisms, and Presentations
+
+Overview
+========
+This file serves as a foundational module bringing together several key formalisms of group theory developed in Coq, specifically as represented in the Mathematical Components (MathComp) library. Its main objective is to centralize definitions, notations, and results concerning group actions, automorphism groups, group morphisms, permutation groups, group products, group presentations, and group quotients. By exporting this collection of modules, the file provides mathematical and software infrastructure for conducting advanced formal reasoning about finite groups and their actions, supporting both theoretical development and formal verification.
+
+Mathematical Objects and Representations
+========================================
+
+1. **Groups and Finite Groups:**
+   - Central throughout is the structure of (finite) groups (called `finGroupType` in MathComp), which are represented as finite types equipped with group operations (`*`, inverse, identity), together with computationally effective equality.
+   - Subgroups are represented as sets closed under the group operations or as group predicates.
+
+2. **Group Actions:**
+   - A group action consists of a group `G` acting on a set `S` via a function that is compatible with the group operation. The action formalism exported here includes both right and left actions (most MathComp convention is *right* action).
+   - Actions are bundled as ``action G S``, a type encoding the action axioms, and the associated orbits, stabilizers, and quotient structures.
+
+3. **Automorphism Groups:**
+   - The automorphism group of a group G, denoted `Aut(G)`, is the group of all group isomorphisms from G to itself under composition.
+   - In Coq/MathComp this is encoded as a group structure on the set of group automorphisms (bijective group morphisms from `G` to `G`).
+
+4. **Group Morphisms:**
+   - Group morphisms (homomorphisms) are structure-preserving maps between groups.
+   - These are formalized via dependent types that ensure the preservation laws are explicitly tracked, supporting both plain morphisms and injective, surjective (or bijective) homomorphisms.
+
+5. **Group Products:**
+   - Direct and (possibly) semidirect products of groups are provided, enabling the construction of new groups from given ones, with notations and product operations clearly specified.
+   - Represented via constructions on product types (tuples) with corresponding group laws.
+
+6. **Permutation Groups:**
+   - Groups of permutations on finite sets are formalized as subgroups of symmetric groups, with permutations represented by computable bijections (functions with proofs of invertibility).
+   - The exported module provides constructs for permutation application, cycle decompositions, and conjugation.
+
+7. **Group Presentations:**
+   - Group presentations provide an abstract specification of a group by generators and relations.
+   - The formalization includes data structures for generator sets, relation lists, and the term algebra for formal products, together with the presented group as a quotient.
+
+8. **Quotient Groups:**
+   - The machinery for quotient groups (coset spaces, quotient maps) is exported, enabling formal manipulation of factor groups `G/H` by normal subgroups `H`.
+   - Cosets and quotient morphisms are bundled to support both proof and computation.
+
+Key Conventions
+===============
+- **Naming and Notation:** All imported concepts rigorously use the "small-scale reflection" approach of MathComp: group-theoretic predicates and operations are given boolean-valued versions with corresponding reflection lemmas for switching between boolean and propositional reasoning.
+- **Right Action Conventions:** Unless specified, group actions and coset multiplications are interpreted as right actions (i.e., `x *^ g` or `a ^ f` act on the right), consistent with MathComp conventions throughout group theory files.
+- **Bundled Structures:** All algebraic structures (group, morphism, action, automorphism, etc.) are *bundled*—that is, they carry both operations and proofs of their axioms as records, to facilitate transport and structure inference in the type theory.
+- **Rich Typing:** Types are enriched with canonical structures, enabling type inference and implicit casting between related mathematical objects (e.g., a permutation is a group element, a subgroup is a set, etc.).
+- **Subgroup Membership:** Membership in (sub)groups is generally indicated by the boolean predicate `x \in G`, as opposed to set-theoretic membership notation.
+
+Module Organization
+===================
+The file is not itself a monolithic development but exists to *export* the relevant formalizations, ensuring that any file importing it will have the full range of concepts, theorems, and notation available without repeating imports or redefinitions. This is a standard organizational pattern in larger formal math libraries to centralize important interfaces and increase modularity.
+
+Summary
+=======
+In summary, this file aggregates and exposes the primary mathematical infrastructure for working with group actions, automorphisms, morphisms, permutations, group products, presentations, and quotients in the Coq proof assistant, as developed by the MathComp library. It sets the context for developments in both the theory and application of finite group theory, and establishes conventions and representations for advanced formal verification tasks involving groups.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

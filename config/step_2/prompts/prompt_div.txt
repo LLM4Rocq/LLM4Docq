@@ -1,0 +1,122 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+(** Natural Number Divisibility — Comprehensive Docstring
+
+Overview and Purpose
+====================
+This file defines and proves the foundational properties of divisibility for natural numbers (`nat`) within the Coq proof assistant, using the Mathematical Components (MathComp) library. Its main objective is to formalize key number-theoretic concepts—such as Euclidean division, modular arithmetic, the divisibility relation, greatest common divisors (GCD), least common multiples (LCM), coprimality, and the Chinese Remainder Theorem—for natural numbers, enabling rigorous, computer-checked reasoning about divisibility and related algebraic structures in formalized mathematics.
+
+It supplies efficient and boolean-reflective definitions for operations and relations on natural numbers, along with a suite of supporting lemmas and computational tools that serve as a basis for more advanced developments in number theory and algebra.
+
+Mathematical Objects and Representations
+========================================
+
+1. **Natural Numbers (`nat`):**
+   - All operations and properties concern the standard, non-negative integers as given by Coq's inductive `nat` type.
+
+2. **Euclidean Division and Remainder:**
+   - **`edivn m d`**: Computes the Euclidean division of `m` by `d`, returning a pair `(q, r)` where `m = q * d + r` and `0 ≤ r < d` (if `d > 0`).
+   - **`m %/ d`**: Quotient of `m` divided by `d` (i.e., `edivn m d`.1).
+   - **`m %% d`**: Remainder of `m` divided by `d` (i.e., `edivn m d`.2).
+   - **Modular Equivalence**: Notations such as `m = n %[mod d]` express that `m` and `n` are congruent modulo `d`, i.e., their remainders upon division by `d` are equal. Both propositional (`=`, `<>`) and boolean (`==`, `!=`) forms are provided, all reflecting to modular equality at the number level.
+   - **Boolean Modular and Divisibility Predicates**: Most numeric predicates (e.g., whether two numbers are congruent mod `d`, or whether `d` divides `m`) come in both boolean and propositional versions, with reflection lemmas ensuring equivalence.
+
+3. **Divisibility (`%|`) and Related Predicates:**
+   - **`d %| m`**: Boolean predicate indicating "d divides m", i.e., there exists `k` such that `m = k * d`. 
+   - Conversion lemmas relate `%|` to existential statements in Coq for ease of proof construction.
+
+4. **Greatest Common Divisor (GCD) and Extended GCD:**
+   - **`gcdn m n`**: Computes the non-negative greatest common divisor of `m` and `n` using the Euclidean algorithm.
+   - **`egcdn m n`**: Returns a pair of Bezout coefficients `(u, v)` such that `gcdn m n = m * u - n * v` (extended GCD).
+   - Reflection and specification types (e.g., `edivn_spec`, `egcdn_spec`) formally tie together algorithmic and algebraic properties.
+   - Lemmas consistently relate GCD computations to divisibility and provide characterizations such as idempotence, commutativity, and connections to modular arithmetic.
+
+5. **Least Common Multiple (LCM):**
+   - **`lcmn m n`**: Returns the least common multiple of `m` and `n`, defined as `m * n %/ gcdn m n`.
+   - LCM and GCD are algebraically linked by the equation `lcmn m n * gcdn m n = m * n`.
+
+6. **Coprimality:**
+   - **`coprime m n`**: Boolean predicate, true if and only if `gcdn m n = 1`, indicating that `m` and `n` are coprime.
+   - Numerous lemmas connect coprimality to modular arithmetic, divisibility, and properties such as multiplicativity over coprime components.
+
+7. **Chinese Remainder Theorem (CRT):**
+   - Formalizes modular congruence over product moduli and provides explicit construction:
+     - **`chinese m n r s`**: For coprime moduli `m` and `n`, returns an integer congruent to `r (mod m)` and `s (mod n)`, explicitly solving the CRT in the constructive setting.
+   - Includes lemmas establishing equivalence of congruences and properties of the CRT witness.
+
+Conventions and Notational Principles
+======================================
+
+1. **Boolean Reflection:** 
+   - The file systematically adopts a reflection principle, offering boolean-valued functions (e.g., `%|`, `==`, `coprime`, `= n %[mod d]`) accompanied by corresponding reflection lemmas. This allows seamless transition between computational, boolean expressions and logical, proposition-style statements conducive to proof automation.
+
+2. **Notation Scope:**
+   - All division, remainder, modular congruence, and divisibility notations (e.g., `%/`, `%%`, `%|`, `= %[mod d]`) are defined within the `nat_scope`. Parentheses and explicit scoping clarify precedence and avoid ambiguity.
+
+3. **Syntactic Abbreviations and Suffixes:**
+   - Lemma and definition names regularly employ suffix conventions (`D`, `M`, `l`, `r`, `A`, `C`, `AC`, `CA`, `ACA`) to indicate the algebraic operation (e.g., `l` for "left", `r` for "right", `M` for "multiplication", `A` for "associativity", `C` for "commutativity") or orientation.
+   - Lemmas about modular arithmetic with deeply nested remainders use ‘m’-suffixed names (e.g., `modnDml`, `modnMDl`) to signal nested operations wrt `modn`.
+
+4. **Dealing with Edge Cases:**
+   - Division and remainder by zero are defined conventionally (`m %/ 0 = 0`, `m %% 0 = m`).
+   - Functions and lemmas distinguish special cases when the modulus or arguments are zero to maintain totality and avoid undefined operations.
+
+5. **Sections and Arguments:**
+   - Several sections, such as `Chinese`, locally bind variables and hypotheses (e.g., coprimality assumptions) to state and prove structural theorems with minimal global clutter.
+
+6. **Proof Engineering:**
+   - Definitions are designed to be structurally recursive whenever possible (e.g., `modn_rec`, `edivn_rec`), ensuring compatibility with Coq’s requirement for termination and enabling efficient computation.
+   - Automation is supported via declarations to Coq’s hint bases for core divisibility facts.
+
+7. **Explicitness and Constructiveness:**
+   - Extended GCD and CRT construction are made explicit by providing algorithms and explicit witnesses, facilitating constructive proofs and computation.
+
+Usage Context and Interpretation Guidance
+=========================================
+Anyone analyzing or commenting on fragments of this file should keep in mind:
+  - The file treats only *natural numbers* (`nat`, i.e., non-negative integers).
+  - All main arithmetic functions (division, remainder, GCD, LCM, etc.) are defined to be total (always yield a value), using conventional assignments for degenerate cases (such as division by zero).
+  - Both computable (`bool`) and logical (`Prop`) forms of statements are supplied, with the reflection pattern facilitating movement between the two worlds in proofs.
+  - The notational conventions and lemma naming schemes are systematic and encode operation, symmetry, and argument orientation, which aids in easily identifying an entity’s role or the variation it realizes.
+  - The Chinese Remainder Theorem section is self-contained, requiring only the coprimality assumption for its two moduli, and supplies both a decision procedure and an explicit constructive witness.
+
+In summary, this file is a comprehensive, self-contained toolkit for reasoning about divisibility, modular arithmetic, and related structures on natural numbers in Coq, under the design and conventions of the Mathematical Components library.
+*)
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

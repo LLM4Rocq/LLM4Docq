@@ -1,0 +1,91 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Corelib and Compatibility Settings
+
+Overview
+========
+This file serves as a foundational configuration module for Coq developments that use the "MathComp" approach (i.e., the Mathematical Components library) or build on its broader ecosystem. The primary goal of the file is to establish core syntactic and behavioral settings that ensure compatibility and reproducibility of proof scripts, especially when integrating MathComp's Ssreflect extension with other libraries or across different versions of Coq. It does not introduce new mathematical definitions or results, but rather focuses on exporting preliminaries and configuring the proof environment to align with MathComp conventions.
+
+Mathematical and Software Objects
+=================================
+1. Import and Export Mechanisms:
+   - The file imports and exports the `ssreflect` extension from a core library layer (`Corelib Require Export ssreflect`). Ssreflect is a collection of extensions to Coq that provide robust tactics for structured small-scale reasoning, as well as additional notational and organizational tools fundamental to the MathComp style of formalization.
+
+2. Environment and Pattern-Matching Settings:
+   - The file configures several global settings that affect the behavior of the Coq proof assistant throughout downstream files:
+     - `Set SsrOldRewriteGoalsOrder`: Ensures that the ordering of goals after a `rewrite` tactic corresponds to the legacy behavior standard in older versions of Ssreflect/MathComp. This is essential for maintaining backward compatibility with scripts written for earlier MathComp releases.
+     - `Set Asymmetric Patterns`: Activates a pattern-matching heuristic affecting tactic matching, optimizing for performance and usability in the context of Ssreflect’s rewriting tactics and the handling of existential variables.
+     - `Set Bullet Behavior "None"`: Disables the default bullet-based goal management in Coq, favoring the explicit and sequential goal structuring utilized in the MathComp and Ssreflect tactic frameworks.
+
+3. Deprecated Compatibility Notation:
+   - The file declares a notational entry:
+     ```
+     #[deprecated(since="mathcomp 2.3.0", note="Use `Arguments def : simpl never` instead (should work fine since Coq 8.18).")]
+     Notation nosimpl t := (nosimpl t).
+     ```
+     - This provides a backward-compatible version of the `nosimpl` notation, used throughout MathComp developments to prevent eager simplification of terms during proofs and computation. The deprecation notice guides users toward the more modern and idiomatic use of argument annotations, but keeps the older style available for legacy codebases or transitional work.
+
+Key Conventions
+===============
+1. Scope Management:
+   - By globally exporting (via `Require Export`) the central Ssreflect extension, all downstream files automatically inherit MathComp’s richer tactic language, notation scopes (such as `: ring_scope`, `: nat_scope`, etc.), and local conventions for handling mathematical structures and properties.
+
+2. Rewriting and Goal Management:
+   - The settings for rewrite goal ordering and bullet behavior are chosen to maximize compatibility with proof scripts developed under classic MathComp versions. This ensures that the tactical structure of proofs remains predictable, that goal splits and flows match established patterns, and that the unique chaining and sequencing features of Ssreflect tactics work as intended.
+
+3. Pattern Matching:
+   - Enabling `Asymmetric Patterns` supports more sophisticated and efficient matching of patterns in tactical applications, allowing for concise, readable, and maintainable proof scripts even in complex settings with dependent types and intricate variable dependencies.
+
+4. Simplification Control:
+   - The `nosimpl` notation (and its deprecated status) signals the importance of fine-grained control over Coq’s evaluation and unfolding behavior, which is critical in MathComp and related developments. It helps avoid unintended simplifications that could obscure proof objectives, interfere with rewriting steps, or degrade performance.
+
+Context and Usage
+=================
+This file is intended to be included near the beginning of Coq files that follow the MathComp paradigm or that want maximal compatibility with MathComp/Ssreflect's style and tools. It sets environmental defaults and exports core notations so that proof scripts that follow (even if authored by users unfamiliar with the historical background of MathComp) are equipped with:
+  - The Ssreflect toolkit and proof language,
+  - Consistent and predictable rewriting, simplification, and goal structure mechanics,
+  - Backward-compatible notations to facilitate migration of older code.
+
+Files or code chunks that refer to tactics, notations, or proof management defined in or affected by this file will assume these conventions are in force. In drafting comments or docstrings for downstream proof code, users should note that mathematical definitions and tactics build on this base of globally set options, notations, and imported identifiers.
+
+Summary
+=======
+In essence, this file is a reusable "core setup" for MathComp-style Coq projects, unifying proof-engine settings and essential notations. This ensures that both code and proofs inherit the expected semantics and tactics of the MathComp ecosystem, resulting in portable, reproducible, and maintainable formalizations.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

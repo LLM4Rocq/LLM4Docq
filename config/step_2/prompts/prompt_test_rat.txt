@@ -1,0 +1,96 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Rational Number Arithmetic and Syntax in MathComp
+
+Overview
+========
+This file provides a collection of demonstration goals and syntax checks that introduce core concepts and arithmetic operations involving rational numbers (`rat`) in the Mathematical Components (MathComp) library for Coq. Its primary objective is to clarify how rational numbers are represented, how common arithmetic operations are expressed and verified, and how number literals are interpreted within different scopes. 
+
+By showcasing example goals and type-checks, the file serves as an accessible tutorial bridging the gap between mathematical notation and its formalization in MathComp's algebraic hierarchy. This is especially valuable for users seeking to understand the integration of the `rat` type (rational numbers), ring and field operations, and literal notations within Coq proofs.
+
+Mathematical Objects and Representations
+=======================================
+The main objects addressed in the file are:
+
+1. **Rational numbers (`rat`)**:  
+   The type `rat` denotes the field of rational numbers, which are encoded internally as reduced fractions of integers, ensuring canonical representation in the proof assistant.
+
+2. **Integer coercion (`%:Q`)**:  
+   The notation `n%:Q` (where `n` is an integer or a natural number) denotes the image of `n` coerced into the rational numbers as the fraction `n/1`. This allows seamless mixing of integers and rationals in arithmetic expressions.
+
+3. **Ring and Field Operations**:  
+   - **Addition (`+`), multiplication (`*`), negation (`-`), and exponentiation (`^+`)** are presented using familiar infix or notation, corresponding to their standard definitions in the rational field.
+   - **Multiplicative inverse (`^-1`)** is used to refer to the reciprocal of an element, as in standard mathematical practice.
+   - The subtraction and negation of rational numbers are also demonstrated.
+ 
+4. **Numeric Literals and Scopes**:  
+   - The file leverages Coq's *scopes* to control the interpretation of numeric literals. Specifically, opening `ring_scope` and `rat_scope` allows for concise, idiomatic expressions: for example, writing `2%:Q` or `(-1)^-1` directly.
+   - Floating-point and decimal literals (e.g., `3.14`, `-3.14`, `0.5`) are tested with `Check` statements to determine their type interpretation—important since the default behavior in MathComp and Coq distinguishes between integers, rationals, and reals.
+
+Key Coding and Notational Conventions
+=====================================
+Several critical conventions and mechanisms are exemplified in this file:
+
+1. **Scopes**:  
+   - `ring_scope` and `rat_scope` are opened locally to ensure arithmetic symbols and numbers are interpreted as operations and elements in the relevant algebraic structure—either generic rings, or specifically the field of rationals.
+   - This mechanism enables the easy use of symbolic notations and arithmetic without requiring verbose qualifiers.
+
+2. **Coercions and Notations**:  
+   - `%:Q` is used systematically to coerce integers (of type `int` or `nat`) to rationals.
+   - Exponentiation uses the `^+` notation to indicate integer exponents.
+   - The notation `:> rat` in type casts, such as in `(-1)^-1 = -1 :> rat`, clarifies that the equality holds in the rational context.
+
+3. **Goal Statements**:  
+   - The file contains `Goal` statements asserting equalities between rational expressions, illuminating both the behavior of the underlying system and how common mathematical facts are encoded and verified in MathComp.
+
+4. **Type Checking (`Check`)**:  
+   - `Check` commands are used to display the inferred types of various numeric literals, highlighting how Coq parses and assigns types to decimal numbers, negatives, and standard integers.
+
+Context for Interpretation and Documentation
+===========================================
+This file acts as a foundational reference for understanding how the MathComp library reconciles familiar mathematical expressions involving rationals with the formal requirements of Coq. Its examples demonstrate both the syntactic conventions (notations, coercions, scopes) and the semantic ones (arithmetic meaning, equality, type checking).
+
+Readers can infer from this file how to:
+  - Express and prove identities about rational numbers.
+  - Employ various notational shortcuts and coercions.
+  - Control and inspect type interpretation using scope management and type-checking commands.
+
+This context is applicable to code that formalizes algebraic properties involving rational numbers, and serves as a pattern for expressing such properties in a manner faithful to both standard mathematics and formal proof methods.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

@@ -1,0 +1,105 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Algebraic Numbers and Field Extensions: Foundations for Galois Theory
+
+Overview and Purpose
+====================
+This Coq source file serves as a foundational module for the formalization and mechanization of algebraic number theory and Galois theory within the Mathematical Components (MathComp) library. Its main objective is to gather, instantiate, and export the essential mathematical structures and theory relevant to algebraic numbers, finite and algebraic field extensions, cyclotomic fields, Galois groups, and related algebraic constructs. By assembling and re-exporting these core libraries, the file provides a unified interface and central entry point for working with algebraic extensions of fields—from the basic properties of algebraically closed fields to the more advanced theory of Galois extensions and separability.
+
+Mathematical Objects and Their Formal Representations
+====================================================
+The key mathematical objects handled (via the imported/exported libraries) are:
+
+1. **Algebraically Closed Fields and Extensions**:  
+   - **Fields (`field`, `closedFieldType`)**: Core algebraic structures supporting addition, multiplication, and inversion.
+   - **Algebraically Closed Fields**: Fields in which every non-constant polynomial has a root. Represented in Coq as types with a `closedFieldType` structure, allowing formal manipulation of roots and factorization.
+
+2. **Algebraic Numbers and Algebraic Closures**:  
+   - **Algebraic Number Fields**: Defined as finite extensions of the rational numbers (ℚ) or more generally, as roots of polynomials with coefficients in a base field. In Coq, algebraic numbers are represented using the type `algC`, denoting the algebraic closure of ℚ.
+   - **Algebraic Elements and Extensions**: The library formalizes what it means for an element or extension to be algebraic over a base field (i.e., to satisfy a suitable polynomial equation).
+
+3. **Cyclotomic Fields and Roots of Unity**:  
+   - **Cyclotomic Polynomials (`cyclotomic`)**: Polynomials whose roots are primitive n-th roots of unity. The file encompasses formalizations relating to their algebraic properties.
+   - **Roots of Unity**: Elements of a field satisfying `x^n = 1`, crucial for cyclotomic extensions.
+
+4. **Finite Fields and Extensions**:  
+   - **Finite Fields (`finFieldType`)**: Fields with finitely many elements, important in both number theory and applications (e.g., cryptography). Their structure, characteristic, and extensions are modeled in Coq via appropriate mixins.
+   - **Field Extensions (`fieldExtType`)**: Types representing extensions of a given field by adjoining roots of polynomials.
+
+5. **Galois Theory**:
+   - **Galois Groups and Extensions (`galois`)**: Automorphism groups of field extensions that fix the base field, including results on Galois correspondence, fixed fields, and normal/separable extensions.
+   - **Separable Extensions (`separable`)**: Extensions where minimal polynomials have distinct roots, formalized by properties of minimal polynomials and their derivatives.
+
+6. **Splitting Fields and Fundamental Algebraic Results**:
+   - **Splitting Field Constructions**: Fields over which a given polynomial factors completely into linear terms, represented and constructed in the formal development.
+   - **Fundamental Theorems**: Aggregation of basic results in algebraic field theory, including minimal polynomial constructions and their properties.
+
+Key Coding and Notational Conventions
+=====================================
+- **Type Classes and Canonical Structures**: Mathematical structures such as fields, field extensions, and algebraically closed fields are encapsulated using MathComp's rich hierarchy of structures, allowing for automatic inference and reuse in proofs.
+  
+- **Coercions and Notation**:  
+  - Canonical coercions allow seamless treating of subfields, extensions, and algebraic closures as fields when needed.
+  - Notations for polynomials, field elements, and field actions tightly follow traditional mathematical usage (e.g., `K[x]` for polynomials over field `K`, `E` for extensions of `K`).
+  - The type `{{poly K}}` denotes the type of polynomials over field `K`.
+  - Galois groups and related automorphism groups are denoted through transparent mappings reflecting field automorphisms.
+
+- **Use of ssreflect and MathComp Idioms**:  
+  - Boolean reflectivity: Many properties (e.g., separability, irreducibility) are provided as Boolean predicates with corresponding reflection lemmas, facilitating computational as well as propositional reasoning.
+  - Proof abstractions: Intensive use of MathComp’s lemma naming conventions, sectioning, and automation for readability and reusability.
+  - Modular Imports: This file exclusively re-exports foundational libraries, ensuring that importing it suffices to access the main toolkit for algebraic number theory and Galois theory formalizations.
+
+- **Scoping and Overloading**:  
+  - Field notations and operations are equipped with dedicated scopes (e.g., `field_scope`, `poly_scope`), and symbolic notations (for polynomials and field automorphisms) are consistently employed.
+
+Context and Usage
+=================
+This file is designed as an umbrella module: its purpose is to systematically import and re-export the core theory and definitions needed to pursue advanced mathematics about algebraic numbers and field extensions in Coq, without requiring end-users to track multiple dependencies separately. Any subsequent formalization relying on algebraic numbers, field extension theory, or Galois theory will typically import this file to gain immediate access to the full suite of established results and notations.
+
+When encountering code from this file, one can expect to reason formally about:
+- Algebraic closures and algebraic numbers over ℚ and arbitrary fields.
+- Extensions generated by roots of polynomials, including cyclotomic extensions.
+- The theory of finite fields, their automorphisms, and their relation to more general algebraic extensions.
+- Galois groups, their actions, and their structural properties.
+- Separable and normal extensions, splitting fields, and related algebraic artifacts.
+
+This context empowers both reading and writing formal developments involving advanced algebraic objects while relying on the default conventions and abstractions standardized by the MathComp ecosystem.
+
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

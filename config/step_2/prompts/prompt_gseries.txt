@@ -1,0 +1,111 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+(*
+Subnormal Series and Chief Factors in Finite Group Theory
+
+Overview
+========
+This file provides a formalization in Coq of core notions from the structure theory of finite groups, focusing especially on the concepts of subnormal series, normal and chief factors, invariance, stability, maximality, minimality, and simplicity of subgroups. The developments are organized to facilitate the use of these concepts in the study and formal proof of theorems related to group series and composition factors, such as the Jordan–Hölder theorem and related results.
+
+Purpose and Main Goal
+=====================
+The primary aim of this file is to define, in a succinct and modular way, fundamental group-theoretic relations that describe how subgroups fit together within a finite group—specifically, how normality, subnormality, and various maximality properties of subgroups interact. These definitions serve as the backbone for constructing and reasoning about series of subgroups (chains in which each is normal or subnormal in the next), for identifying characteristic factors like chief factors, and for formulating the properties of simple and minimal (nontrivial) normal subgroups.
+
+Mathematical Structures and Their Formal Representations
+=======================================================
+All groups and subgroups considered in the file are finite and are represented by Coq types using the `finGroupType` structure from the Mathematical Components (MathComp) library. Subgroups are typically objects of type `{{group gT}}` (where `gT` is a finite group type), and subsets of the group universe are written as `{{set gT}}`. The concepts developed include (but are not limited to) the following:
+
+- **Subnormality (`subnormal` / `<|<|`)**: A subgroup \( H \leq G \) is *subnormal* in \( G \) if there exists a finite chain of subgroups from \( H \) to \( G \), each normal in the next; formally, this means \( H = H_0 \leq H_1 \leq \dots \leq H_n = G \) with each \( H_i \trianglelefteq H_{{i+1}} \). The predicate is formally defined as `subnormal H G`, with infix notation `H <|<| G`.
+
+- **Normal Series and Series Relations**:
+    - Series of subgroups (represented as lists of groups or sets) are equipped with pairwise relations, typically normality (`<|`), invariance, or stability.
+    - **Invariant factor (`invariant_factor`)**: Expresses that a subgroup \( A \) normalises two subgroups \( H, G \), and that \( H \) is normal in \( G \).
+    - **Stable and Central factors (`stable_factor`, `central_factor`)**: Capture situations where a group or set acts trivially (i.e., centralises) on certain quotients.
+
+- **Maximal and Minimal Subgroups**:
+    - **Maximal (`maximal`)**: \( M \) is a *maximal proper* subgroup of \( G \) if \( M < G \) and there is no subgroup strictly between \( M \) and \( G \).
+    - **Minimal normal subgroup (`minnormal`)**: \( M \) is a *minimal nontrivial* subgroup normalised by \( G \), i.e., \( M \neq 1 \), \( M \leq G \), and no proper nontrivial subgroup of \( M \) is normalised by \( G \).
+
+- **Simple Groups (`simple`)**: Defined as nontrivial groups with no proper nontrivial normal subgroups, that is, \( G \) has only the trivial subgroup and itself as normal subgroups.
+
+- **Chief Factors and Series**:
+    - **Chief factor (`chief_factor`)**: A maximal normal factor inside a group series.
+    - **Chief series**: A normal series in which every factor is a chief factor.
+
+- **Morphisms and Quotients**:
+    - The behaviour of these subgroup properties under group morphisms and group quotients is rigorously developed, using MathComp's tools for morphisms and cosets/quotients.
+
+Key Notational and Coding Conventions
+=====================================
+1. **Notation Scopes**: Specialized scopes are declared so that mathematical notations such as `<|<|`, `.-series`, `.-invariant`, `.-stable`, etc., are used with proper precedence and ambiguity resolution. 
+    - Primary notations include:
+        - `H <|<| G`: H is subnormal in G.
+        - `A .-invariant`, `A .-stable`, `A .-central`, `G .-chief`: Relations for invariance, stability, centrality, and chief factors in the context of group series (see below).
+
+2. **Series Notation**: The file introduces notations of the form `r .-series`, where `r` is a binary relation predicate. A series (`g_rel.-series H s`) is a sequence starting at `H`, followed by subgroups in `s`, such that consecutive pairs satisfy relation `r`.
+
+3. **Arguments and Implicit Generalization**: Most definitions and lemmas use implicit arguments to streamline expressions in proofs and notations, following the MathComp/ssreflect idioms.
+
+4. **Use of “Proper Subgroup” and Maximality**: The property `G \proper H` is used to express that `G` is a proper (strict) subgroup of `H`. The maximal predicate is often phrased via `maximal G H`, denoting that `G \proper H` and no subgroup contains `G` and is strictly contained in `H`.
+
+5. **Reflection Lemmas**: Many properties are bundled with so-called “P-lemmas” (such as `subnormalP`, `maximal_eqP`, `simpleP`, etc.) which provide logical equivalences between the Boolean predicates and their mathematical (propositional) meaning, leveraging ssreflect's reflection principle for seamless proof scripting.
+
+6. **Coercion to Group Sets**: Subgroups are manipulated both as carrier sets (for subset/inclusion relations) and as group structures; this is handled via coercions in MathComp and reflected in the systematic use of `{{set gT}}` and `{{group gT}}`.
+
+Syntactic Conventions for Users and LLMs
+========================================
+- When interpreting code in this file, assume that group-theoretic predicates and constructions (e.g., `subnormal`, `maximal`, `chief_factor`) always refer to finite groups.
+- Series notions are typically handled as sequences of groups or sets, with properties relating consecutive terms.
+- When seeing notations like `A .-invariant H G`, read as “H is an invariant factor of G modulo A” (i.e., A normalises both H and G and H is normal in G).
+- Where morphisms or quotients are involved, the file consistently uses `@*`, `/`, or images/preimages notation from the MathComp morphism library.
+
+File Structure and Lemma Organization
+=====================================
+The file is organized into logical sections that encapsulate:
+- Definitions of all the key subgroup relations and series properties.
+- Lemmas establishing basic properties, equivalences, and the behaviour of these properties under group operations (such as subgroups, products, images, quotients).
+- Special sections for maximal and minimal (normal) subgroups, morphism behaviour, and translation across quotient and isomorphism structures.
+- Dedicated treatment for chief and central factors, especially in connection with chief series and simplicity.
+
+Summary
+=======
+By establishing reusable, Boolean-valued definitions for the most commonly used subgroup and factor relations in finite group theory, this file provides the foundational machinery to manipulate and reason about group series, factor groups, and structural properties via ssreflect-style proof scripting. The conventions and definitions used here are essential for any further developments on structure theorems, classification theory, or automated reasoning about finite groups in the MathComp ecosystem or similar proof libraries.
+*)
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

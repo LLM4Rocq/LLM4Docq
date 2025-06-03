@@ -1,0 +1,97 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Cyclotomic Polynomials
+
+Overview
+========
+This module formalizes foundational properties and constructions related to cyclotomic polynomials within the Coq proof assistant, using the Mathematical Components (MathComp) library as a basis for algebraic structures. The primary goals are to define the nth cyclotomic polynomial over several rings, explore its algebraic properties (particularly as it relates to roots of unity), and make a connection with its classical representation as a polynomial with integer coefficients.
+
+Mathematical Objects and Representations
+========================================
+1. Cyclotomic Polynomials:
+   - The nth cyclotomic polynomial, commonly denoted Φₙ(X) or 'Phi_n, is defined as the minimal polynomial over ℚ (and, more abstractly, over ℤ) whose roots are the primitive nth roots of unity.
+   - In this formalization, two primary versions are used:
+     • For a ring R and an nth primitive root of unity z in R, `cyclotomic z n` is defined as the product of linear factors (X - z^k) as k ranges over 0 < k < n, with k coprime to n.
+     • The canonical integral cyclotomic polynomial `Cyclotomic n` (also notated as `'Phi_n`) is the unique monic polynomial in ℤ[X] whose complex roots are the primitive nth roots of unity.
+
+2. Primitive Roots of Unity:
+   - The file relies on the notion of an nth primitive root of unity, encoded by the predicate `n.-primitive_root z` for elements z in a ring.
+   - Existence of primitive roots is asserted in the complex algebraic numbers (`algC`).
+
+3. Algebraic Structures:
+   - The development is parameterized by various ring types:
+     • `nzRingType`: a nontrivial ring type, used for initial constructions.
+     • `idomainType` and `fieldType`: integral domains and fields, respectively, as contexts for certain properties (e.g., separability, factorization).
+   - Polynomials are represented by `{{poly R}}` for polynomials over a ring R, using MathComp’s `poly` type.
+
+4. Key Functions and Lemmas:
+   - `cyclotomic z n`: The nth cyclotomic polynomial over R, written as a product of factors (X - z^k) where k runs over integers modulo n coprime to n.
+   - `'Phi_n`/`Cyclotomic n`: The monic integral polynomial corresponding to the nth cyclotomic polynomial.
+   - Relationships between these forms via ring embeddings and algebraic closure (`algC`).
+   - Factorization identities such as the product expansion `Xⁿ - 1 = ∏_{{d|n}} Φ_d(X)` and related size/degree assertions matching Euler’s totient function.
+   - Minimal polynomial characterization: that `'Phi_n` is (up to a ring embedding) the minimal polynomial of a primitive root.
+
+Key Notational and Coding Conventions
+=====================================
+- Notation:
+  • `'Phi_n` denotes the nth cyclotomic polynomial over the integers.
+  • Function and notation names strive to resemble conventional mathematical usage (e.g., `cyclotomic`, `primitive_root`, `prod_` for products, `divisors n`).
+  • Number-theoretic functions such as Euler’s totient (`totient n`) are used to relate the degree or number of roots.
+
+- Mapping and Embedding:
+  • Standard ring embeddings/conversions are captured by notations (e.g., `ZtoC` for int→algC, `pZtoC` for int-polynomials → polynomials over `algC`).
+  • The module provides lemmas that relate the different polynomial interpretations under these embeddings.
+
+- Scope and Structure:
+  • Implicit argument handling is enabled for succinctness.
+  • All notations and operations use the local "ring_scope" to clarify intent and avoid ambiguity in overloading.
+  • The module is organized in sections corresponding to the ambient algebraic structure (rings, fields, domains).
+
+- Design Philosophy:
+  • The code restricts itself to basic properties and factorization results for cyclotomic polynomials. It does not currently include a constructive irreducibility proof over the integers, but it does relate `'Phi_n` to the minimal polynomial in the algebraic closure.
+  • Definitions are parameterized whenever possible to support generalization and eventual extension to broader classes of rings.
+
+Intended Usage and Context
+==========================
+This file serves as a minimal, foundational support for working with cyclotomic polynomials in formal proofs within Coq using MathComp. It is suitable for algebraic developments involving roots of unity, polynomial factorization, and field extensions. The mathematical focus is on cleanly connecting cyclotomic polynomials in their various incarnations (over arbitrary rings, over the integers, and as minimal polynomials in algebraic closures), and formalizing classical multiplicative and degree properties.
+
+The conventions and constructions introduced here should guide users and maintainers when interpreting or extending code related to cyclotomic polynomials and their interactions with algebraic structures, including understanding the bridging of classical and constructive algebraic material.
+
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

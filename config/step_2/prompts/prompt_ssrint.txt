@@ -1,0 +1,99 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+(* Signed Integer Theory and Operations
+
+Overview
+========
+This file formalizes the core algebraic theory of signed integers within the Mathematical Components (MathComp) framework for the Coq proof assistant. Its primary objective is to introduce the type of signed integers, equip it with standard arithmetic and order structures, and connect it to general algebraic interfaces, thereby enabling robust reasoning about integers and their interactions with abstract algebraic structures (such as rings, modules, and fields).
+
+Mathematical Structures and Representations
+==========================================
+1. **Signed Integers (`int`):**
+   - The central mathematical object in this file is the type of signed integers, denoted by `int`.
+   - In Coq, this is implemented as an inductive data type with two constructors:
+     - `Posz n` represents a non-negative integer `n : nat` (including zero).
+     - `Negz n` represents a negative integer, specifically `-(n + 1)` for `n : nat`.
+     - This encoding ensures a unique representation for each integer.
+   - For example, `0` is represented as `Posz 0`, `3` as `Posz 3`, and `-2` as `Negz 1` (since `-2 = -(1 + 1)`).
+
+2. **Canonical Embeddings and Coercions:**
+   - The function `n %:Z` (notation) is the canonical embedding from the natural numbers (`nat`) into signed integers: that is, `n %:Z := Posz n`.
+   - The type is made countable and has a decidable equality.
+
+3. **Algebraic and Ordered Structures:**
+   - Arithmetic operations on `int` are defined:
+     - Addition (`addz`), with notation `x + y`.
+     - Opposite (`oppz`), with notation `- x` or `-%Z`.
+     - Subtraction (`x - y`), as `x + (- y)`.
+     - Multiplication (`mulz`), with notation `x * y` or `*%Z`. 
+   - These operations are shown to endow `int` with a zmodType, ringType, and various ring hierarchy classes, including commutative ring, unit (integral) domain, and ordered ring structures.
+   - Order relations (`<=`, `<`) are defined via `lez` and `ltz`, aligning with the usual total order on the integers.
+   - Absolute value (`absz m`) returns the non-negative magnitude as a `nat`.
+   - The sign function `sgz x` yields the sign of `x` as an `int` (`-1`, `0`, or `1`).
+
+4. **Numeric Casts and Operations across Structures:**
+   - For any z-module or ring `R`, the notation `n %:~R` (or `1 *~ n`) denotes the image of `n : int` in `R`, generalizing the embedding from `int` into arbitrary algebraic structures.
+   - `x *~ n` denotes scaling by a signed integer: if `n` is non-negative, this corresponds to repeated addition; if negative, it generalizes repeated subtraction.
+   - Exponentiation `x ^ n` is defined for `x` in a unit ring and `n : int`, using positive and negative powers as appropriate.
+
+5. **Distance and Metric:**
+   - The file introduces a type-level distinction for distance, with the scope `distn_scope` and notation `` `|m - n| `` yielding the (natural number) distance between `m` and `n` (absolute value of the difference).
+
+6. **Number Notations and Parsing:**
+   - Literal integer constants (e.g., `-3`, `245`) are parsed and printed as `int` values within the `int_scope`.
+   - Specialized notational forms for equalities and predicates, such as `(m = n :> 'int')`, `(m == n :> 'int')`, and coercions from other numeric types, are provided.
+
+Key Coding and Notational Conventions
+=====================================
+- **Scopes and Notation:** Most integer operations and constants are placed in or interpreted in `int_scope`, and distance-related notations use `distn_scope`. This ensures that parsing, printing, and type inference remain consistent and user-friendly.
+- **Coercions and Overloading:** The constructor `Posz` is often used as a coercion from `nat` to `int`, allowing seamless mixing of natural numbers and integers in expressions and making notations (like `n %:Z`) more ergonomic.
+- **Morphisms and Homomorphisms:** The interaction of integer operations with algebraic structure morphisms—additive, multiplicative, linear—is formalized through specialized lemmas (e.g., `raddfMz`, `rmorphMz`). These capture how casting and scaling commute with structure-preserving functions.
+- **Predicate Reflection:** Many Boolean predicates (such as equality, order, zero, sign) are equipped with reflection lemmas, enabling both Boolean computation and use in `rewrite` tactics.
+- **Parametric Scaling:** The scaling operation `*~` is defined for any additive group or module and extended to match the `int` structure. For instance, `x *~ n` for `x : R` (a module element) and `n : int` computes the sum or difference according to the sign of `n`.
+- **Module Organization:** The code is segmented into clear sections that distinguish between basic definitions, algebraic properties and instances, interaction with other structures, ordering, distance metrics, and numerics-related utilities.
+
+Interpretation Context for Retrieval
+====================================
+- **Mathematical Focus:** At its core, the file is about making the signed integers (`int`) a first-class, reusable building block for formalized mathematics. All major algebraic operations and orderings are implemented and proved to fulfill their abstract interface specifications.
+- **Software Engineering:** The conventions ensure that usage (and extension) of `int` is uniform; representations are unique, morphisms (mappings) are canonical, and notations are consistent throughout. This self-contained treatment of integers allows code or comments referencing objects or lemmas from this file to be interpreted as operating within this robust, abstract, and flexible framework.
+- **Abstraction Level:** The file bridges concrete arithmetic (the construction and calculation with explicit integers) and abstract algebra (scalings, morphisms, and embeddings into arbitrary rings and modules), equipping future users or code with the tools to specialize, generalize, or transport reasoning across multiple domains.
+
+*)
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

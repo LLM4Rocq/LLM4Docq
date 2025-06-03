@@ -1,0 +1,138 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Spectral Theory of Matrices over Closed Fields
+
+Overview
+========
+This Coq source file develops the foundational elements of spectral theory for finite-dimensional matrices with entries in a closed field, focusing specifically on complex or real closed fields as customarily formalized in the MathComp ecosystem. The main goals of the file are:
+
+- To define and formalize central concepts in spectral theory, such as orthogonality, unitarity, normality, and related structures for matrices and subspaces.
+- To provide constructive and computable formalizations of the Gram-Schmidt orthonormalization process, Schur and spectral decompositions, and related linear-algebraic constructions.
+- To prove that key classes of matrices (e.g., normal, Hermitian, symmetric) admit canonical decompositions via unitary transformations, culminating in the spectral theorem.
+
+This formalization is intended to serve as a rigorous foundation for reasoning about advanced properties of linear operators, spectral decompositions, and unitary equivalences in a machine-checked, proof-oriented environment.
+
+Mathematical Structures and Their Representations
+=================================================
+
+The primary mathematical objects manipulated in this file are as follows:
+
+1. **Fields and Matrix Types**:
+   - All matrices are over a `numClosedFieldType` `C`, which represents a (possibly complex) closed field equipped with a total ordering and operations such as conjugation.
+   - Notation: `'M[C]_(m, n)` denotes the space of `m`-by-`n` matrices over `C`. Vectors are represented as row matrices (`'rV[C]_n`).
+   - Real and complex field elements are handled using available imaginary unit `i` and conjugation `conjC`.
+
+2. **Unitary Matrices**:
+   - A matrix `M : 'M[C]_(n, n)` is **unitary** if `M * M^t* = 1%:M`, with involution `M^t*` denoting the conjugate transpose (transpose followed by entrywise conjugation).
+   - Unitary matrices form a key group of transformations preserving the (Hermitian) form.
+
+3. **Normal, Hermitian, and Symmetric Matrices**:
+   - A **normal** matrix satisfies `A * A^t* = A^t* * A`.
+   - A **Hermitian** (`hermsymmx`) matrix equals its conjugate transpose; a **symmetric** matrix equals its transpose and is real (`realmx`).
+   - The file proves correspondences (e.g., symmetric real matrices are Hermitian and therefore normal).
+
+4. **Sesquilinear and Dot Products**:
+   - The file defines the canonical Hermitian (sesquilinear) dot product for vectors: `'[u, v] := dotmx u v`.
+   - The notation `dotmx` is used to denote this form, and its crucial properties (Hermitian, positive-definite) are formalized.
+   - This structure supports orthogonality, projections, and orthonormalization.
+
+5. **Orthogonality and Orthogonal Complements**:
+   - Orthogonality of subspaces is formalized via the `orthomx` (orthogonal matrix) and related Boolean predicates.
+   - The orthogonal complement of a subspace `U` is denoted `U^!`; key properties such as double orthocomplementation and direct sum decompositions are established.
+   - Orthogonal projections (`proj_ortho U`) are defined, behaving canonically as idempotent linear operators.
+
+6. **Gram-Schmidt Orthonormalization**:
+   - Function `schmidt` implements Gram-Schmidt orthonormalization, turning a set of linearly independent vectors into an orthonormal basis.
+   - The resulting matrix is always unitary for full-rank input, with properties formalized for both full and partial bases.
+
+7. **Schur and Spectral Decompositions**:
+   - Using unitarity and normality, the file proves that:
+     - Every normal matrix is unitarily similar to a diagonal matrix (spectral theorem).
+     - Every matrix is unitarily similar to an upper-triangular matrix (Schur decomposition).
+   - These theorems are constructively presented by functions `spectralmx`, `spectral_diag`, and explicit relevant witnesses.
+
+8. **Common Eigenvectors and Simultaneous Triagonalization**:
+   - Results are proved on the existence of common eigenvectors for commuting families of matrices, as well as simultaneous (co)triagonalizability.
+
+Key Coding and Notational Conventions
+=====================================
+
+1. **Notation and Scopes**:
+   - The file makes extensive use of notations, often local to precise mathematical contexts.
+     - Conjugate transpose is denoted `M^t*`.
+     - The Hermitian dot product is noted as `'[u, v]` and `'[u] := '[u, u]`.
+     - Orthogonal complement is denoted by `^!`, as in `U^!`.
+     - Projections onto subspaces via `proj_ortho U`.
+     - Unitary and normal matrices are written as `M \is unitarymx` and `M \is normalmx`.
+     - Real matrices: `A \is a realmx`.
+
+2. **Predicates and Reflection**:
+   - Many properties (e.g., being unitary, normal, orthogonal, etc.) are modeled as Boolean-valued predicates, with associated reflection lemmas allowing smooth transfer between Boolean and propositional statements in proofs.
+
+3. **Matrix Set Operations**:
+   - Subspace relations and operations (direct sum, intersection, etc.) use the established MathComp notations: `<=`, `:=:`, `+`, `:&:`, for subspaces of matrices, usually with the `%MS` scope.
+
+4. **Canonical Structures and Typeclasses**:
+   - The file uses HB (Hierarchy-Builder) for canonical structures and typeclass instances (e.g., to register forms as bilinear, Hermitian, etc.), which enables extensibility and smooth interaction with the MathComp algebraic hierarchy.
+
+5. **Implicit Arguments and Scoping**:
+   - `Set Implicit Arguments` is used extensively, relying on type inference to minimize verbosity.
+   - Local scopes are opened to restrict notations to appropriate mathematical contexts.
+
+6. **Design for Computability and Reusability**:
+   - The core constructions (e.g., Gram-Schmidt, spectral decomposition) are defined as explicit functions (not just existence proofs), guaranteeing the computability of the witnesses and making the module suitable both for interactive and automated reasoning.
+
+Organization and Reading Guidance
+================================
+
+Each section is logically organized to develop the theory progressively:
+
+- Fundamental structure and property lemmas (eigenvalues, unitary and normal matrix theory).
+- Construction and formal properties of orthogonality and projections.
+- Development of Gram-Schmidt orthonormalization, including correctness, unitarity, and base change properties.
+- Formalization of Schur and spectral theorems, with explicit construction of the necessary matrices and verification of their properties.
+
+Every major function or predicate is paired with specification lemmas or proofs, reflecting both traditional mathematical reasoning and formal verification principles.
+
+Context for Retrieval and Further Documentation
+==============================================
+
+This docstring summarizes all main mathematical structures, their representations, and conventions used in the file. Anyone needing to document, interpret, or work with a particular code chunk from this file should refer to the above sections to situate the code in context—identify which part of the spectral theory framework it serves, and how it deploys the mathematical conventions and representations described here. Specialized notation, formal definitions, and predicate semantics can all be cross-referenced to the summaries above for clarity.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

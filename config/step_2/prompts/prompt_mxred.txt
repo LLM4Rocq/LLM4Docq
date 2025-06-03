@@ -1,0 +1,124 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Matrix Similarity and Diagonalizability
+
+Overview and Purpose
+====================
+This Coq source file formalizes fundamental theorems in the linear algebra of matrices over fields, with a primary focus on the concepts of matrix similarity, conjugation, diagonalizability, and simultaneous diagonalizability (codiagonalizability). The file develops a systematic theory of changing matrix representations via base change (conjugation), provides precise definitions for important transformations such as diagonalization and triangularization, and proves key equivalences characterizing when a matrix (or family of matrices) is diagonalizable—both individually and simultaneously. It also relates these properties to eigenspace decompositions and minimal polynomial factorizations.
+
+The results and notions established here are building blocks for advanced topics in linear algebra, representation theory, and related areas where expressing linear operators in simple forms (diagonal or triangular) is important for computation and theoretical analysis.
+
+Mathematical Objects and Their Representation
+=============================================
+
+1. **Matrices Over a Field**: All matrices considered are over an abstract type `F` equipped with field structure, referred to as `fieldType`. The notation `'M[F]_n` or `'M[F]_(m, n)` is used for the space of `n×n` or `m×n` matrices with entries in `F`.
+
+2. **Matrix Conjugation (`conjmx`)**: 
+   - Given matrices `V` (of appropriate size) and `f` (square), the conjugation (also called a change of basis) is defined as `conjmx V f = V *m f *m pinvmx V`, where `*m` is matrix multiplication and `pinvmx` computes a generalized inverse of `V`. 
+   - This operation replaces the basis for the vector space on which `f` acts, re-expressing `f` in a (possibly new) basis.
+
+3. **Restriction of Matrices (`restrictmx`)**: For a matrix `V`, `restrictmx V` denotes conjugation by the canonical basis-extracting matrix `row_base V`, i.e., a "restriction" of the linear map `f` to the image of `V`.
+
+4. **Stability (`stablemx`)**: A subspace (or the matrix representing it) is said to be *stable* under a linear map `f` if it is preserved by `f`. Stability is formalized via matrix equations and checked by corresponding Boolean predicates.
+
+5. **Similarity and Similarity Classes**:
+   - The predicate `similar_to P A C` holds if the conjugate `conjmx P A` belongs to the class `C`, expressing that the matrix `A` is similar to an element of `C` via the base change matrix `P`.
+   - More specifically, `similar P A B` indicates that `A` is similar to `B` (i.e., `conjmx P A = B`), and `similar_diag P A` asserts that `A` is similar to a diagonal matrix via `P`.
+   - "Similarity in" and "to" predicates (`similar_in`, `similar_in_to`, etc.) parameterize the allowed base change matrix and/or the similarity class.
+
+6. **Diagonalization and Codiagonalization**:
+   - `diagonalizable A` indicates that the matrix `A` is similar to a diagonal matrix (with an invertible base change).
+   - `codiagonalizable As` extends this to a sequence `As` of matrices: all of them are simultaneously diagonalizable in the *same* basis.
+   - Analogous definitions are provided for triangular ("trigonalizable") matrices.
+
+7. **Polynomial and Eigenspace Machinery**:
+   - The minimal polynomial (`mxminpoly f`) of a matrix and its properties under conjugation.
+   - Eigenspaces, eigenvalues (`eigenspace f a`), and associated decomposition of the space, all implemented via structured subspaces of matrices.
+
+8. **Simultaneous Diagonalization, Commutativity**:
+   - The file proves that a family of matrices is simultaneously diagonalizable if and only if each matrix is diagonalizable and the family is pairwise commutative (`comm_mx f g`).
+
+9. **Reflection Lemmas**:
+   - Essential equivalences are expressed as `reflect` lemmas, bridging Boolean predicates and propositional statements.
+
+Key Conventions and Notations
+=============================
+
+- **Canonical Notation for Types and Operations**:
+    - Square brackets denote type and size information: `'M[F]_n` for square matrices, `'M[F]_(m, n)` for rectangular.
+    - `*m` is matrix multiplication; `A \in unitmx` expresses invertibility.
+    - `pinvmx` computes a (possibly generalized) inverse, used to facilitate base changes even with non-invertible matrices.
+
+- **Scope and Implicits**:
+    - `Set Implicit Arguments` and local notational conventions are used to minimize verbosity and maintain clarity.
+    - The `ring_scope` is opened locally for convenience with ring and field operations.
+
+- **Boolean Predicates and Reflection**:
+    - Properties such as stability, similarity, diagonalizability, and commutativity are encoded as Boolean predicates (e.g., `stablemx`, `diagonalizable`).
+    - Throughout, reflection lemmas relate these Boolean predicates to classical mathematical statements, aligning with the Ssreflect/MathComp proof methodology.
+
+- **Parameterization of Notions**:
+    - Similarity and diagonalizability are considered both in general (for any base change matrix) and under restrictions (e.g., requiring invertibility, or matrices belonging to some subset).
+    - Many results are generalized to work with arbitrary families/sequences of matrices (`seq 'M[F]_n`).
+
+- **Naming Patterns**:
+    - Notations such as `similar_diag`, `diagonalizable`, `codiagonalizable`, and the corresponding `trigonalizable` variants are systematically used to denote the associated properties.
+    - "In" and "To" in names indicate parameterization in terms of allowed base change matrices or target similarity classes.
+
+- **Hints and Automation**:
+    - Core facts about diagonalization are made available through Coq's hint mechanisms for proof automation.
+
+- **Sectioning Pattern**:
+    - The file is divided into logical sections (`ConjMx`, `Similarity`, `Diag`) to structure the development from general conjugation properties to specific diagonalization criteria and main theorems.
+
+Summary of Main Results
+=======================
+- **Conjugation Laws**: Algebraic properties and interaction with stability, eigenvalues, and polynomials under conjugation.
+- **Diagonalization Criteria**: 
+    - A matrix is diagonalizable if and only if its minimal polynomial splits into distinct linear factors, or equivalently, if the direct sum of its eigenspaces is the whole space.
+    - A sequence of matrices is simultaneously diagonalizable if and only if they commute pairwise and are individually diagonalizable.
+- **Sufficiency and Constructivity**: The file not only proves existence but provides explicit constructions (e.g., of base change matrices, eigenvalue lists).
+- **Framework for Triangularization**: Although the full triangularization theory is not developed, the file establishes the corresponding framework analogous to that of diagonalization.
+
+Intended Use and Scope
+======================
+This file serves as a foundational module for anyone formally reasoning about linear operators, spectral theory, and canonical forms of matrices in the Coq proof assistant. Its content is self-contained (within the assumptions of a field and basic linear algebra), and its design encourages code and proof reuse in larger developments concerning the structure of linear transformations. All terminology, notations, and conventions used are explicitly defined, allowing both humans and automated tools to interpret or produce documentation or comments about individual code components accurately.
+
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

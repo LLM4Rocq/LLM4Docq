@@ -1,0 +1,101 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+n-transitive and Primitive Group Actions
+
+Overview
+========
+This file develops the formal theory of n-transitive and primitive group actions on finite sets within the Coq proof assistant, using the Mathematical Components (MathComp) library. The primary objective is to characterize and manipulate the notions of transitivity, n-transitivity, primitive actions, and their relationships—key concepts from permutation group theory—while providing formal definitions, key properties, and infrastructure for reasoning about group actions at various levels of transitivity.
+
+Mathematical Objects and Their Representations
+==============================================
+The central mathematical constructs in this file are:
+
+1. **Finite Groups and Group Actions**: 
+   - **Groups** are modeled as types equipped with the `finGroupType` structure from MathComp, ensuring finiteness and group operations.
+   - **Actions** are represented using `{{action G &-> S}}`, the MathComp formalization for a (right) group action of a group `G` acting on a finite set `S`.
+   - **Subgroups and Subsets**: Subgroups are of type `{{group G}}`; subsets are of type `{{set S}}`.
+
+2. **Primitive Actions**:
+   - *Primitive Group Action*: An action of a group `A` on a set `S` is called primitive if the action is transitive and there is no nontrivial partition of `S` preserved by the action (`A` acts transitively and imprimitively only on trivial partitions).
+   - *Representation*: The predicate `primitive A S to` defines this property, where `A` is a group, `S` a set, and `to` an action.
+   - The auxiliary definition `imprimitivity_system A S to Q` captures what it means for a partition `Q` to be an imprimitivity system for the action.
+
+3. **Transitivity and n-Transitivity**:
+   - *Transitive Action*: A group action is transitive if for every pair of elements in `S` there exists a group element mapping the first to the second. 
+   - *n-Transitive Action*: An action is n-transitive if it is transitive on the set of n-tuples of distinct elements from `S`.
+   - *Representation*: The predicate `[transitive^n A, on S | to]` encapsulates this definition. For `n = 1`, this coincides with ordinary transitivity.
+   - *Distinct Tuples*: The set of n-tuples without repeats is modeled as `n.-dtuple(S)`, i.e., `n`-tuples of elements from `S` with distinct entries.
+
+4. **Tuples with Distinct Entries**:
+   - *Definition*: The set of n-tuples with distinct entries drawn from a set `S` is formalized as `dtuple_on n S`, a subset of `n.-tuple sT` (the type of tuples of length `n` from `sT`), which includes only those tuples that are injective and whose entries lie in `S`. 
+   - *Boolean Predicates*: Many such properties (injectivity, subset membership, etc.) are expressed as boolean predicates to facilitate proof automation.
+
+5. **Induced Actions on Tuples**:
+   - For n-transitivity, the action of a group on `S` is lifted to an action on n-tuples in a manner compatible with group theory. The map `n_act to t a` gives the tuple arising from applying `to` with group element `a` to each coordinate of `t`.
+
+6. **Stabilizers and Normalizers**:
+   - For the study of reduced actions (such as on `S \ x`), centralizer and normalizer subgroups `C_G[x | to]` and `'N(S | to)` are employed, denoting elements of `G` that stabilize a point or a subset under the action.
+
+Key Conventions and Notational Practices
+========================================
+
+- **Scopes**: Notations specific to group actions and tuples are introduced within the `form_scope`, `set_scope`, and `action_scope`.
+- **Notation for Predicates**:
+    - `[primitive A, on S | to]`: Denotes that group `A` acts primitively on `S` via action `to`.
+    - `[transitive^n A, on S | to]`: Denotes that `A` is n-transitive on `S` via `to`.
+    - `n.-dtuple(S)`: The set of n-length tuples of distinct elements in `S`.
+    - `to * n`: The action induced by `to` on n-tuples, used in conjunction with the n-transitivity predicate.
+- **Bracket Notation**: Square-bracketed notations follow MathComp conventions for predicates and properties.
+- **Canonical Structures and Arguments**: Canonical structures (`Action n_act_is_action`) and MathComp argument conventions (curly braces for context, percent signs for scopes) are widely used for managing algebraic structure and implicit typing.
+- **Boolean Reflection**: Many definitions and lemmas are stated in both boolean and propositional (reflective) forms for compatibility with MathComp’s proof style.
+- **Sectioning and Reuse**: The file is organized into logical sections for definitions, core properties, and main theorems (e.g., propagation of n-transitivity via stabilizers).
+
+Contextual Usage and File Role
+==============================
+This file provides a foundational framework for reasoning about symmetric and highly symmetric group actions on finite sets, as encountered in the study of permutation groups and Galois theory. The formalization allows further libraries or developments to:
+
+- Express transitivity and primitivity as boolean predicates suitable for automation and reflection.
+- Reason about the structure of group actions via combinatorics of tuples and partitions.
+- Perform reductions between levels of transitivity (e.g., relating (n+1)-transitivity of a group to the n-transitivity of its point stabilizer).
+- Work with induced permutation actions on tuples in a mathematically precise and reusable way.
+
+A reader or tool processing comments or code from this file should interpret the main predicates (such as `primitive`, `ntransitive`, `dtuple_on`) relative to these mathematical definitions and conventions, recognizing their reliance on underlying finite group and action structures. All key properties, constructions, and results are formalized in a style that matches MathComp’s systematic approach to algebraic hierarchies, canonical structures, and reflection-oriented proofs.
+
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

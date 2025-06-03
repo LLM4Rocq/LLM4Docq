@@ -1,0 +1,120 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Univariate Polynomials over Rings — Definitions and Core Theory
+
+Overview and Purpose
+====================
+This file formalizes the foundational theory of univariate polynomials over an arbitrary (not necessarily commutative) ring within the Coq proof assistant, using the small-scale reflection and algebraic hierarchies of the Mathematical Components (MathComp) library. Its aim is to provide a generic, flexible, and feature-rich implementation of polynomial rings, equipped with their core operations, algebraic structures, and essential theorems. The development abstracts the ring of coefficients to a type parameter, with results specializing automatically as stronger properties (commutativity, integral domain, field, etc.) are assumed of the base ring.
+
+Mathematical Scope and Structures
+=================================
+
+1. **Representation of Polynomials**
+   - The central type is `{{poly R}}`: the collection of univariate polynomials with coefficients in `R`, for a suitable ring type `R`. In Coq, this is implemented as a record that packages a sequence (list) of elements of `R`, subject to the requirement that the last (highest-degree) coefficient is nonzero, except for the zero polynomial (whose sequence is empty). This *big-endian* encoding ensures efficient degree inspection and unique representation of polynomials.
+   - Several constructions are layered around this representation:
+     - `Poly s` builds a polynomial from a coefficient sequence `s`, removing trailing zeroes.
+     - `polyC c` or `c %:P` is the constant polynomial with value `c`.
+     - The standard variable is denoted `'X`, and powers as `'X^n`.
+     - General polynomials can be built via bounded indexed notation: `\poly_(i < n) E(i)` gives the polynomial of degree `< n` with the i-th coefficient given by `E(i)`.
+
+2. **Algebraic Structures**
+   - `{{poly R}}` inherits canonical additive, module, semiring, ring, and algebra structures, as appropriate to the structures on `R`:
+     - **Addition:** Performed pointwise via coefficient addition.
+     - **Multiplication:** Defined via Cauchy (convolution) product on coefficients.
+     - **Negation and scalar operations** likewise relate the coefficientwise negation, scaling, and unit structures from `R` to polynomials.
+     - When the base ring `R` is commutative, integral, a field, etc., the polynomial type automatically inherits the analogous (commutative, domain, field-theoretic) structure.
+
+3. **Polynomial Operations**
+   - **Evaluation** (`p.[x]`): The value of a polynomial `p` at a point `x` is defined using a Horner scheme for efficiency and compatibility with noncommutative rings. The process is recursively laid out to handle noncommuting elements correctly.
+   - **Derivatives:** The formal n-th derivative (`^`()`, `^`(n)`, `^`N(n)`) is implemented, including combinatorial (n-th) and normalized (with division by `n!`) forms for use e.g. in the Taylor expansion.
+   - **Composition** (`p \Po q`): Composition of polynomials is defined such that `p \Po q` is the polynomial obtained by substituting `q` for the variable in `p`.
+   - **Roots and multiplicities:** The predicate `root p x` denotes that `x` is a root of `p`. Theorems such as the factor theorem, root-multiplicity decompositions, and upper bounds on the number of distinct roots (in arbitrary rings, unit rings, and integral domains) are formalized.
+   - **Unit and degree predicates:** There is support for extracting and reasoning about the degree (`size p`) and leading coefficient (`lead_coef p`), predicates for monic-ness (`monic p`), and various properties for unit and irreducible polynomials.
+
+4. **Special Forms and Decompositions**
+   - Odd and even part decompositions (`odd_poly`, `even_poly`).
+   - Left and right polynomial "shift" and truncation operations (`take_poly`, `drop_poly`) to isolate, ignore, or manipulate coefficients according to degree.
+
+5. **Functoriality and Morphisms**
+   - Morphisms lifting ring homomorphisms on the coefficients to morphisms (preserving ring structure) on polynomials are developed (`map_poly`, `horner_morph`, etc.). These are suitable for both additive and multiplicative homomorphisms, including evaluation maps and algebra morphisms.
+   - The initiality of the polynomial ring is formalized—any ring morphism from the polynomial ring is uniquely determined by its action on constant polynomials and the variable.
+
+6. **Roots of Unity Theory**
+   - Predicates for *n*-th roots of unity and primitive roots of unity are defined, along with key properties (number of roots, existence, explicit product decompositions) and morphism invariance.
+
+7. **Specialized Theories**
+   - The theory of degree 2 polynomials over a field is developed (module `Pdeg2.Field`), including canonical forms, discriminant, factorization, and explicit computation of roots.
+
+Notation, Coding, and Organizational Conventions
+================================================
+
+- **Naming and Notation**
+    - Notations such as `{{poly T}}`, `c %:P`, `'X`, `'X^n`, `p`_i`, `p.[x]`, `p \Po q`, and the bounded sum/product notations (`\sum_`, `\prod_`) are systematically established. Reserved notations and binding to the appropriate scopes (principally the `ring_scope`) are set up to maximize readability and facilitating mathematical style proofs.
+    - Suffix conventions for lemmas: e.g., `C` for constants, `X` for monomials in `'X`, `Xn` for powers.
+    - Predicate names: `monic`, `root`, `polyOver` (for polynomials with coefficients in a set/predicate), `comm_poly` (when substitution/evaluation is compatible with multiplication in the ambient ring), etc.
+
+- **Type Class and Canonical Structure Usage**
+    - The code leverages Coq’s *hierarchy builder* (HB) and MathComp’s canonical structures to automatically endow `{{poly R}}` with all appropriate algebraic structures dictated by `R`. This enables results and tactics relying on the algebraic hierarchy to work seamlessly with polynomials.
+    - Instances for additivity, linearity, scalability, and morphism properties (for coefficients, evaluation, mapping, etc.) are defined and registered with the hierarchy.
+
+- **Sectioning and Parameterization**
+    - The file is carefully sectioned so that results generalize over the most flexible assumptions on the base ring. E.g., the initial development works over a nonzero semiring, with later sections strengthening to (commutative), (unit), (integral) domains or fields.
+    - Implicit arguments and type inference are used pervasively, with `Set Implicit Arguments` and related settings, to integrate with MathComp's idioms.
+
+- **Reflection and Boolean Predicates**
+    - Many properties are available both as predicates and as Boolean-valued functions (e.g., `root p x == 0`), equipped with *reflection lemmas* that bridge Boolean and propositional reasoning skillfully.
+
+- **Legacy and Compatibility**
+    - Deprecated notations and legacy compatibility synonyms are provided for transition from earlier versions.
+
+- **Naming of Variables in Sections**
+    - By convention: `R`, `a`, `b`, `c`, `x`, `y`, `z` are elements of the coefficient ring; `p`, `q`, `r`, `d` are polynomials; `S` is a property/predicate on coefficients; `n`, `i`, `j` are indices (usually degrees or exponents); `F` for fields.
+
+Context of Use and Comment Generation
+=====================================
+This file is the primary reference for all basic polynomial constructions in MathComp algebra. Its docstring provides necessary background for interpreting any chunk: given a code fragment, all mathematical types, conventions, key notations, and structural context are explained above. To understand an excerpt—say, a lemma—one can refer here for:
+- What `{{poly R}}` means and how a polynomial is represented and constructed.
+- What underlying algebraic structures and notations are available.
+- How evaluation, differentiation, and morphisms may be expressed and used.
+- Where to find related definitions (roots of unity, composition, odd/even part, etc.).
+- How the hierarchy and type class instances connect coefficient ring properties to the polynomial ring.
+
+This context ensures that code comments or extracted API documentation can rely on a reader's understanding of these core concepts, notations, and organizational patterns, without requiring direct inspection of the implementation or further MathComp-specific background.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

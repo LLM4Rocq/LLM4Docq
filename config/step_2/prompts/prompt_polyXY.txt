@@ -1,0 +1,106 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Bivariate Polynomials in Coq
+
+Overview
+========
+This file develops foundational theory and constructions for bivariate polynomials—polynomials in two variables—within the Coq proof assistant, using the Mathematical Components (MathComp) library. The principal purpose is to define and analyze bivariate polynomials as polynomials with polynomial coefficients (i.e., as elements of `{{poly {{poly R}}}}`), furnish operations such as variable swapping and evaluation, introduce change-of-variables morphisms, and construct certain resultants ("annihilants") whose algebraic properties are important for field theory and algebraic closures.
+
+This theory serves both as an abstract mathematical development and as preparation for advanced applications, such as alternative proofs of the algebraic closure of the algebraicOver predicate and ingredients for the Primitive Element Theorem.
+
+Mathematical Objects and Representations
+=======================================
+
+1. **Bivariate Polynomials ({{poly {{poly R}}}}):**
+   - A bivariate polynomial is represented as a polynomial (over R) whose coefficients are polynomials (over R), i.e., elements of type `{{poly {{poly R}}}}`.
+   - Specifically, the outer polynomial's variable is customarily 'X', and the inner is 'Y', but via function definitions, these roles can be swapped.
+
+2. **Univariate to Bivariate Lifting:**
+   - `p ^:P` converts a univariate polynomial `p` (in R['X']) into a bivariate polynomial by mapping each coefficient to a constant polynomial (`polyC`), i.e., lifts it to the form p['X].
+   - `poly_XaY p`: Forms the bivariate polynomial corresponding to substituting 'X + Y' into a univariate p; formally, `p^:P \Po ('X + 'Y)`.
+   - `poly_XmY p`: Similarly, substitutes 'X * Y' for the variable in `p`.
+
+3. **Evaluation and Operations:**
+   - Evaluation at a pair `(x, y)` is written `u.[x, y]`. This means: first substitute `x` for 'X' (turning the bivariate polynomial into a polynomial in 'Y'), then substitute `y` for 'Y'.
+   - The functions `sizeY u` (the 'Y'-size of a bivariate polynomial) pick out the largest 'Y'-degree among all constituent coefficients in 'X'.
+   - Swapping variables is captured by `swapXY u`, which returns the same polynomial structure but with 'X' and 'Y' interchanged.
+
+4. **Resultants and Annihilants:**
+   - `sub_annihilant p q`: Given two univariate polynomials p, q, returns a bivariate resultant polynomial whose roots include all pairwise differences of roots of p and q, across all field extensions. This is used to "annihilate" possible values of x - y, where x and y vary over roots of p and q, respectively.
+   - `div_annihilant p q`: Given p ≠ 0, q with q.[0] ≠ 0, produces a bivariate polynomial whose roots include all quotients x / y for x, y roots of p, q; invaluable in arguments about algebraicity and independence.
+
+Key Conventions and Notation
+============================
+
+1. **Variable Identifiers and Notations:**
+   - 'X' and 'Y' denote the two main indeterminates. 'Y' is concretely defined as `'X%:P` (the constant polynomial 'X' over `{{poly R}}`), and not a built-in symbol.
+   - Notational abbreviations:
+     - `p ^:P`: Univariate-to-bivariate polynomial embedding.
+     - `p .[x, y]`: Evaluates the bivariate polynomial at ('X' = x, 'Y' = y).
+     - `swapXY u`: Swaps the variables in a bivariate polynomial u.
+     - `poly_XaY`, `poly_XmY`: Encodings for p('X + Y'), p('X * Y').
+
+2. **Canonical Structures and Morphisms:**
+   - The swap operation (`swapXY`) is established as a canonical additive and multiplicative morphism (zmod and monoid morphism), and as involutive (applying it twice returns the original), with corresponding instances for Coq’s canonical class machinery.
+   - Extensive use is made of MathComp’s concepts of "morphisms" and the locked/unlockable definitions to manage proof automation and performance.
+
+3. **Organization of Lemmas:**
+   - Lemmas are specialized to algebraic structure: there are distinct sections for the general non-zero ring context (`nzRingType`), commutative non-zero rings (`comNzRingType`), integral domains (`idomainType`), and fields (`fieldType` and field extensions).
+   - Implicit arguments and local notation scopes (`ring_scope`) are deployed to simplify usage; standard conventions such as small letters for ring elements and polynomials, and u, p, q for polynomials, are followed.
+
+4. **Evaluation and Degree:**
+   - The concept of degree and size is carefully tracked for bivariate polynomials, making precise statements about how the various transformations affect the (bi)degrees, supporting proofs about resultant nonvanishing and properties needed for algebraic arguments.
+
+5. **Sectioning and Abstraction:**
+   - All definitions and lemmas are parametrized by abstract ring types, allowing reuse across a wide variety of algebraic contexts (nonzero rings, commutative rings, integral domains, and fields).
+   - Universal quantification and sectioning ensure that instances and implicit arguments align smoothly with the MathComp library conventions.
+
+Contextual Guidance
+===================
+This file establishes the conceptual and technical infrastructure necessary for handling bivariate polynomials in the MathComp and Coq environments. A reader or system working through this file should expect to encounter:
+
+- Layered abstractions that separate the algebraic setting (which kind of ring/field is assumed) from specific manipulations with polynomials.
+- Use of both "syntactic" manipulations (swapping variables, degree tracking, composition with substitutions) and "semantic" or algebraic properties (nonvanishing of annhilants, relations between roots and resultants).
+- Explicit construction of polynomials whose roots report on arithmetic relations among roots of univariate polynomials—a crucial step for arguments about algebraic closure and field extensions.
+- Reliance on MathComp's system of canonical structures, notations, and sectioning for automation and code clarity.
+
+To generate precise docstrings or comments for specific code segments from this file, one should reference this context for variable conventions, the meaning of notational abbreviations, expectations for algebraic types (nonzero ring, commutative, integral domain, field), and the broad mathematical rationale that computation on coefficients stands in for computation over genuine multivariate polynomials and their roots.
+
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

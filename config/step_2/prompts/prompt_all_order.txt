@@ -1,0 +1,75 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Lattice orders: foundations and algebraic structure
+
+Purpose and Goal
+================
+This file serves as the foundational building block in a formalization of order theory, specifically focused on lattice-ordered algebraic structures. Its main objective is to define and develop the basic theory of partially ordered sets—particularly lattices—within the Coq proof assistant, setting the stage for further algebraic and order-theoretic developments. By exporting all content from a core file on ordered structures, it provides a single entry point for users needing access to lattices and their basic properties, and paves the way for extending these concepts to richer algebraic settings such as ordered rings, fields, and modules.
+
+Mathematical Objects and Formal Representations
+==============================================
+The principal mathematical concepts embodied in this file include:
+
+1. **Partial Orders**: The most fundamental structure manipulated is the partially ordered set (poset), consisting of a carrier type equipped with a binary relation `<=` (less than or equal to) that is reflexive, antisymmetric, and transitive. In Coq, posets are typically captured via mixins and canonical structures, enabling their flexible use in various algebraic contexts.
+
+2. **Lattices**: On top of partial orders, lattices are defined as posets in which every two elements possess a least upper bound (join `\join` or `\/`) and a greatest lower bound (meet `\meet` or `/\`). The corresponding operations, along with their algebraic laws (commutativity, associativity, absorption, idempotency), are formalized as part of the lattice typeclass infrastructure.
+
+3. **Order-Theoretic Notions**: Beyond basic order and lattice operations, additional concepts such as bounded lattices (those admitting greatest and least elements), distributive lattices, and possibly Boolean algebras are supported via further mixins or sub-structures. Morphisms between ordered structures are represented using monotone (order-preserving) functions, frequently formalized as record types or canonical structures.
+
+4. **Order Embeddings and Properties**: Essential properties such as completeness, modularity, distributivity, and order-embeddings are expressed through dedicated predicates and typeclass instances, allowing rich and compositional reasoning patterns.
+
+All these mathematical objects are encoded using Coq’s powerful dependently-typed records and canonical structure mechanism. This enables modular composition of algebraic and order-theoretic properties and seamless reuse across mathematical components.
+
+Key Conventions
+===============
+1. **Scope Management**: Notations for order and lattice operations (such as `<=`, `<`, `\/`, `/\`) are controlled by named scopes, commonly using the `%O` or `%L` suffix to prevent ambiguity and allow qualified usage. The file assumes imports and notations from the parent order-theoretic module.
+
+2. **Canonical Structures and Mixins**: Algebraic and order-theoretic structures are built upon canonical structures and mixins, supporting Coq’s type inference and overloading. For instance, the same carrier type may have multiple order structures (lexicographical, subset inclusion, etc.) depending on the context.
+
+3. **Notation Overloading**: Standard mathematical symbols (e.g., `/\` for meet, `\/` for join) are systematically overloaded according to context, and the conventions are designed to align with regular mathematical usage to aid readability and cognitive transfer for mathematicians building formal proofs.
+
+4. **Export Pattern**: By re-exporting the primary order-theoretic file, this module allows further user files to import all foundational material relating to orders and lattices via a single statement (`Require Export lattice.`), simplifying dependency management and encouraging modular developments.
+
+5. **Predicate Style and Reflection**: Boolean-valued predicates (for example, `x <= y`) are often paired with their propositional counterparts via reflection lemmas, enabling users to shift cleanly between Boolean computations and logical assertions—a hallmark of the broader Mathematical Components style.
+
+Context for Retrieval
+====================
+After reading only this docstring, a user (or a language model) will understand that this file establishes the Coq infrastructure for basic lattice and order structures. All subsequent content and lemmas in the file (such as definitions of order relations, properties of joins and meets, lemmas about distributivity or absorption, etc.) are modularly imported from the underlying order-theoretic library, and are made readily available for further reasoning or extension. Notational and structural conventions prioritize alignment with standard mathematical practice, and leverage Coq’s canonical structures to enable flexible, type-directed reasoning about ordered and lattice-structured types. This file is thus the canonical starting point for any development in Coq involving order or lattice theory.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

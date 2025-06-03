@@ -1,0 +1,112 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Finite Group Quotients and Coset Theory
+
+Overview
+========
+This file provides a comprehensive formalization of cosets, quotients, and related structures in the context of finite group theory within the Coq proof assistant, using the Mathematical Components (MathComp) library ecosystem. Its primary goal is to define right cosets and quotient types for subgroups and to develop relevant algebraic results, including the foundational isomorphism theorems and a wide range of equational and cardinality properties for quotients and cosets.
+
+This module enables the manipulation of quotient groups and cosets as first-class mathematical objects in formal proofs. It establishes a systematic representation for cosets (even when the subgroup is not normal), canonicalizes quotient morphisms, and proves compatibility with group-theoretic operations such as images, preimages, conjugations, and intersections. The file culminates in formal statements and constructive proofs of the three classical isomorphism theorems, as well as detailed results on subgroups, indices, and counting formulas for homomorphisms and their quotients.
+
+Mathematical Objects and Representations
+========================================
+
+1. **Groups and Subgroups**: All groups are assumed to be finite, with the ambient group type given by `gT : finGroupType`. A (finite) group or subgroup is represented by a value of type `{{group gT}}`; arbitrary subsets are of type `{{set gT}}`.
+
+2. **Cosets and Bilateral Cosets**:
+   - *Right Cosets*: For a set (typically a subgroup) `A : {{set gT}}`, right cosets of `A` in its normalizer are formalized as elements of `coset_of A`, a structure capturing subsets of the form `A * x` with `x \in 'N(A)`.
+   - *Coset Subtype*: The `coset_of A` type ensures that each element represents a right coset, and crucially, this definition is uniform even when `A` is not a subgroup. The group-theoretic structure (multiplication, identity, inverse) on `coset_of A` is established, and when `A` is a subgroup, the result is the usual quotient group `N(A)/A`.
+   - *Coercion and Functionality*: Cosets are set-like: `coset_of A` elements coerce to (sub)sets of `gT`, supporting membership tests and set operations. For a given `x`, `coset A x` constructs the coset of `A` containing `x` (as long as `x \in 'N(A)`).
+
+3. **Quotient Groups**:
+   - *Notation*: The quotient of a set `Q` (or subgroup) by `H` is denoted `Q / H`, which is defined as the morphic image of `Q` by the canonical projection `coset H`.
+   - *Flexible Domain*: Quotients are meaningful for subsets as well as groups, and the formal definition does not require `H` to be normal in `Q`.
+   - *Genericity*: The projection morphisms, quotient operations, and induced morphisms all work equally well for arbitrary subsets, with appropriate specialization for normal subgroups.
+
+4. **Quotient Morphisms and Isomorphisms**:
+   - *Quotient Morphism*: The morphism induced by a group homomorphism `f` between `G/H` and `f(G)/f(H)` is constructed as `quotm`.
+   - *Quotient Isomorphism (`qisom`)*: When two subgroups are equal as sets, `qisom` provides the canonical (identity) group isomorphism between their respective coset types.
+
+5. **Isomorphism Theorems**:
+   - *First, Second, and Third Isomorphism Theorems*: The file presents constructive versions of these theorems, providing explicit morphisms and isomorphisms between relevant quotient and image groups.
+
+6. **Counting and Index Formulas**:
+   - *Indices and Cardinalities*: The file develops results relating the order (cardinality) of quotient groups and images/preimages of morphisms, including various index computations.
+   - *Copremality, Divisibility, and Lattice Properties*: Lemmas connect coprimality, divisibility, and subgroup lattice relationships under morphisms and quotients.
+
+Key Conventions and Notation
+============================
+- **Naming and Syntax:**
+  - Coset types: `coset_of H` is the type of right cosets of `H` in its normalizer.
+  - Coset construction: `coset H x` is the right coset containing `x`.
+  - Quotient: `A / H` denotes the image of `A` under the coset morphism, with the notation available in both `group_scope` and `Group_scope` (depending on whether `A` is a group or a set).
+  - Morphisms: The image (`f @* A`), preimage (`f @*^-1 B`), and other morphic notation follow MathComp conventions.
+
+- **Implicit Arguments and Scope:**
+  - Many arguments are implicit for notational convenience: `H` and other group parameters are inferred in most statements.
+  - The file liberally uses *facts at the set level*, and defines all key structures so that neither `coset_of H` nor its canonical groupType structure depends on the *specific* group structure of `H`. This flexibility improves the ability to rewrite and reason modularly about quotients and cosets.
+
+- **Coset Membership and Repr:**
+  - Each coset has a canonical representative element (`repr xbar`), and conversion between group elements and coset representatives is provided by lemmas such as `coset_reprK`.
+  - When a mathematical statement or operation requires an actual group element from a coset, the `repr` function is used.
+
+- **Normalizers and Domains:**
+  - Coset and quotient operations are only defined or make sense when certain normalizer conditions are satisfied (e.g., `x \in 'N(H)`). This ensures that coset multiplication and inversion are well-posed.
+
+- **Morphisms and Canonical Structures:**
+  - Quotient objects (cosets, groups, morphisms) are equipped with canonical group-theoretic structures so that generic algebraic toolkits and automation tactics can operate smoothly.
+  - Whenever possible, morphism types are constructed so as to be compatible with canonical type inference in the MathComp library.
+
+- **Section Structure and Proof Organization:**
+  - The file is organized into logical sections: coset definition and operations, quotient group and set properties, specialized theory for group quotients, quotient morphisms, isomorphism theorems, and enumeration/counting results.
+  - Proofs are decomposed into reusable lemmas, often with both “set level” and “group level” analogues, to facilitate both computational and theoretical reasoning in formal developments.
+
+Context for Retrieval and Code Interpretation
+=============================================
+This file provides all the foundational vocabulary and algebraic machinery for handling cosets and quotients in finite group theory, forming the basis for both equational reasoning and morphism-based arguments. It sets the semantic ground for interpreting notations like `A / H`, for understanding how group morphisms interact with quotients, and for meaningfully reading the statements and proofs of the isomorphism theorems in a formal setting.
+
+If you are examining a specific code chunk from this file, expect that:
+ - All sets and groups are finite and are encoded as `{{set gT}}` and `{{group gT}}`.
+ - Most results about cosets and quotients are stated and proved at the set level, and only later specialized to groups via canonical structures.
+ - The file takes care to make the structure and morphism instances as general as possible, to enable maximal reuse and modular automation.
+ - Notational conventions (`A / H`, `coset H x`, morphism actions, etc.) are consistent throughout, and you can reason about images/preimages of sets or groups via the overloaded morphism notations.
+
+Researchers and developers extending or verifying code in this domain can use this docstring to orient themselves to both the abstract mathematics and the specific representation techniques used in this formalization.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

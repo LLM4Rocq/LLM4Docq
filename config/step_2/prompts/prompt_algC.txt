@@ -1,0 +1,105 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Algebraic Numbers: Construction and Elementwise Properties
+==========================================================
+
+Purpose and Goal
+----------------
+This file provides an axiomatic and elementwise development of the field of algebraic numbers, often denoted ℚ̄ or "algC" in mathematical literature. The main goal is to construct the algebraic numbers as a countable, algebraically closed field extending the rationals (ℚ), equipped with complex-analytic structure (including conjugation and norm), a compatible order for its real subfield, and a practical interface for divisibility and modular arithmetic by integer multiples. The construction relies only on fundamental algebraic properties, particularly the existence of an algebraically closed field with a field automorphism of order 2 (complex conjugation), in line with the algebraic content of the Fundamental Theorem of Algebra.
+
+The file further provides canonically structured subfields and predicates for real algebraic numbers, rationals, and operations such as computation of minimal polynomials, conjugation, root extraction, divisibility notions, and the interface for group, ring, field, and normed algebraic structures within the algebraic numbers.
+
+Mathematical Objects and Their Coq Representations
+--------------------------------------------------
+1. **The Field of Algebraic Numbers ("algC")**
+   - _Defined as a type carrying the structure of a closed field, countable and constructed as a suitably quotiented set of roots of polynomials with rational coefficients._
+   - All core algebraic interfaces are instantiated for `algC`:
+     - Equality type (`algCeq`), additive group (`algCzmod`), ring and field structures (`algCnzRing`, `algCuring`, `algCfield`), and num/closed fields (`algCnum`, `algCnumField`, `algCnumClosedField`).
+   - The field is equipped with:
+     - **Complex conjugation**: An involutive automorphism not equal to the identity, provided by `conj: {{rmorphism algC -> algC}}`.
+     - **Complex norm**: The function `norm z := sqrt (z * z^*)` giving the (complex) modulus.
+     - **Algebraic ordering**: An ordering induced from the norm (e.g., `x <= y <=> (y - x)` is real and nonnegative).
+     - **Imaginary unit**: Defined as `i := sqrt (-1)`; also provides real (`'Re z`) and imaginary (`'Im z`) parts, and the absolute value notation `|z|`.
+     - **Root Extraction**: Square root (`sqrtC`), and the more general n-th root (`n.-root z`), selecting a principal value by convention.
+
+2. **Important Predicates and Subsets**
+   - **Crat**: The subset of elements of `algC` equal to a rational, i.e., the "rational points." 
+   - **Creal**: The subset of "real algebraic numbers," realized as those fixed by conjugation (`Num.real` for `algC`).
+   - **algR**: The subfield of real algebraic numbers, represented as a dependent record with the property `algRvalP : algRval \is Creal`.
+
+3. **Coercions and Canonical Maps**
+   - **Coercions** from `nat` and `int` into `algC` and its divisor type, allowing natural and integer literals to be used as algebraic numbers.
+   - **QtoC**: Embedding `rat` (ℚ) into `algC` (`ratr`).
+   - **getCrat**: A partial inverse for `QtoC` defined on the rational subset `Crat`.
+   - **Minimal polynomial**: `minCpoly z` is the monic polynomial over ℚ with root `z`.
+   - **Real/complex minimal polynomials**: `algR_pfactor x` and `algC_pfactor x` are real/complex-coefficient polynomials vanishing at `x`.
+
+4. **Divisibility and Modular Arithmetic**
+   - **Divisors (divisor type)**: Created to support a general notion of divisibility; includes all algebraic numbers and all `nat` and `int` coerced to `algC`.
+   - **Divisibility predicate**: `(x %| y)%C` expresses that `y` is an integer (ℤ, under `Num.int`) multiple of `x`.
+   - **Modular congruence**: `(x == y %[mod z])%C` states `x` and `y` are congruent modulo the integer multiples of `z`.
+   - These are fully executable and reflect the classical divisibility and congruence relations over the algebraic numbers, via coercion, embedding, and the `Num.int` predicate.
+
+5. **Automorphisms and Inverses**
+   - **Field Automorphisms**: Every ring morphism `nu : {{rmorphism algC -> algC}}` has a (constructively defined) two-sided inverse `algC_invaut nu`, with canonical additive and multiplicative morphism structure.
+
+6. **Real Algebraic Subfield (`algR`)**
+   - Defined as the subset of `algC` consisting of real elements. Formally, it's a subfield with its own arithmetic, ordering, and normed field structure (`algRval_is_zmod_morphism` etc.).
+
+Key Conventions and Notational Aspects
+--------------------------------------
+- **Scopes**: Three scopes are declared:
+  - `C_scope` for standard algebraic number notation
+  - `C_core_scope` for internal/core operations
+  - `C_expanded_scope` for extended divisibility and congruence forms
+  Notations such as `%C` (divisibility) and `[mod z]%C` (congruence) are active within these scopes.
+- **Coercions**: Integer and natural numbers are automatically coerced to `algC` where necessary (divisibility, polynomial evaluation, etc.).
+- **Structure Instances**: All ring and field structures (including normed fields, ordered fields, closed fields, etc.) are canonically instantiated, so that standard MathComp and Ssreflect generic machinery applies to `algC` and its real subfield.
+- **Reflection Lemmas**: All Boolean predicates (divisibility, `CratP`, realness, etc.) are equipped with reflection lemmas, enabling seamless use of `apply/` tactics and conversion between Boolean and propositional forms.
+- **Canonical Polynomial Notations**: Minimal polynomials and other polynomial operations are consistently over `{{poly rat}}` or `{{poly algC}}`, with `map_poly` used to change coefficients when necessary.
+- **Principal Value Conventions**: For root operations, and especially for `n`-th roots, principality is always defined in terms of minimal argument (for non-real cases) or maximal real part and nonnegative imaginary part, matching computational/mathematical expectations.
+- **Automorphism Lifting**: Automorphisms of `algC` can be explicitly lifted/inverted, and their action preserves rationals and their associated structure—reflected in specialized lemmas.
+
+Context for Retrieval and Comment Generation
+-------------------------------------------
+A reader or automated tool can safely assume that all the essential data about algebraic numbers—their construction, algebraic and topological structure, real and rational subfields, divisibility theory, automorphism theory, and related elementwise and global properties—are explicit and deeply formalized in this file, according to the conventions above. All core objects and notations mentioned here are defined and fully interoperable with the larger MathComp algebra hierarchy.
+
+As such, any specific code section (e.g., a definition, lemma, or notation) involving `algC`, its subfields, conjugation, norm, divisibility, or automorphism relates to the corresponding mathematical notion as encoded in the structures above, with the conventions about notation, coercion, and reflection always consistently enforced. The reader can interpret or comment on any construct by mapping it to its standard mathematical meaning modulo the concrete syntax and conventions described in this docstring.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

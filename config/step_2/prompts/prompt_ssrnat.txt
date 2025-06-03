@@ -1,0 +1,162 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Natural Number Arithmetic and Equational Theory
+
+Overview
+========
+This file establishes a comprehensive framework for reasoning about natural numbers (`nat`) within the Coq proof assistant, designed primarily for the Mathematical Components (MathComp) environment. Its purpose is to provide not only foundational definitions and notations for arithmetic over natural numbers, but also a rich collection of theorems, lemmas, and specialized tactics that enable efficient, small-scale formal proofs and automated reasoning about numeric expressions and (in)equalities. It is intended as a robust replacement for Coq's standard `Arith` library in applications emphasizing reflection (representation of mathematical assertions via Boolean functions).
+
+Mathematical Scope
+==================
+The file covers a broad variety of mathematical structures and operations concerning the non-negative integers:
+
+**1. Natural Number Operations (Arithmetic):**
+   - _Successor and Predecessor:_ 
+     - Successors: `n.+1`, `n.+2`, ..., `n.+4` as postfix notation for iterated successor.
+     - Predecessors: `n.-1`, `n.-2` as postfix notation, with special conventions for `0`.
+   - _Addition and Subtraction:_ 
+     - Addition: `m + n`
+     - Subtraction: `m - n` (interpreted as *truncated subtraction*; `m - n = 0` if `m <= n`)
+   - _Multiplication:_ `m * n`
+
+**2. Advanced Numeric Operations:**
+   - _Doubling, Halving, Parity:_ 
+     - `n.*2` for doubling (`2 * n`), `n./2` for halving (integer division by 2).
+     - `odd n` yields the parity (Boolean) of `n`.
+     - `uphalf n` computes ⎡n/2⎤.
+   - _Iteration:_
+     - `iter n f x` applies function `f` to `x` `n` times.
+     - `iteri n g x` applies a function also indexed by the step, i.e., `g i`.
+     - `iterop n op x x0` applies a binary operation `op` using `x` `n` times starting from `x0`.
+   - _Exponentiation and Factorial:_
+     - `m ^ n` for repeated multiplication (with special case simplifications for exponents 0, 1, and 2)
+     - `n`! (written `n\`!`) for factorial.
+
+**3. Inequalities and Comparison Predicates:**
+   - _Boolean comparison operations:_ 
+     - `m <= n`, `m < n`, `m >= n`, `m > n`, all producing `bool` (for use with reflection-based reasoning).
+     - Chained comparisons such as `m <= n <= p`, etc.
+     - `m == n` for Boolean equality (the eqType operation).
+   - _Composite relations and patterns:_
+     - `leqif`: Conditional ('almost strict') inequalities, capturing inequalities that are equality only under specific conditions.
+     - Patterns (`leqLHS`, `leqRHS`, etc.) for targeted rewriting with inequalities.
+
+**4. Extremum Functions:**
+   - _Maximum and Minimum:_ 
+     - `maxn m n` and `minn m n` compute the maximum and minimum, respectively, using truncating subtraction.
+   - _Quasi-cancellation lemmas (absorption identities) and distributivity lemmas_ regarding these operations.
+
+**5. Parity and Boolean-Numeric Interactions:**
+   - Booleans can be coerced to `nat` (with `true` = 1, `false` = 0), and parity computations reinforce this link (e.g., `odd n`, properties relating `bool` and `nat` operations).
+
+**6. Iterated and Tail-Recursive Arithmetic:**
+   - For handling very large natural numbers or improving computation performance, tail-recursive variants of the arithmetic operations are provided via a submodule (`NatTrec`), together with rewrite rules connecting these definitions to the standard forms.
+
+**7. Bulk Quantification and Choice:**
+   - Minimal and maximal witnesses: 
+     - `ex_minn`: Returns the least `n` such that a predicate holds.
+     - `ex_maxn`: Returns the greatest such `n` below a given upper bound.
+
+**8. Square and Quadratic Identities:**
+   - The file formalizes common algebraic identities involving squares, differences of squares, and quadratic expansions.
+
+**9. Monotonicity, Induction, and Generalized Recursion:**
+   - Lemmas and mechanisms for induction over arbitrary numeric measures are provided, making structural or size-based induction practical for various contexts.
+
+Representation and Implementation Conventions
+============================================
+
+**Representing Mathematics in Coq:**
+
+- **Natural Numbers:** The type `nat` (inductive with constructors `0` and `S`) serves as the core data type.
+- **Arithmetic functions:** Most arithmetic functions (`addn`, `subn`, `muln`, `expn`, etc.) are given as definitions built upon, but protected from, Coq’s native computation, allowing controlled normalization in proofs and avoidance of unwanted simplification.
+- **Boolean Comparisons:** Comparisons such as `leq`, `ltn`, and equality `eqn` are Boolean-valued and paired with reflection lemmas that connect them to Coq's logical (Prop-valued) relations.
+- **Coercions:** Numeric types may be interoperated with Booleans via explicit or implicit coercions, allowing statements such as `n = odd n + n./2.*2`; similarly, various binary-to-nat and nat-to-binary conversions are available to facilitate input/output of large numbers.
+- **Scopes and Notation:** 
+  - `nat_scope` is the main scope for ssr-style infix notation on `nat`, with reserved shorter infix notations (e.g. `%N`) for this library’s conventions.
+  - Compatibility is provided for Coq's legacy (`coq_nat_scope`) and binary-number (`N_scope`, `%num`) notations.
+  - Postfix notations distinguish iterations of successor and predecessor.
+
+**Naming and Lemma Suffix Conventions:**
+
+To concisely express the operation and directionality in lemma and theorem names, the following conventions are used pervasively:
+
+- **Operation abbreviations:**
+  - `A` (addition), `B` (subtraction), `M` (multiplication), `D` (disjunction/conjunction), `S` (successor), `P` (gt 1), `V` (disjunction), and `X` (exponentiation, mainly outside this file).
+  - The second-rank operation in an equational lemma (i.e., acting “inside” the main operation) is abbreviated.
+  - Directional suffix/prefix: `l`/`r` for left/right operand, or `n` for the first operand of exponentiation.
+  - Lowercase prefixes (`p`) such as `pmul` or `pexp` denote positivity constraints on operands.
+
+- **Examples:** `addnDl` is “addition distributes over left argument of addition”, `mulnDr` “multiplication distributes over right addition”, `eqn_pmul2l` denotes equality under left positive multiplication.
+
+- **Patterns:** To facilitate contextual rewriting, named patterns such as `leqLHS`, `leqRHS`, `ltnLHS`, `ltnRHS` are introduced, enabling powerful and local rewrite tactics.
+
+**Proof and Automation Facilities:**
+
+- **Reflection Lemmas:** For each Boolean predicate, reflection lemmas enable seamless interchange with their propositional (Prop) counterparts, supporting MathComp’s small-scale reflection methodology.
+- **Injection, Cancellation, and Absorption Lemmas:** Core arithmetic operations have accompanying injectivity and cancellation theorems, supporting equational manipulations in both directions.
+- **Generalized Induction and Bounded Search:** The file provides specialized induction schemes and helper lemmas (`ubnP`, `ltn_ind`, etc.) for measures and sizes, crucial for well-founded recursion and combinatorial reasoning.
+- **Congruence and Normalization Tactics:** Specialized tactics (`nat_congr`, `nat_norm`, etc.) are implemented to simplify arithmetic expressions involving successor, predecessor, and arithmetic operations, maintaining goals in canonical form suitable for rewrite-based proofs.
+
+**Support for Large Numbers:**
+
+- To enable direct manipulation of very large natural numbers, specialized conversion routines (`bin_of_nat`, `nat_of_bin`, etc.) mediate between the Peano `nat` and the efficient binary integer type `N` (and `positive`), along with reflection lemmas and instances for equality.
+- Input/output notation, such as `[Num of e]`, is provided to build and print large numbers canonically.
+
+**Parities and Even/Odd Reasoning:**
+
+- Extensive support and properties connect numerical values, parities, and their interaction with doubling/halving, enabling arithmetic as well as parity arguments.
+
+Contextual Use and Application
+=============================
+
+This file is the gateway for rigorous, mechanized reasoning about natural numbers within the MathComp system. Its conventions and tools underpin most formalized mathematics implemented using MathComp (or compatible libraries), from combinatorics and finite group theory to algebra and beyond. It is intended to be both human-friendly and machine-efficient: notations and tactics favor concise, readable proofs, while the structure ensures efficiency and reliability for large-scale developments. 
+
+When interpreting or documenting code chunks from this file:
+
+- Recognize that all arithmetic and comparison operations are “protected” (i.e., not simplified by default), requiring explicit tactics or rewrites for evaluation.
+- Understand that all Boolean-valued functions are meant to correspond to similarly-named mathematical relations, with explicit reflection lemmas available.
+- Be aware of the naming conventions, which enable identification of lemma meaning and applicable operations at a glance.
+- Note that the arithmetic, comparison, and extremum operations are “overloaded” with extensive (and systematic) compatibility, monotonicity, distributivity, and cancellation properties to enable powerful equational reasoning.
+- The tail-recursive alternate definitions are provided for compatibility with very large numbers, and can be systematically related to the main definitions via rewrite rules.
+
+In summary, this file does not just supply the arithmetic operations for natural numbers, but rather provides a language and toolkit for fine-grained, compositional mathematical reasoning about the natural numbers, optimized from syntax to proof automation for reflective, small-scale proof development in Coq.
+
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

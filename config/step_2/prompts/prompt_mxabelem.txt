@@ -1,0 +1,137 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Linear Representations over Finite Fields and p-Elementary Abelian Groups
+
+Overview and Purpose
+====================
+This file is a core component in the formalization of modular representation theory of finite groups in the Mathematical Components (MathComp) library. Its main objective is to extend the foundational matrix representation theory developed elsewhere (notably in `mxrepresentation.v`) to address in depth the structure, action, and module theory of finite groups—particularly through:
+
+- The explicit construction and manipulation of linear (matrix) representations of finite groups over finite fields.
+- The correspondence between the group-theoretic internal action of a subgroup (especially normal, elementary abelian p-subgroups) and associated module-theoretic structures over a prime field.
+- The interpretation of such group actions as group morphisms into general linear groups and as permutation or linear actions on row spaces and matrices over finite fields.
+- Application to advanced results, such as the structure of representations of extraspecial groups and aspects of modular representation theory, including the effect of the field characteristic.
+
+The file equips the user with constructions, actions, morphisms, and isomorphisms necessary for both the computational and theoretical aspects of linear and modular representation theory.
+
+Mathematical Objects and Concepts
+=================================
+
+1. **Finite Fields and Matrix Types**
+   - The central rings and modules are built over a finite field type `F : finFieldType`.
+   - Matrix types such as `'M[F]_(m, n)` (m×n matrices), `'rV[F]_n` (row vectors of length n), and `'GL_n[F]` (the group of invertible n×n matrices) are employed throughout.
+   - The unit group of the field `{{unit F}}` is used for scaling actions.
+
+2. **Group Actions and Representations**
+   - **Matrix Representations (**`mx_representation R G n`**):** An n-dimensional matrix representation of a group G over ring R, encoded as a group homomorphism into `'GL_n[R]`.
+   - **External Actions:** The file defines the external action (`scale_action`, notated as `'Zm`) of the unit group of the field on matrices by scalar multiplication, with the corresponding group action structures.
+   - **Internal Actions:** The key link between group conjugation (internal group action) and linear action via representation.
+
+3. **Row Group/Matrix Correspondence**
+   - The concept of additive subgroups of row spaces stable under external action is tightly linked to matrix row spaces.
+   - Functions:
+     - `rowg A`: The group of row vectors spanned by the rows of a matrix A.
+     - `rowg_mx L`: The partial inverse, giving the matrix whose row group is L (for appropriate stable L).
+   - Fundamental properties connect subgroups of `'rV[F]_n` stable under `'Zm` action to matrix subspaces.
+
+4. **Natural Representations and Faithfulness**
+   - **General Linear Representation:** The natural, faithful embedding of `'GL_n[F]` into matrices is codified as `GLrepr F n`.
+   - **Induced Actions:** Any representation `rG: mx_representation F G n` gives rise to an action on row spaces, denoted as `('MR rG)%act`.
+
+5. **Elementary Abelian p-Groups as Fp-Modules**
+   - When E is a normal, nontrivial elementary abelian p-subgroup (`p.-abelem E`) of a group, a deep correspondence is established:
+     - The group E is shown to be isomorphic (as an additive group) to a vector space over `'F_p` (row vectors of some length).
+     - Constructions:
+       - Types `'rV(E)` and `'M(E)`: The associated spaces of vectors and matrices tied to the group E.
+       - Functions `abelem_rV` (group element to vector) and `rVabelem` (vector to group element) provide explicit isomorphisms.
+       - The width of the module, `'dim E'`, is determined via the logarithm of |E| base p.
+
+   - **Induced Representations**: The representation `abelem_repr` gives the action of a group G (normalizing E) on the associated vector space, translating conjugation in the group to linear action.
+
+6. **Modular Representation Theory**
+   - Key results and objects relating to representations in characteristic p are formalized, including:
+     - Fixed-point spaces under p-groups.
+     - The action of the p-core and implications for irreducibility and faithfulness.
+   - Notable theorems relate to the behavior of representations of p-groups and extraspecial groups in characteristic p, e.g., the structure and counting of irreducible representations and the existence of faithful modules.
+
+7. **Extraspecial Groups**
+   - Advanced results on extraspecial p-groups are provided, including:
+     - The decomposition of irreducible representations.
+     - The relationship between group structure (order, center, socle) and representation-theoretic invariants.
+
+Key Coding and Notational Conventions
+=====================================
+
+1. **Implicit Arguments and Scopes**
+   - `Set Implicit Arguments`, `Unset Strict Implicit`, and custom scopes (notably `abelem_scope`, `ring_scope`, `action_scope`, `groupAction_scope`) keep notations concise, and the right types are inferred as much as possible.
+   - MathComp-style abbreviations (`%g` for group, `%MS` for matrix subspaces, etc.) are liberally used.
+
+2. **Canonical Structures and Notations**
+   - Canonical structures are systematically established for actions and representations, facilitating instance inference for group/actions in proofs.
+   - Standardized notations (e.g., `''MR' rG` for the action induced by a representation rG) are declared; matrix and vector spaces attached to groups use primed `'rV(E)` and `'M(E)` fonts.
+
+3. **Group Actions**
+   - Actions are equipped with explicit predicates (`is_action`, `is_groupAction`) and are constructed canonically.
+   - `[acts G, on X | alpha]` denotes that G acts on X via action alpha.
+   - Stabilizers and centralizers under group action are denoted as `'C(X | alpha)` (stabilizer under alpha), `'N(X | alpha)` (normalizer), etc.
+
+4. **Row Group Constructions**
+   - The mapping between matrices and group-stable row vector sets is formalized with bijective correspondences, and key operations (intersection, sum, cardinality) are precisely characterized.
+
+5. **Isomorphism Management**
+   - Isomorphisms between groups and module-like structures are constructed with explicit morphisms and inverse mappings; their properties (injectivity, surjectivity, behavior on group operations) are proved and made available as canonical structures.
+
+6. **Reflect Lemmas**
+   - Where possible, theorem statements are packaged into `reflect` predicates, enabling Boolean/propositional switching (a MathComp convention).
+
+7. **Deprecation Notices**
+   - Obsolete notations are forward-aliased to their new names, preserving backward compatibility and guiding users toward preferred nomenclature.
+
+8. **Sectioning**
+   - The file is divided into sections corresponding to general field theory, Abelian group representations, modular representations, and the extraspecial group results. Each section introduces its own variables and notations locally.
+
+9. **Use of “Local Notation”**
+   - Within each section, short local notations (e.g., `rVn` for `'rV[F]_n`) enhance readability and reduce duplication.
+
+Concluding Summary
+==================
+In sum, this file constructs and studies linear representations of finite groups over finite fields, with a special focus on connecting the module structure of elementary abelian p-subgroups to the group’s internal and external actions. It provides the infrastructure for both concrete computation (mapping groups to matrices and vice versa) and theoretical investigation (examining irreducibility, faithfulness, structure of representations). The conventions and explicit isomorphisms make it a cornerstone for further developments in the formal modular representation theory of finite groups.
+
+A reader familiar with group theory and linear algebra, but not with this codebase or MathComp conventions, should be able to interpret any function, theorem, or section within this file based on this docstring, understanding the mathematical intent, technical scope, and key notational design choices manifest in the code.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

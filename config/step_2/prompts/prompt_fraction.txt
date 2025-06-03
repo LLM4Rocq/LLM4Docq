@@ -1,0 +1,95 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Field of Fractions of an Integral Domain
+
+Overview
+========
+This Coq source file formalizes the construction of the field of fractions of an integral domain within the MathComp algebraic hierarchy. Its primary purpose is to show, for any commutative ring without zero divisors (`idomainType`), the existence of a field—the field of fractions—that contains the original ring as a subring in a universally embedding way. The file defines the field structure, the embedding morphism, and the foundational properties needed to reason about fractions abstractly in further developments in algebra and field theory.
+
+Mathematical Objects and Their Representation
+=============================================
+1. **Integral Domain (`idomainType`)**: The base type `R` is any integral domain, modeled in MathComp as a mixin extending commutative rings with non-triviality (no zero divisors). The file is polymorphic over such a domain, denoted `R`.
+
+2. **Ratio Type (`{{ratio R}}`)**: Ratios are formal symbols denoting pairs `(x, y)` with `y ≠ 0`, representing the intent of the fraction "x/y". In Coq, this is an inductive type called `ratio`, which only allows creation of pairs with nonzero denominator. Operations to decompose or reconstruct such pairs are provided, as well as a default value for "0/1" called `ratio0`.
+
+3. **Equivalence of Ratios (`equivf`)**: The fundamental equivalence relation identifies two ratios `(x₁, y₁)` and `(x₂, y₂)` if and only if `x₁ * y₂ = x₂ * y₁`, reflecting the usual notion that fractions with proportional numerator and denominator are equal. This relation is proved to be an equivalence, and is then used to build the quotient type representing actual fractions.
+
+4. **Field of Fractions Type (`{{fraction R}}`)**: The true field of fractions is defined as the set of equivalence classes of ratios under `equivf`. This is denoted as `{{fraction R}}` in the file. The quotient inherits a full field structure, including addition, multiplication, negation, inversion, and the appropriate laws.
+
+5. **Canonical Embedding (`tofrac`, `x %:F`)**: For each element `x` in `R`, there is a canonical image in `{{fraction R}}` represented by the fraction `x/1`. The embedding morphism is called `tofrac` and is notationally written as `x %:F`. It is proved to be an injective ring morphism (i.e., a monomorphism preserving addition and multiplication).
+
+6. **Arithmetic Operations on Fractions**: Operations on `{{fraction R}}` (addition, multiplication, negation, inversion) are defined "by representatives" using the operations on the underlying pairs, consistently lifted to equivalence classes. For instance, addition is defined as `(a₁/b₁) + (a₂/b₂) = (a₁*b₂ + a₂*b₁) / (b₁*b₂)`, echoing usual fraction arithmetic.
+
+7. **Structure Instances**: The file builds the full MathComp algebraic hierarchy (zmodule, ring, field structures) for fractions, integrating them into the typeclass-based ecosystem so they are recognized as genuine fields wherever a `fieldType` is required.
+
+Key Conventions and Notation
+============================
+- **Type Notations**: 
+    - `{{ratio R}}` denotes the type of ordered pairs (ratios) over `R` with nonzero denominator.
+    - `{{fraction R}}` denotes the quotient type—the field of fractions of `R`.
+
+- **Notation for Projections**: 
+    - For `x : {{ratio R}}`, `\n_x` and `\d_x` denote the numerator and denominator of the underlying pair, respectively.
+
+- **Fraction Embedding**: 
+    - The notation `x %:F` is used for `tofrac x`, the image of `x` in the fraction field.
+
+- **Operations Lifted to the Quotient**: 
+    - `add`, `mul`, `opp`, and `inv` are the addition, multiplication, negation, and inversion on fractions. They use an operator lifting infrastructure (`lift_op1`, `lift_op2`, etc.) to safely define operations on representatives while ensuring consistency of equivalence classes.
+
+- **Equivalence Classes**: 
+    - Equality on `{{fraction R}}` is always modulo the equivalence relation, i.e., fractions are equal if their cross-multiplications are equal.
+
+- **Classical Mathematical Naming**: 
+    - Most theorem and definition names follow standard mathematical terminology (e.g., numerators, denominators, canonical embedding), facilitating mathematical readability.
+
+- **Sectioning and Scoping**: 
+    - The code is structured into sections, separating definitions and results about ratios, equivalence, field operations, and embedding. Local notations and imports are used to control overloading and keep notation legible.
+
+- **Hints and Instances**: 
+    - Typeclass and canonical instance declarations ensure that Lemmas and structures are automatically available, integrating fractions with the broader MathComp ecosystem.
+
+- **Morphisms**: 
+    - The file explicitly proves and declares that the canonical map `tofrac` is a morphism of all relevant structures (additive, multiplicative, monoid, ring), often both through modern and deprecated (for legacy) terminology.
+
+Summary for Contextual Retrieval
+===============================
+This file provides a complete, implementation of the field of fractions for any integral domain, aligning with both classical algebraic constructions and MathComp's formalization standards. The ratios are modeled as pairs with a nonzero denominator, and fractions are obtained by quotienting out the appropriate equivalence. The embedding from the base domain is explicit and morphic, and the operations on fractions are implemented by representative arithmetic lifted to equivalence classes. Notational conventions generalize standard mathematical fraction writing to a formal setting, and the field is seamlessly integrated into the MathComp algebraic hierarchy. Reading this docstring equips a reader or an LLM with all the conceptual background and notation necessary to comprehend, interpret, or explain specific constructions within the code file.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

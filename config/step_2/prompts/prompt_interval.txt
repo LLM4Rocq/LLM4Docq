@@ -1,0 +1,126 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Intervals in Ordered Types
+
+Overview and Purpose
+====================
+This file formalizes the notion of **intervals** within the setting of ordered types, providing a robust, generic infrastructure for reasoning about intervals in Coq. The goal is to support mathematical developments, proofs, and automation involving intervals—including their structure, membership, relationships, and operations—over any type equipped with an order (such as partial orders, lattices, or real numbers).
+
+The development is parameterized over the type `T`, which must have an order structure. The interval machinery is compatible with the hierarchy of orders, including support for partial orders (`porderType`), lattices (`latticeType`), and total orders (`orderType`), seamlessly extending to both discrete and continuous mathematical domains.
+
+Mathematical Objects and Their Formal Representation
+===================================================
+
+1. **Interval Bounds (`itv_bound T`)**:
+    - An interval bound abstracts the concept of an endpoint in interval notation. There are two forms:
+        - **Finite bound**: `BSide b x` where `b : bool`, `x : T`; the boolean indicates whether the bound is closed (`true` for left/closed, `false` for right/open) or open with respect to endpoints.
+        - **Infinite bound**: `BInfty b` where `b : bool`, denoting minus infinity (`true`) and plus infinity (`false`).
+    - This generality allows the representation of all standard intervals, including open, closed, half-open, and unbounded intervals.
+
+2. **Intervals (`interval T`)**:
+    - Internally represented as a pair of bounds: `Interval bl br`, where `bl` is the left/bottom bound and `br` is the right/top bound.
+    - The interval thus encodes any subset describable as a (possibly infinite) interval of `T`.
+
+3. **Membership and Predicates**:
+    - Membership in an interval is denoted `x \in i`, where `x : T` and `i : interval T`. This relation is defined by checking that `x` lies between the bounds, respecting their open/closed status and infinity conventions.
+    - Intervals are equipped with Boolean predicates and reflection lemmas, enabling both proposition-style and computation-style reasoning.
+
+4. **Ordering of Bounds and Intervals**:
+    - `itv_bound T` and `interval T` are equipped with partial order structures. Bounds are compared according to their positions (with correct handling of open/closed status and infinities), and intervals are ordered by set inclusion (i.e., interval `i1` is below `i2` if `i1` is a subset of `i2`).
+    - For lattices and total orders, intervals inherit meet (intersection) and join (convex hull/least upper bound) structure, matching set-theoretic operations.
+
+5. **Operations and Utilities**:
+    - Construction and Decomposition: There are numerous notations for constructing intervals using standard mathematical symbols (see below).
+    - Intersection and Join: Functions for meet (`itv_meet`) and join (`itv_join`) implement set-theoretic intersection and convex hull.
+    - Interval Splitting: Lemmas supporting decomposition of intervals (e.g., splitting based on a value or midpoint).
+    - Middle Point: The function `miditv` computes a "middle" of an interval when the underlying type supports sums and division (e.g., reals).
+    - Symmetries: When `T` is a numeric domain, the file provides lemmas for symmetry under negation.
+
+6. **Classes and Typeclass Instances**:
+    - The file endows intervals and their bounds with instances for equality, choice, countability, finiteness (when appropriate), and order-theoretic structures—all via the canonical MathComp hierarchy.
+
+Key Notational and Coding Conventions
+=====================================
+
+1. **Interval Notations**:
+    - Standard interval notations are available in both the `order_scope` and `ring_scope` (for types with ring structure):
+        - `[a, b]`    : closed interval
+        - `]a, b[`    : open interval
+        - `[a, b[`    : left-closed, right-open
+        - `]a, b]`    : left-open, right-closed
+        - `]'-oo', b]`, `]'-oo', b[`, `[a, '+oo'[`, `]a, '+oo'[`, `]-oo', '+oo'[`: for unbounded intervals on either end.
+    - Notational conventions for lemma names: `"oo"`, `"oc"`, `"co"`, `"cc"` represent the four combinations of open (`o`) and closed (`c`) interval endpoints.
+    - The lemma substrings `"pinfty"` and `"ninfty"` refer to `+∞` and `−∞` bounds respectively.
+
+2. **Bound Conventions**:
+    - Left (`BLeft`) and right (`BRight`) bounds are distinguished by the boolean parameter, influencing whether an endpoint is included or excluded.
+    - Comparisons between bounds account for open/closed nature, so that, for example, `(a, b[` and `[a, b)` give correct membership according to type and side.
+
+3. **Order Scopes and Canonical Structures**:
+    - Interval and bound types are exposed as canonical instances for EqType, ChoiceType, CountType, FinType, POrderType, LatticeType, etc., so that all relevant MathComp and order-theoretic infrastructure applies automatically.
+    - Membership predicates and interval-based definitions are integrated into the MathComp predType hierarchy for seamless set-theoretic reasoning.
+
+4. **Simplicity and Automation**:
+    - A rich set of lemmas (“rewrite rules”) such as `itvP` and `bnd_simp` provide structured, tactical decompositions for interval membership and inequalities, supporting automated simplification by `rewrite`.
+    - Whenever possible, numeric conditions (e.g., `x \in [a, b]`) are “broken down” into explicit inequalities (e.g., `a <= x <= b`).
+    - The notation `subitv` is used for interval inclusion, with symmetry, transitivity, and reflect Properties established for automated proof support.
+
+5. **Generalization and Pathologies**:
+    - The interval representation is designed to support arbitrary ordered types, including those where equality or comaparison may be undecidable, or where representation may be non-canonical (multiple constructions encoding the same set). The theory is robust under these situations, but users are advised that for more concrete ordered types (such as the reals) these issues disappear.
+
+6. **Sectioning and Modularity**:
+    - The file is divided into logical sections according to the structure on `T`:
+        - Partial order: basic interval and bound structures, ordering, subset relations.
+        - Lattice: intersection and hulls (meet/join), distributivity.
+        - Total order: specialization to totally ordered types.
+        - Numeric domains: symmetry, midpoint, and specializations for domains supporting arithmetic.
+        - Field: further properties for types supporting division (e.g., midpoints, segment characterization).
+
+What This Enables
+=================
+By encapsulating intervals abstractly yet concretely with bounds and order, and by exposing all expected operations, membership relations, and set-theoretic properties, this file provides:
+
+- A uniform way to denote and reason about intervals in proofs and formal developments.
+- Tightly integrated support for interval membership, manipulation, and set-theoretic reasoning in automation tactics.
+- Infrastructure for building more advanced mathematical theories involving intervals, such as measure theory, real algebra, and analysis—anywhere ordered types arise.
+
+In summary, this file is a comprehensive and foundational component for interval theory in formalized mathematics within Coq, balancing abstraction for generality and concrete notation/mechanisms for usability.
+
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

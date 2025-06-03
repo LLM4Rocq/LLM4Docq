@@ -1,0 +1,112 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+(** Group Actions: Orbits, Stabilizers, and Transitivity
+
+Overview and Purpose
+====================
+This file provides a comprehensive axiomatization and formal development of group actions within the Mathematical Components (MathComp) framework for the Coq proof assistant. Its primary goal is to formalize the notion of a (finite) group action, along with the associated fundamental concepts such as orbits, stabilizers, fixpoints, transitivity, faithfulness, and their interplay via key theorems like the Orbit-Stabilizer Theorem and class formula. In addition, the file systematically organizes a rich set of canonical constructions and operations on actions, including actions on coset spaces, sets, group elements, and morphisms, covering both partial and total actions. The infrastructure provided here serves as the backbone for permutation group theory and much of finite group theory in the MathComp libraries.
+
+Mathematical Objects and Formal Representations
+===============================================
+The key mathematical structures formalized and manipulated in the file are:
+
+1. **Group Actions**:
+   - An *action* is defined as a function `to : T -> aT -> T` expressing the (right) action of elements from a finite group `aT` (with a group domain `D : {{set aT}}`) on a type `T`. Actions are equipped with proofs of left injectivity and a "cocycle" law (`to x (a * b) = to (to x a) b`) for elements of the domain.
+   - The formal structure is encapsulated in the Coq `action D T` record, requiring these properties.
+   - **Total actions** are those whose domain of definition is all of `aT`, while **partial actions** restrict the group elements permitted to act.
+
+2. **Orbits and Transversals**:
+   - The *orbit* of an element `x` under a set `A ⊆ D` is the set of all images of `x` under the action of `A`. This is represented as `orbit to A x`.
+   - *Transversals* to the set of orbits partition the underlying set, yielding distinguished representatives for each orbit.
+
+3. **Stabilizers and Centralizers**:
+   - The *stabilizer* of a set or point is the subgroup consisting of all group elements that fix it pointwise or setwise; denoted as `'C_A(S | to)` for subgroup `A` and set `S`. There are similar notations for pointwise and global stabilizers, and for centralizers (when group actions are considered).
+   - Point stabilizers (`'C_A[x | to]`), setwise stabilizers, and centralizer sets for group actions are all supported and given canonical group structures where appropriate.
+
+4. **Fixpoints**:
+   - *Fixpoint sets*, denoted `'Fix_(S | to)(A)`, are the elements of `S` fixed by the group action of `A`; they are not generally groups themselves.
+
+5. **Transitivity and Faithfulness**:
+   - *Transitive* actions are those with only one orbit; formalized by predicates like `[transitive A, on S | to]`.
+   - *Faithfulness* means no non-identity element acts trivially on `S` (predicate `[faithful A, on S | to]`).
+
+6. **Advanced Constructions**:
+   - **Induced and quotient actions**: Actions induced on cosets (via quotienting by a normal subgroup), on group and set quotients, or via morphisms between groups.
+   - **Permutation actions**: The natural action of a permutation group (`'P` and related notations) is formalized, as well as internal actions such as conjugation (`'J`) and right translation/regular action (`'R`).
+   - **Morphisms and composition of actions**: The ability to transfer or induce actions along group homomorphisms (`morph_act`, `mact`, `comp_act`) is supported.
+   - **Automorphism and restriction operations**: Defines *local automorphism groups* on subgroups, as quotients of normalizers by centralizers, using permutation restrictions.
+
+7. **Group Actions on Groups**:
+   - For group actions on groups (`groupAction D R`), additional structure is enforced: the action must induce automorphisms on the range group.
+   - Key constructions such as the action by subgroup restriction, by acting on a set or a group, on cosets and by group morphisms, are canonically provided.
+
+Coding and Notational Conventions
+=================================
+- **Scopes**: Dedicated notational scopes (`%act` for actions, `%gact` for group actions, `group_scope`, etc.) enable consistent yet flexible syntax throughout MathComp's proof scripts.
+- **Notations**:
+  - Actions are coerced to functions where appropriate. Application syntax such as `(to%act x a)` for “the action of group element `a` on `x`” is standard; `%act` is optional if the context is unambiguous. Set actions are denoted using notation like `to^*`.
+  - Specialized notations are consistently used for orbits (`orbit`), transversals (`orbit_transversal`), stabilizers (`'C_A(S | to)`), fixpoint sets (`'Fix_(S | to)(A)`), normalizers, and centralizers.
+  - Notations such as `'J`, `'R`, `'P`, `'Q`, etc., represent canonical actions: conjugation, regular translation, permutation, action on cosets, etc.; their concrete interpretation is detailed in in-file comments and docstrings.
+  - The notation `<[nRA]>` (or its group action variant) denotes an “action by restriction” to subgroup or subset with required domain conditions.
+
+- **Arguments and Canonical Structures**:
+  - Extensive use is made of implicit arguments to streamline interactive proof development.
+  - Canonical structures enable seamless overloading of definitions, allowing for smooth transitions between generic actions, restricted actions, and induced actions.
+
+- **Predicate Reflection**:
+  - Propositional properties are linked with Boolean predicates via `reflect` lemmas—for example, membership in orbits and fix sets—enabling tight integration with Ssreflect’s proof language.
+  - Many results include both propositional and boolean forms for rewrite automation.
+
+- **Action Domains and Supports**:
+  - Where necessary, explicit domain predicates ensure actions and associated objects are well-defined (especially for partial actions and when transferring actions across quotient or induced structures).
+
+Context for Retrieval and Interpretation
+=======================================
+This file is the foundational, self-contained development of finite group actions and their fundamental theory in the MathComp library. The conventions and notations established herein underpin all advanced group action machinery across MathComp and user developments. All further theorems, definitions, and notation in this file adhere to the conventions described above—especially concerning scopes, action and group notation, and the distinction between setwise, pointwise, and abstract actions.
+
+When interpreting or generating documentation for specific code passages from this file, one should understand that:
+- The term *action* is always a record bundling a function together with the required axioms and domain.
+- Notations such as `'C`, `'N`, `'Fix`, `'Q`, etc., are context-sensitive and assume their precise meaning as described here.
+- The file includes both general theorems for arbitrary (possibly partial) actions, as well as specialized results for group actions on groups, permutation actions, and actions induced or transported via group morphisms.
+- Key lemmas encapsulate classical results of group action theory—such as the Orbit-Stabilizer Theorem, formulae for class partitions, and transitivity criteria—with a focus on both generality and effective computability.
+
+For additional specialized constructions (e.g., semi-direct products, local automorphism groups), dedicated names and notations are used, and their meanings follow directly from their definitions in this file and the conventions outlined above.
+*)
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

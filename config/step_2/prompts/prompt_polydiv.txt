@@ -1,0 +1,148 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+(** Polynomial Division and GCD Theory
+
+Overview
+========
+This file provides a comprehensive formalization in Coq of the algebraic theory of division, divisibility, and related operations for univariate polynomials over various classes of rings. Its main purpose is to implement, in a mathematically robust and modular manner, algorithms and properties associated with (pseudo-)Euclidean division of polynomials, including computation of quotients, remainders, greatest common divisors, Bézout coefficients, coprimality, and irreducibility. The development is parametric in the ring of coefficients—covering rings without zero divisors, integral domains, fields, and more—and is designed for extensibility and proof reuse across the MathComp mathematical components ecosystem.
+
+Key Mathematical Structures and Representations
+===============================================
+
+1. **Polynomials**:
+   All operations are on type `{{poly R}}`, the type of univariate polynomials with coefficients in a ring `R`. This type is provided by MathComp's `poly` library, but the present file adds division, divisibility, and GCD theory.
+
+2. **Rings and Ring Types**:
+   The file is highly parametric: virtually every result and definition is developed over an abstract type `R` that is only required to satisfy certain algebraic structures as needed.
+   - `nzRingType`: Non-trivial rings (rings where 0 ≠ 1).
+   - `idomainType`: Integral domains (commutative rings with no zero divisors).
+   - `unitRingType`: Rings where unit (invertible) elements can be explicitly manipulated.
+   - `fieldType`: Fields—commutative rings where every nonzero element is invertible.
+   - `closedFieldType`: Algebraically closed fields, for results involving roots.
+
+3. **Pseudo-Euclidean Division**:
+   - For arbitrary rings (possibly noncommutative), the file defines a **pseudo-division** of polynomials, which mimics the Euclidean division algorithm but is generalized to handle non-units as leading coefficients of the divisor. This may result in multiplication of the dividend by a power of the leading coefficient.
+     - `redivp p q`: For polynomials `p`, `q` over a nontrivial ring, returns a triple `(k, quo, rem)` such that `(lead_coef q ^+ k) *: p = q * quo + rem`, with `size rem < size q` if `q ≠ 0`.
+     - Auxiliary projections:
+       - `rscalp p q`: The exponent `k` from the tuple.
+       - `rdivp p q`, `rmodp p q`: The quotient and remainder.
+
+   - For **integral domains** and fields, a refined division is provided, with exact divison when the leading coefficient is a unit:
+     - `edivp p q`: Returns `(k, quo, rem)` as above, but adjusts for units so that when the divisor has unit leading coefficient, you recover the classic division (`k = 0`).
+     - Abbreviations:
+       - `divp p q`, `modp p q`, `scalp p q`: Projections for quotient, remainder, exponent.
+       - `p %/ q`, `p %% q`: Scoped notations for division and remainder.
+       - `p %| q`: Divisibility predicate (`modp q p == 0`).
+       - `p %= q`: "Associate" relation (each divides the other).
+
+   - For **fields**, these notions coincide with the standard definitions, i.e., for `F` a field, every nonzero polynomial divisor has unit leading coefficient.
+
+4. **GCD, Bézout, and Coprimality**:
+   - `gcdp p q`: Polynomial greatest common divisor (computed via iterative division).
+   - `egcdp p q`: Bézout (extended GCD) coefficients, returning a pair `(u, v)` such that `gcdp p q %= u*p + v*q`.
+   - `coprimep p q`: Coprimality predicate (GCD is a nonzero constant).
+   - `gdcop q p`: Greatest divisor of `p` coprime to `q`.
+   - These are tailored to the divisibility theory over integral domains (and thus fields), with explicit handling of units and constants.
+
+5. **Irreducibility and Multiplicity**:
+   - `irreducible_poly p`: A polynomial with no nontrivial (degree ≥ 1) divisors besides associates.
+   - `mup x q`: Multiplicity of `x` as a root of the polynomial `q`.
+
+6. **Specialization by Structure**:
+   - The file is organized into modules encoding specialized theory for different ring structures:
+     - `Pdiv.Ring`, `Pdiv.ComRing`: Pseudo-division for (commutative) rings.
+     - `Pdiv.UnitRing`: Theory assuming the divisor has unit leading coefficient.
+     - `Pdiv.Idomain`, `Pdiv.Field`, `Pdiv.ClosedField`: Division and GCD theory for integral domains/fields/closed fields.
+
+7. **Roots and Factorization**:
+   - Tools for handling roots (`root p x`), factorization over linear polynomials, and consequences for divisibility and coprimality.
+
+Key Coding and Notational Conventions
+=====================================
+
+1. **Implicit Arguments and Scopes**:
+   - All definitions use implicit arguments to maximize notational simplicity.
+   - Notations such as `p %/ q`, `p %% q`, `p %| q`, and `p %= q` are defined in the `ring_scope`.
+   - Constants from the ring (via `c%:P`) are injected as constant polynomials.
+
+2. **Tuple Return Values**:
+   - Division operations often return triples `(k, quo, rem)` where `k` is the needed exponent, `quo` the quotient, and `rem` the remainder. Canonical projections (`scalp`, `divp`, `modp`) are provided for user convenience.
+
+3. **Name Spaces and Module Qualification**:
+   - Results are organized according to the structural assumptions on the ring and divisors:
+     - `Pdiv.CommonRing`, `Pdiv.ComRing`, `Pdiv.RingMonic`, etc.
+     - Only “field-level” (`Pdiv.Field`) and idomain-level (`Pdiv.Idomain`) theorems and definitions are exported by default.
+     - More general or specialized results must be accessed via their explicit module path.
+   - This modularization ensures that user code can depend only on the algebraic features required for specific arguments.
+
+4. **Reflected Predicates**:
+   - Many Boolean-valued predicates (such as divisibility, equality up to associates, coprimality) are paired with reflection lemmas, enabling seamless bridging between Boolean expressions and logical propositions in proofs.
+
+5. **Abstraction Over Rings**:
+   - Whenever possible, generalizations are made to arbitrary rings, with more specialized (stronger) theorems stated in submodules where additional algebraic properties hold (e.g., monic divisors, commutative rings, units, fields).
+
+6. **Mathematical and Software Engineering Style**:
+   - The file follows the MathComp style of heavy sectioning, tight locality of hypotheses, avoidance of unnecessary assumptions, and systematic use of unlockable definitions to mediate computational transparency.
+   - Lemmas are provided both for computational convenience (e.g., `rmodp_small`, `divp_small`) and mathematical reasoning (e.g., uniqueness, properties of GCD, Bezout, Gauss Lemma, etc.).
+
+Use in Context
+===============
+This file serves as the foundation for reasoning about polynomial arithmetic in later MathComp developments, such as factorization, unique factorization domains, field theory, and algebraic geometry. When encountering a code fragment from this file, one should keep in mind:
+  - The context is always polynomials over a ring `R` with the structure required for the given section/module.
+  - Division may be pseudo-division, depending on the ring; division with remainder in the classic sense happens when the divisor’s leading coefficient is a unit.
+  - GCD and Bézout theory are provided up to units; notions such as associates (`%=`) and coprimality are always modulo units/scalar multiplication.
+  - Many results rely on an interplay between algebraic identities and structural properties (e.g., distributivity, absence of zero divisors, invertibility of elements).
+
+Anyone creating comments or documentation for code from this file should state explicitly:
+  - The base ring assumptions (what kind of ring R is required: nontrivial, commutative, integral domain, field, etc.).
+  - The meaning of division, which may be adjusted using leading coefficients if the divisor is not monic or has non-unit lead coefficient.
+  - Use of tuple conventions for division, and projection functions for decomposition.
+  - Whether properties are stated "up to units" (associates), particularly for GCD, divisibility, and equality of polynomials.
+
+A note on Notational Conventions:
+---------------------------------
+- `%/`, `%%`, `%|`, and `%=` notations pertain to division, modulus, divisibility, and associate relation specifically for polynomials. These are distinct from similar notations for integers or other algebraic structures.
+
+- Many results have Boolean (reflection) and propositional versions.
+
+- Results are parametrized as much as possible for maximal reusability in algebraic developments.
+
+*)
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

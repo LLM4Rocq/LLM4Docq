@@ -1,0 +1,116 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Finite Group Morphisms and Isomorphisms
+
+Overview
+========
+This file formalizes the notion of group homomorphisms (morphisms) and group isomorphisms within the setting of finite groups, as developed in the Mathematical Components (MathComp) library for the Coq proof assistant. Its primary goal is to define the structures, properties, and algebraic operations of morphisms between finite groups—along with related notions such as images, preimages, kernels, injectivity, factor morphisms, and (iso)morphisms of groups—in a way that supports both constructive mathematics and formal proof development.
+
+Mathematical Scope and Key Concepts
+===================================
+1. **Finite Groups**. All groups considered here are finite, multiplicative groups represented in Coq by the type `finGroupType`. This ensures that all sets, subgroups, and functions involved are finite and support enumeration.
+
+2. **Group Morphisms (`{{morphism D >-> rT}}`)**. 
+   - A group morphism from a domain set `D` (usually a subgroup of a finite group type `aT`) into another group type `rT` is formalized as a structure that encapsulates a function `f : aT -> rT` together with a proof that `f` preserves group multiplication on elements of `D`.
+   - The structure itself is called `morphism D` (or more generally, `morphism_for D`), and comes equipped with a coercion so that it behaves as a function in computations.
+
+3. **Images, Preimages, and Kernels**. 
+   - The image of a set `A` under a morphism `f` (`f @* A`) is always interpreted as the set of images of the intersection of `A` with the domain `D`.
+   - The preimage of a set `R` in the codomain (`f @*^-1 R`) is the subset of the domain `D` mapping into `R`.
+   - The kernel (`'ker f`) is the preimage of the identity of the codomain group, always a subgroup of the domain.
+   - Special notations and canonical subgroups are provided for these constructs (e.g., `'ker_G f` for the kernel restricted to a subgroup `G`).
+
+4. **Injectivity, Identity, and Trivial Morphisms**.
+   - A morphism is injective on `D` if its kernel is trivial ('injm f).
+   - The identity morphism (`idm D`) is the canonical isomorphism from a group to itself.
+   - The trivial morphism (`trivm D`) maps every element of the domain to the identity of the codomain group.
+
+5. **Composition and Restriction**.
+   - Morphisms can be composed when their domains and codomains match accordingly (yielding canonical morphisms).
+   - Restrictions of morphisms to subgroups or subsets are supported, with both transparent and opaque (lemma-based) forms provided.
+
+6. **Factor and Inverse Morphisms**.
+   - When morphisms factor through others (e.g., through quotients or images), the factor morphism (`factm`) is defined and formally relates kernels and images.
+   - Inverse morphisms can be constructed for injective morphisms, with cancellation properties established.
+
+7. **Isomorphisms, Homomorphic Images, and Boolean Reflection**.
+   - The file defines predicates for group isomorphism (`G \isog H`), isomorphism witnesses (`isom G H f`), and homomorphic images (`H \homg G`), with both constructive (witnessing functions) and Boolean (decidable) forms.
+   - Key algebraic invariants and equivalences, such as cardinality and abelian-ness, are shown to be preserved under isomorphism.
+
+8. **Canonical Structures and Instances**.
+   - The development exploits Coq's canonical structure mechanism to ensure that, for instance, the image or kernel under a morphism inherits a group structure when appropriate.
+   - Specialized morphisms for subgroups and subtype embeddings are also provided along with canonical properties.
+
+Coding and Notational Conventions
+=================================
+- **Coercions and Phantom Types**. Morphisms are structured as records with a coercion to their underlying function, making `f x` valid for a morphism instance. Domain and codomain information is tracked with "phantom types" to allow type inference to reconstruct hidden (implicit) parameters.
+- **Named Notations**:
+    - `f @* A` denotes the image of `A` under `f`
+    - `f @*^-1 R` denotes the preimage
+    - `'ker f` denotes the kernel
+    - `'injm f` indicates injectivity
+    - `G \isog H` and `H \homg G` denote isomorphism and homomorphic-image relations, respectively
+- **Scopes**. Most notations are activated in the `group_scope`, as standard in MathComp.
+- **Boolean Reflection**. Core algebraic statements are mirrored by their Boolean forms (e.g., injectivity, isomorphism witnesses) and are accompanied by reflection lemmas. This enables automatic reasoning and congruence between computational and logical views.
+
+Organizational Structure
+========================
+The file’s development is divided into several sections, each tightly focused:
+- *MorphismStructure*: Defines morphism structures and their basic mechanics.
+- *MorphismOps1*: Provides core operators (image, preimage, kernel, etc.) and notations.
+- *MorphismTheory*: Establishes main algebraic properties and interactions of morphisms with group operations and subsets.
+- *IdentityMorphism, TrivMorphism, RestrictedMorphism*: Capture canonical morphisms and their elementary properties.
+- *MorphismComposition, FactorMorphism, InverseMorphism, InjFactm*: Generalizes morphism operations such as composition, factoring, and inversion.
+- *ReflectProp*: Centers on Boolean, reflected, and computable notions of group-theoretic properties, including morphic, isomorphic, and homomorphic predicates, and supplies equivalence and reflection lemmas.
+- *SubMorphism*: Focuses on morphisms between a group and its subgroup (or subtype) representations and their algebraic equivalence.
+- *Isomorphisms, IsoBoolEquiv, Homg*: Develops equivalence properties (symmetry, transitivity) of group isomorphisms and the interrelations between group-theoretic objects under various morphic images.
+
+Intended Audience and Usage
+===========================
+This file is intended for formalization practitioners in group theory, computer scientists, or mathematicians seeking to reason about the algebra of finite group morphisms and isomorphisms within the Coq system, especially within the MathComp ecosystem. It provides a comprehensive and systematic approach to encoding and proving the basic and advanced properties of group morphisms and their images, facilitating both concrete computation and abstract proof construction. Conventions and notations are chosen for compatibility with mathematical parlance as well as for maximally leveraging Coq’s type inference and canonical structures.
+
+How to Interpret File Fragments
+===============================
+Within this context:
+- Any lemma or definition about morphisms should be understood in terms of functions between group elements that preserve multiplication, respecting domain and codomain set constraints.
+- Image and kernel references (`@*`, `@*^-1`, `'ker`) always pertain to morphisms in the sense established here (and not to arbitrary functions).
+- Boolean predicates represent decidable versions of their algebraic counterparts and are tightly linked to constructive witnesses via reflection lemmas.
+- Phantom types and canonical structures enable implicit domain inference and ensure that outputs of morphism operations remain equipped with suitable (sub)group structures.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

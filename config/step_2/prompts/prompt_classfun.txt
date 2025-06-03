@@ -1,0 +1,143 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+(******************************************************************************)
+Class Functions on Finite Groups
+
+Overview and Purpose
+====================
+
+This file develops the foundational theory of class functions for finite groups, providing a comprehensive and formalized algebraic structure for these objects within the Coq proof assistant. The primary goal is to formalize class functions as a type equipped with vector space and algebra structures over the field of complex algebraic numbers (algC), define and analyze their fundamental operations, and to support further developments in character theory and representation theory of finite groups. 
+
+Mathematical Scope and Objects
+=============================
+
+1. **Finite Groups and Group Elements**: 
+   - A finite group of type `gT` is specified by `{{group gT}}`.
+   - Subgroups and subsets are denoted by `{{group gT}}` and `{{set gT}}`.
+
+2. **Complex Algebraic Numbers**: 
+   - The target of class functions is `algC`, the type of all algebraic complex numbers (characteristic zero).
+
+3. **Class Functions**: 
+   - For a finite group G, `'CF(G)` is the type of **class functions** on G, i.e., all functions `f : gT → algC` that are constant on conjugacy classes of G and vanish outside G. 
+   - This is implemented via a record type `classfun`, which is defined with a structural predicate `is_class_fun` that enforces these properties.
+
+4. **Algebra and Vector Space Structures**: 
+   - `'CF(G)` implements the finite-dimensional `algC`-algebra interface, including operations of addition, multiplication, scalar multiplication, negation, and inversion, whenever possible.
+   - The vector space corresponding to class functions is denoted `'CF(G)%VS`, and subspaces with restricted support as `'CF(G, A)`, where `A` is a subset of G.
+   - `'1_A` denotes the indicator class function of a subset A.
+
+5. **Class Function Operations and Constructions**: 
+   - **Basic Operations**: Pointwise addition, multiplication, scalar multiplication, and negation.
+   - **Restriction (`Res`)**: The restriction of a class function from G to a subgroup H: `'Res[H] phi`.
+   - **Induction (`Ind`)**: The induced class function from a subgroup H to G: `'Ind[G] phi`.
+   - **Morphisms (`cfMorph`, `cfIsom`)**: Transports class functions along group morphisms and isomorphisms.
+   - **Coset and Quotient Constructions (`cfMod`, `cfQuo`)**: Lift class functions between a group and its quotient by a normal subgroup.
+   - **Product Constructions**: For direct and semidirect products, the file defines operations to construct class functions on the whole group from class functions on the factors (`cfDprod`, `cfSdprod`, `cfBigdprod`, etc.).
+
+6. **Conjugation and Automorphisms**:
+   - **Complex Conjugate (`phi^*`)**: The complex conjugate class function.
+   - **Field Automorphisms**: Conjugation under general field automorphisms (`cfAut`) and their closure properties for sets of class functions.
+
+7. **Structural Properties and Predicates**:
+   - **Kernel (`cfker`)**: The kernel of a class function, i.e., the subgroup where the class function acts by multiplication invariance.
+   - **Faithfulness (`cfaithful`)**: Whether the kernel is trivial.
+   - **Order (`#[phi]%CF`)**: The multiplicative order of a class function, i.e., the least n such that `phi^n = 1`.
+   - **Support**: The subset where the class function does not vanish.
+
+8. **Inner Product and Norms**:
+   - **Dot Product (`[phi, psi]` or `cfdot phi psi`)**: The normalized sum over G of `phi(x) * (psi(x))^*`.
+   - **Norm (`[phi]` or `cfnorm phi`)**: The squared norm of a class function.
+   - **Orthogonality**: Definitions and properties of orthogonal and orthonormal sets of class functions.
+
+9. **Isometries and Structure-Preserving Maps**:
+   - **Isometry**: Maps preserving the inner product between class functions, with mechanisms for constructing and recognizing isometries.
+
+Key Notational and Coding Conventions
+=====================================
+
+- **Scopes and Notations**:
+    - The `%CF` (cfun_scope) scope is dedicated to class function constructions and notations.
+    - `'CF(G)`: Type of class functions on G.
+    - `'CF(G, A)`: Subspace of `'CF(G)` with support in A.
+    - `'1_A`: Indicator function of A in `'CF(G)`.
+    - `phi x`: The value of class function phi at element x.
+    - `phi^*`: The complex conjugate of phi.
+    - `cfker phi`: Kernel of phi.
+    - `[phi, psi]`: Inner product of class functions phi and psi.
+    - `#[phi]%CF`: Multiplicative order of phi.
+    - `'Res[H] phi`, `'Ind[G] phi`, etc.: Restriction and induction notations.
+    - `cfConjC_closed`, `pairwise_orthogonal`, and `orthonormal` express various algebraic properties of sets of class functions.
+
+- **Arguments and Implicit Typing**:
+    - Most definitions are universe- and context-polymorphic (e.g., class function spaces automatically determine their group domain).
+    - Implicit arguments are widely used for convenience and coherence across algebraic constructions.
+
+- **Algebraic Structure via HB (Hierarchy Builder)**:
+    - The file uses HB (MathComp’s Hierarchy Builder) to systematically equip `'CF(G)` with all relevant algebra, vector space, and module structures, as well as to register morphisms and isometries.
+
+- **Coercion and Equality**:
+    - Coercion makes class functions behave as functions (`phi x`), and the equality structure is pointwise equality on the (finite) group.
+
+- **Reflect and Boolean Predicates**:
+    - Boolean predicates (such as orthogonality, faithfulness, etc.) are systematically equipped with reflection lemmas, enabling programming with boolean values and logical propositions interchangeably.
+
+- **Canonical Structures and Subspaces**:
+    - Various subspaces and derived constructions (subfunctors, products, cosets, etc.) are registered as canonical objects, supporting automatic inference and extensibility.
+
+- **Sectioning and Organization**:
+    - The file is divided into logical sections according to major mathematical themes: basic definitions, dot products, order, restrictions, morphisms, cosets, products, automorphisms, and induction.
+
+Interpreting Code in Context
+============================
+
+To understand or generate documentation for specific chunks of code from this file, keep in mind:
+
+- Any function or predicate involving `'CF(G)` operates with the semantics of class functions as functions G → algC, subject to invariance and support constraints.
+- Morphisms (`cfMorph`, `cfIsom`, etc.) allow transfer of class functions between (possibly isomorphic) groups, preserving key properties like inner product structure.
+- Notations like `[phi, psi]`, `'Res[H]`, and `'Ind[G]` refer to standard representation-theoretic operations: inner product, restriction, and induction, respectively.
+- Product and sum notations (e.g., `cfDprod`, `cfBigdprod`) describe ways to build class functions on large groups from data on subgroups, via direct or semidirect product structure.
+- Automorphism-related constructions (`cfAut`, `cfConjC_closed`, etc.) capture field-theoretic symmetries acting on class functions, including complex conjugation.
+- Orthogonality and norm properties mirror their analytic analogs, using normalized inner products over the finite group.
+
+This file thus establishes the infrastructure needed for advanced development in the character theory of finite groups, serving as the algebraic backbone for further work on characters, module isomorphisms, and decomposition theorems in the MathComp formalization environment.
+
+(******************************************************************************)
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

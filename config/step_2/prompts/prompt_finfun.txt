@@ -1,0 +1,109 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Finite Functions over Finite Domains
+
+Overview
+========
+
+This file defines and develops the theory of finite functions whose domain is a finite type, providing a foundational abstraction for discrete maps in the Coq proof assistant. The definitions in this file enable users to treat functions with finite domains as explicit data structures (rather than mere Coq functions), which can be enumerated, manipulated combinatorially, and endowed with various canonical structures such as equality, choice, countability, and finiteness. Alongside the core types, the file introduces custom notations, operations, and supporting results for both dependent and non-dependent finite functions, as well as for finite (dependent) products of finite types.
+
+Mathematical Objects and Their Representations
+==============================================
+
+1. **Finite Functions**:  
+   - *Non-dependent finite functions*: A function from a finite type `aT` to a type `rT` (written `{{ffun aT -> rT}}`) is coded as a record/variant that captures, for each element of the finite domain, a value in the codomain. Internal representations, like the `finfun_on` inductive type, encode this data via explicit lists, enabling total enumeration and structural recursion.
+   - *Dependent finite functions*: Functions of the form `forall x : aT, rT x` (written `{{ffun forall x : aT, rT x}}` or `{{dffun forall x : aT, rT x}}`) allow the codomain to depend on the argument. The file uses a variant type to represent these, with almost the same algebraic and combinatorial infrastructure as the non-dependent case.
+
+2. **Finite Product Types (`fprod`)**:  
+   - To represent the finite (dependent) product ∏₍ᵢ ∈ I₎ Tᵢ, where each Tᵢ is a finite type, the file provides the `fprod` record. It contains a finite function from `I` to the dependent sigma type `{{i : I & T_ i}}`, along with a proof that the first component of each value matches the index. Canonical bijections link `fprod I T_`, `{{dffun forall i : I, T_ i}}`, and families of tagged values.
+
+3. **Tuples and Power Types**:  
+   - The file defines an alternative (isomorphic) representation of `n`-tuples using finite functions from the ordinal type `'I_n` to `T` (written as `T ^ n`). This allows using these objects in contexts that require strictly positive types, e.g., for well-founded recursion in inductive definitions.
+
+4. **Function Graphs and Codomains**:  
+   - For a finite function `f`, its graph is the tuple (or list) of all values `f x` as `x` ranges over the finite domain; both dependent and non-dependent graphs are supported. Helper constructions recover a function from its graph and establish mutual inverses (with precise cardinality lemmas).
+
+5. **Families and Partial Families**:  
+   - Predicates and types such as `family F` (the set of functions that at every point yield a value in `F x`), `y.-support f` (the support of `f` away from a default value `y`), `pfamily y D F` (partial families with support `D` and value constraints), and `pffun_on y D R` (partial finite functions with range restriction) formalize various classes of functions, supporting combinatorial enumeration and set-theoretic properties.
+
+6. **Support and Restrictions**:  
+   - The file defines the notion of the "support" of a function with respect to a given value, as the set of points where the function does not take that value, and uses this in the development of partial function types.
+
+Canonical Structures and Inheritance
+===================================
+
+- The main finite function types automatically inherit (when possible) their canonical structures (equality, choice, countable, and finite types) from the codomain. Thanks to this, one can manipulate sets, enumerate, and test equality of finite functions, as well as use them in more sophisticated algebraic and combinatorial constructions.
+- For dependent functions (`{{ffun forall x, rT x}}`), structure inheritance is subject to restrictions stemming from Coq's unification limitations: full structure inheritance applies only when the codomain is not genuinely dependent.
+
+Key Notational and Coding Conventions
+=====================================
+
+- Bracketed Notation:  
+  - `[ffun x : aT => E]` creates a non-dependent finite function by mapping each `x` in `aT` to `E`.
+  - `[ffun x => E]` is a shorthand for the same without an explicit type annotation, provided `E` does not depend on `x`'s type.
+  - `[ffun => E]` is an even more succinct syntax for constant functions.
+  - For dependent (finite product) types: `[fprod i : I => F]` or `[fprod => F]` create elements of the finite product type.
+- Type abbreviations:  
+  - `T ^ n` denotes the type `{{ffun 'I_n -> T}}`, isomorphic to `n`-tuples.
+- Coercion:  
+  - Elements of `{{ffun ...}}` and related types coerce to ordinary Coq functions so that application (`f x`) is well-typed and behaves as expected.
+- Set notation and membership:  
+  - Constructs such as `f \in family F` or `f \in ffun_on R` denote, respectively, that `f` belongs to the family determined by the membership predicate `F` at each point, or that its image is contained in `R`.
+- "Support" notation:  
+  - `y.-support f` refers to the set of points where `f x ≠ y`.
+
+Structural Positivity and Induction
+===================================
+
+- Types such as `{{ffun ...}}` and `fprod` are defined to be structurally positive, which makes them suitable as components of inductive types and enables structurally decreasing recursion, a crucial property for well-foundedness in Coq.
+- The code provides examples (commented out) of using these finite function types to define recursive data structures with explicit combinatorial content.
+
+Enumeration and Counting
+=======================
+
+- The file includes lemmas to compute the cardinalities of function spaces, function families, and partial function types, supporting enumeration, counting arguments, as well as calculation of object sizes in formal proofs.
+
+Context and Usage
+=================
+
+This file forms a core part of the combinatorial algebra underpinning formalization of finite mappings in the Mathematical Components project, and can be used as a reference implementation for discrete functions in Coq. Its types, conventions, and notations are designed to be general and re-usable across libraries involving combinatorics, algebra, and computer science applications (e.g., graphs, assignments, decision procedures). The infrastructure supports both dependent and non-dependent settings and is engineered to integrate seamlessly with Coq’s canonical structure mechanism.
+
+The docstring aims to provide all essential background for a reader or tool to interpret specific constructs, lemmas, and code conventions found in this file. It prepares the reader to parse documentation or comments on individual definitions with awareness of their mathematical and formal context.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

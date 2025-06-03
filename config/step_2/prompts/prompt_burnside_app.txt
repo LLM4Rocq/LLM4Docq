@@ -1,0 +1,112 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Burnside’s Lemma for Vertex Colorings of the Square and Cube
+
+Overview
+========
+This file formalizes, within Coq and using the Mathematical Components (MathComp) library, an application of Burnside’s Lemma (also known as the Cauchy-Frobenius-Burnside lemma) to enumerate the number of distinct colorings of the vertices of geometric objects—specifically, the square and the cube—modulo their symmetry groups. For both the square and the cube, the file defines the structure of colorings, the relevant symmetry groups (rotations, reflections, and other isometries), actions of these groups on colorings, and computes/characterizes the fixed sets necessary for applying Burnside’s formula. The development is constructive: for each symmetry, the set of colorings invariant under its action is described and counted.
+
+Mathematical Scope and Representations
+======================================
+
+1. Finite Groups and Actions:
+   - The file develops group actions (`to` and `to_g`) of symmetry groups on the set of colorings of the square or cube.
+   - Groups are constructed as finite permutation groups acting naturally on the vertex indices, with permutations given as functions or tuples, and injectivity witnesses provided as required for MathComp’s permutation type (`{{perm T}}`).
+   - Burnside’s lemma is stated and used: the number of inequivalent colorings is the average number of colorings fixed by each group element.
+
+2. Colorings:
+   - A coloring is a function from the set of vertices to a finite set of "colors", parameterized by a natural number `n` (see `colors := 'I_n`).
+   - For the square: colorings are of type `{{ffun square -> colors}}`; similarly for the cube.
+   - The action of a group element (a permutation of the vertices) on a coloring `k` is `k ∘ p⁻¹`, as defined in `act_f` and `act_g`.
+
+3. Geometric Objects and Symmetry Groups:
+   - **Square:**
+     - Vertices are represented as elements of `'I_4` (the finite type of integers modulo 4).
+     - The symmetry groups considered include:
+       - Rotational symmetries (the cyclic group of order 4).
+       - Dihedral group of order 8 (full square isometries: rotations + reflections).
+       - A subgroup of order 2 for a reduced symmetry scenario.
+     - Specific permutations (rotations, reflections) are constructed as tuples mapping each vertex to its image under the symmetry.
+     - Notation such as `r1`, `r2`, `r3` for rotations; `sh`, `sv`, `sd1`, `sd2` for reflections.
+
+   - **Cube:**
+     - Faces are indexed by `'I_6`.
+     - A comprehensive set of cube symmetries is encoded through explicit permutation descriptions, covering rotations through axes, through diagonals, and reflectional symmetries.
+     - Symmetries are defined by giving the image of each face, often as a tuple, with the induced permutation constructed and injectivity proved.
+     - Groups considered include a subgroup of order 24 and the full symmetry group (order 24 or 48 depending on context).
+
+4. Orbits and Burnside’s Lemma:
+   - The main objects of enumeration are the sets of colorings modulo the symmetry group—i.e., the orbit space of colorings under the group action.
+   - The cardinality of the orbit space (inequivalent colorings) is computed using Burnside’s lemma, with explicit counts for specific group actions and numbers of colors (see e.g. the final corollaries).
+   - For each group element, the file characterizes the set of invariant colorings and computes its cardinality using combinatorial arguments.
+
+Coding and Notational Conventions
+=================================
+- **Mathematical Components Conventions:**
+    - Types for finite sets (e.g., `'I_n`), finite functions (`{{ffun T -> S}}`), and permutations (`{{perm T}}`) are used throughout.
+    - Group elements are identified by their action on vertices or faces and constructed using the `perm` constructor with injectivity proofs.
+    - Sets are typically represented as mathematical predicates over types, and membership is indicated by `\in`.
+    - Indexed sets and sequences are used to enumerate group elements or vertices concretely.
+
+- **Symmetry and Group Notation:**
+    - Symbolic names for permutations encode their geometric meaning (`r1` for a 90° rotation, `sh` for a horizontal reflection, etc.).
+    - Collections of symmetries are given as explicit sets or lists and canonically instantiated as finite groups when required.
+    - Fixed points of group actions (`'Fix_to[g]`) and orbit cardinalities are denoted and manipulated using MathComp’s set and group machinery.
+
+- **Action Convention:**
+    - The group action on colorings is defined so that an element `p` acts on a coloring `k` as the function mapping `z` to `k (p⁻¹ z)`. This models the relabeling of a coloring under the permutation (so that the “colors go with the vertices”, reflecting the change of labeling under symmetry).
+
+- **Burnside's Lemma Statement:**
+    - Burnside’s lemma is stated abstractly for finite groups acting on finite sets and utilized via concrete enumeration of fixed sets (`'Fix_to[g]`) for each group element.
+
+- **Combinatorial Counting:**
+    - Cardinalities of fixed sets are computed by reasoning about color constraints induced by each symmetry, reducing to simple polynomial counts in `n` for most cases.
+
+- **Sectioning and Modularity:**
+    - The file is organized into sections by geometric object (square, cube), further refined by the symmetry group under consideration.
+
+Interpretation and Context
+=========================
+The file provides a reusable and extensible framework for describing and analyzing colorings of regular geometric objects under symmetry in a way that is both mathematically rigorous and formally verified within Coq. Each code chunk defines either (1) a group action, (2) a specific symmetry as a permutation, (3) a combinatorial invariant (such as a set of fixed colorings), or (4) a lemma connecting group action, fixed set, and orbit cardinality via Burnside’s formula.
+
+The notations, conventions, and definitions are designed to mirror standard mathematical treatments of symmetry and coloring problems, but are implemented constructively and explicitly to fit the needs and style of formalized mathematics in the MathComp ecosystem. All key intermediate representations—colorings, symmetries, group actions—are concrete, computable, and rigorously linked via lemmas to the abstract enumeration results.
+
+This context enables effective interpretation, extension, or commenting of any code segment from the file, as each object or proof can be understood as part of the overall task of classifying colorings of symmetric figures up to equivalence.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

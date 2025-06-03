@@ -1,74 +1,101 @@
 Here is a some context to understand the following Coq source file from the mathcomp library:
 
-This file provides the core definitions, notations, structures, and foundational theorems for handling matrices and their basic linear algebra operations in the Mathematical Components (MathComp) library for the Coq proof assistant. The code establishes a uniform and extensible formalization of matrices over arbitrary types, including (semi)rings and fields, and is designed to serve as the mathematical backbone for further developments in linear algebra (such as determinants, inverses, block matrices, and canonical forms).
 
-Mathematical Objects
+Matrix Algebra - Comprehensive Overview
+
+Purpose and Goal
+================
+This source file is the central module for the formalization of finite-dimensional matrix algebra over arbitrary algebraic structures in the Coq proof assistant, specifically within the Mathematical Components (MathComp) ecosystem. Its primary purpose is to introduce and axiomatize matrices of finite size with entries in a type `R` (usually a ring, field, or module), and to develop a broad and flexible library of constructions, notation, and properties for matrices, including operations such as addition, multiplication, transposition, block decomposition, determinants, trace, inverses, structural submatrices, block matrices, and group-theoretic structures (e.g., permutation and general linear groups).
+
+The file fundamentally defines the type of matrices in a way compatible with MathComp’s canonical structures, enabling the smooth inheritance of algebraic and finite-type properties. Many major theorems and algorithms of linear algebra, such as the determinant’s multilinearity, Cramer’s rule, and block LU decomposition, are established, either fully or as intermediate steps for further theory.
+
+Mathematical Objects and Their Representation
+============================================
+
+1. **Matrix Types and Indexing**
+   - The type `'M[R]_(m, n)` represents matrices with `m` rows and `n` columns, with entries in the type `R` (which can be a ring, module, etc.). Square matrices are denoted `'M[R]_n` (i.e., `'M[R]_(n, n)`).
+   - Row and column vectors are `'rV[R]_n` (`1 × n` matrices) and `'cV[R]_n` (`n × 1` matrices), respectively.
+   - Matrices are functionally represented by (finite) functions from index pairs—ordinals ranging from `0` to `m-1` for rows and `0` to `n-1` for columns—into `R`.
+   - Dependent types (ordinals) are used for indices to guarantee bounds; a matrix entry `A i j` is well-typed whenever `i : 'I_m` and `j : 'I_n`.
+
+2. **Canonical Structures and Type Classes**
+   - Matrix types are equipped with canonical structures for equality, choice, countability, finiteness, additive (module) operations, and (when `R` is a ring) full (semi)ring structures. If `R` has richer algebraic structure, these are inherited pointwise by matrices of fixed size.
+
+3. **Matrix Operations**
+   - *Addition and Scalar Multiplication*: Defined pointwise; sum and scaling are inherited from the entry type `R`.
+   - *Negation and Subtraction*: As above, when `R` is a module or ring.
+   - *Transpose*: `A^T` swaps rows and columns.
+   - *Matrix Multiplication*: `A *m B` is defined when the width of `A` matches the height of `B`; implemented as a sum over the shared index.
+   - *Block Matrices and Submatrices*: Comprehensive support for block decomposition, including:
+        - Horizontal and vertical concatenation (`row_mx`, `col_mx`)
+        - General block matrices (`block_mx`, `mxblock`)
+        - Extraction of submatrices corresponding to blocks, rows, or columns
+   - *Structural Operations*: Row/column selection (`row`, `col`), deletion (`row'`, `col'`), permutation (`row_perm`, `col_perm`, etc.).
+   - *Vectorization*: Conversion between matrices and row vectors (`mxvec`, `vec_mx`), with corresponding identification of indices.
+
+4. **Special Matrices and Properties**
+   - *Constant and Scalar Matrices*: Matrices where all entries are equal (`const_mx a`), and scalar matrices with a fixed value on the diagonal (`a %:M`).
+   - *Diagonal and Triangular Matrices*: Construction (`diag_mx`), and predicates for diagonal (`is_diag_mx`) and triangular (`is_trig_mx`) matrices.
+   - *Permutation Matrices*: Matrices associated to permutations (`perm_mx`) and single transpositions (`tperm_mx`), and the predicate `is_perm_mx`.
+   - *Partial and Complement Identity Matrices*: `pid_mx` and `copid_mx` for use in block operations or decompositions.
+
+5. **Advanced Structures**
+   - *General Linear Group*: The (`{{'GL_n[R]}}`) type consists of all invertible `n × n` matrices over a suitable ring or field (e.g., `finComUnitRingType`). Full group-theoretic structure is inherited.
+   - *Determinant, Cofactor, Adjugate*: 
+        - Determinant (`\det A`): Defined via the Leibniz (sum over permutations) formula, for square matrices when `R` is commutative.
+        - Cofactor and Adjugate: Essential for characterizing invertibility and constructing inverses.
+   - *Unit (Invertible) Matrices*: Predicates and computation for invertibility and the matrix inverse, with all relevant algebraic properties.
+   - *Vandermonde Matrix*: Construction and determinant formula for Vandermonde matrices as a classical example.
+
+6. **Parametricity and Functoriality**
+   - *Map and Lifted Operations*: Functions (`map_mx`, `map2_mx`) allow lifting of (bi)object-level functions to matrices, respecting additive/multiplicative structure.
+   - *Canonical Morphisms*: Structure morphisms (e.g., semi-additive, additive, module, ring) are provided for all the main matrix constructors and operations.
+
+Key Coding and Notational Conventions
+=====================================
+
+- **Notation:**
+  - Short, prime-laden names are systematically used (e.g., `A^T` for transpose, `A *m B` for multiplication, `a %:M` for scalar matrices, `\det A`, `\adj A`, etc.).
+  - Numerous notations are reserved and introduced for block matrices, vectorizations, and matrix comprehensions, some parameterized by an optional equality proof ("key").
+  - Alternative notations and "casting" (e.g., `castmx`) allow, when possible, for the types of matrices to match in block decompositions and recompositions, aiding in proof statements where type equality must be justified via computation.
+
+- **Indexing and Slicing:**
+  - Indices are always ordinals (finite types), so access to `A i j` is always safe.
+  - Submatrices are extracted and permuted using compositionally named functions (`row'`, `col'`, `xrow`, `row_perm`, etc.) and can be composed or manipulated with systematic lemmas.
+  - Specialized "row vector", "column vector", and "block matrix" notations are provided for readability and uniformity.
+
+- **Polymorphism:**
+  - All definitions are as polymorphic as possible: matrices are defined over any base type, algebraic properties are layered as canonical structures, and operations are parameterized by the typeclass constraints they need.
+
+- **Type Inference and Scoping:**
+  - The MathComp "small-scale reflection" methodology is followed: implicit arguments and type inference are used heavily, and the ring_scope is the default for matrix operations.
+  - Operations that depend on dependent types (such as the size of a matrix resulting from a block operation) handle type-level equality using explicit cast operations that are as transparent as possible.
+
+- **Big Operators and Proof Styles:**
+  - Sums and products over indices (e.g., trace, determinant, etc.) use big operators (`\sum_`, `\prod_`). Many constructions and lemmas are formulated to facilitate rewriting and computation within proof scripts.
+  - Reflection predicates and "boolean views" (i.e., having both a boolean function and an inductive type expressing the property) are used for things like being a permutation matrix or a scalar matrix, supporting proof automation.
+
+- **Inheritance and Morphism Mechanism:**
+  - The HB (Hierarchy Builder) system is used to automatically equip matrices with the appropriate instance of algebraic structure whenever possible, often reusing the underlying structure of entries.
+
+- **Organization:**
+  - The file is organized logically by increasing algebraic complexity: general matrix structure, then pointwise (semi-)additive structure, then the module/ring/field properties, up to specialized structures (such as the general linear group and block matrices).
+
+- **Integration with the Larger Library:**
+  - This file serves as the linchpin for subsequent formalizations in linear algebra (e.g., vector spaces, rank, basis, canonical forms). Major classical results, such as the facts about the determinant, adjugate, Cramer’s rule, and decomposition into triangular form (LUP decomposition) are included, with some of these developed inductively for efficiency and flexible proof structure.
+
+Context for Retrieval and Commenting
+====================================
+Given the information in this docstring, any code chunk in this file can be understood in terms of its position within the formalization of matrix algebra in MathComp:
+
+- **Section or Module Context:** Each section corresponds to a specific algebraic context (equality, additive group/module, semi-ring/ring, etc.), so operations or lemmas within have the algebraic assumptions required.
+- **Object-Level Definitions:** All matrix constructions, operations, and properties are available in generic form, with additional algebraic structure inherited via canonical instances as the need arises.
+- **Notation and Conventions:** All operations use notations and naming patterns described above, so code referencing e.g. `row_mx`, `block_mx`, or `trmx` is manipulating block or transposed matrices explicitly and predictably.
+- **Proof Engineering Principles:** The file is written for maximum compositionality and assists in the development and automation of large-scale formal proofs in linear algebra via extensive use of canonical structures, reflection, and named views.
+
+This overview should allow readers and tools (including LLMs) to correctly interpret, comment, or generate further documentation for code snippets from this file, even without direct reference to the full sources or MathComp documentation itself.
 
 
-    Matrices: The central object is the type of m-by-n matrices over a ring (or other suitable structure) R (denoted as 'M[R]_(m, n)), formally represented as finite functions from pairs of indices to R.
-
-    Special Matrices: The file introduces special cases:
-        Square matrices 'M[R]_n (n×n), row vectors 'rV[R]_n (1×n), column vectors 'cV[R]_n (n×1).
-        Permutation, scalar, diagonal, and identity matrices (e.g., perm_mx, scalar_mx, diag_mx, 1%:M).
-        Block matrices: Complex and flexible ways to assemble or partition matrices into blocks of variable or fixed sizes.
-
-    Linear Algebra Operations:
-        Matrix addition and multiplication (+, *m)
-        Transposition (^T)
-        Determinant (\det)
-        Trace (\tr)
-        Adjugate and cofactor matrices (\adj, cofactor)
-        Inverse matrices and characterizations of invertibility
-
-
-Key Concepts and Notation Conventions
-
-
-    Type Parameters: Matrices are always parametrized by their coefficient type (R, which could be an arbitrary type, an eqType, a ringType, etc.), and their size in both dimensions (m, n).
-
-    Abstraction: While the physical representation of a matrix is a finite function, all interaction is intended to be through the abstract operations exposed in this interface; users should work with matrices as abstract objects.
-
-    Canonical Structures and Hierarchy: The file integrates with MathComp’s algebraic hierarchy via typeclasses and canonical structures. Matrices inherit algebraic structures (equality, operations, etc.) from their coefficients.
-
-    Indices: Matrix indices are bounded natural numbers ('I_m, 'I_n) ensuring dimensions are properly managed by the type system, reducing the need for explicit boundary checks.
-
-    Notational Conventions:
-        Matrix Types: 'M_(m, n) (matrix), 'rV_n (row vector), 'cV_n (column vector)
-        Matrix Construction and Access:
-            \matrix_(i, j) E for constructing by entries.
-            A i j for accessing the (i, j)-th element (coercion to function).
-            row i A, col j A for extracting individual rows or columns.
-        Blocks and Partitioning:
-            row_mx, col_mx, block_mx, and block notations like \mxblock_, \mxdiag_ for complex block structures.
-            Functions for extracting submatrices (e.g., lsubmx, ulsubmx, etc).
-        Operators:
-            A *m B: matrix multiplication.
-            A ^T: transpose.
-            A + B: addition.
-            a *: A: scaling by a scalar.
-            a%:M: scalar matrix (scalar on the diagonal).
-            \tr A, \det A, \adj A: standard linear algebra operations.
-        Setoid Operations and Structures: Matrix types are equipped (via Hierarchy Builder and canonical structures) with eqType, zmodType, ringType, and groupType instances as appropriate.
-
-    Dimension Inference: Type-level dimensions and coercions (including castmx) are used to ensure shapes match, and to allow flexible but type-safe composition of matrices.
-
-
-Implementation Highlights
-
-
-    Representation Hiding: A matrix is internally defined as a wrapper (Variant matrix) over finite functions {{ffun 'I_m * 'I_n → R}}; users interact with abstract operations only.
-
-    Block Matrices: Powerful operations and notations for assembling and disassembling complex matrices; useful in proofs and algorithms that require recursive or block-based reasoning.
-
-    Main Lemmas and Results: The file formalizes not just the data structures but also proves foundational results such as:
-        Properties of addition, multiplication, transposition (associativity, distributivity, etc.).
-        Symmetry and relationships between block and non-block forms.
-        Results on determinant linearity, trace, commutativity for special cases, and Laplace expansion.
-        Cramer’s rule and its formal proof.
-
-    Parametricity: The framework supports operations mapping matrices via morphisms over coefficient types (allowing transport of algebraic properties across field/ ring extensions).
-
-    Finite and Countable Structures: When the coefficient type is finite, so is the matrix type, and instances are provided for finite and countable typeclasses.
 
 
 Here is a Coq source file from the mathcomp library:

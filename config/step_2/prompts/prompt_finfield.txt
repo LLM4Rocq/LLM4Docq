@@ -1,0 +1,129 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+(*
+===============================================================================
+Finite Field Extensions and Constructions
+
+Overview and Purpose
+--------------------
+This file systematically develops additional constructions, structural results, and canonical instances related to finite fields within the Coq proof assistant, specifically tailored to the Mathematical Components (MathComp) library infrastructure. Its main objective is to:
+  - Provide formal tools for defining, manipulating, and reasoning about finite fields and their extensions,
+  - Enable the construction of finite field extensions of specified characteristics and orders,
+  - Support automated type class inference for finite fields, their vector spaces, splitting fields, and Galois structures,
+  - Present mathematical facts (e.g., classical theorems about finite fields, such as Wedderburn's little theorem) in a form suitable for formal proofs and the robust development of further algebraic theories building upon finite fields.
+
+Mathematical Objects and Representations
+----------------------------------------
+
+1. **Finite Fields (`finFieldType`) and their Units:**
+   - A *finite field* is a commutative ring with unity of finite cardinality that is also a field.
+   - The type `finFieldType` represents the structure of finite fields within Coq. 
+   - The group of units (`{{unit F}}`) and basic facts about their cardinality, exponentiation, and polynomial roots are developed.
+
+2. **Finite Non-Zero Rings (`finNzRingType`):**
+   - Represents nontrivial finite rings with no zero divisors. The file proves their nontriviality and minimal cardinality as groundwork for algebraic manipulations.
+
+3. **Vector Spaces and Algebras over Finite Fields:**
+   - The file provides mechanisms to endow vector types (`vectType`) over finite fields or rings with the appropriate canonical structures (e.g., finite types, modules, algebras, etc.).
+   - `finvect_type` serves as an alias bundling these canonical instances for vectors and related algebraic structures.
+
+4. **Finite Field Extensions and Splitting Fields:**
+   - `fieldExtType F` denotes a field extension of base field `F`.
+   - `FinFieldExtType L` equips a carrier type `L` with all structure required to treat it as a finite field extension of a finite field.
+   - `FinSplittingFieldType F L` and related constructions enable the formation and manipulation of splitting fields over finite fields for given polynomials, allowing the formal development of Galois theory.
+   - Galois groups and automorphisms of such extensions are made available through canonical instances.
+
+5. **Prime Characteristic Structures:**
+   - The file introduces an explicit mechanism to work in characteristic `p` by means of the type `pPrimeCharType pcharRp`, which represents a ring (or field) of characteristic containing the prime number `p`, along with compatible algebraic structures (e.g., modules, algebras).
+   - This allows explicit tracking and inference of prime characteristic throughout more abstract developments.
+
+6. **Prime Power Order Finite Fields:**
+   - The construction `pPrimePowerField pr_p k_gt0` formalizes the existence of finite fields of characteristic `p` and order `p^k`, for any prime `p` and positive integer `k`, reflecting fundamental field theory results with constructive dependencies specified via Sigma-types.
+
+7. **Canonical Structures for Domains:**
+   - The function `FinDomainFieldType` allows for construction of a finite field type structure from any finite integral domain (via Wedderburn’s theorem), particularly for use in proof contexts without defining global canonical instances.
+   - The auxiliary `FinDomainSplittingFieldType` allows packing of splitting field structures for prime characteristic domains.
+
+8. **Cardinality and Enumeration Lemmas:**
+   - Several lemmas are provided that compute the cardinality of various finite algebraic objects (e.g., vector spaces, field units, abelian groups), and relate these to dimension, field order, or other field invariants.
+
+9. **Galois Theory Results:**
+   - The file contains formal statements of results such as the structure of Galois groups of splitting fields over finite fields, and explicit generators (automorphisms) of these groups. It proves the characterization of elements fixed by field Frobenius and connects group-theoretic and field-theoretic properties.
+
+10. **Existence Theorems:**
+    - Theorems such as the existence of a splitting field for any nonzero polynomial over a finite field, or of a finite field of any prime power order, are formally developed with computational content, crucial for constructive mathematics in proof assistants.
+
+Key Conventions and Infrastructure
+----------------------------------
+
+- **HB (Hierarchy Builder) and Canonical Structures:** 
+  The file extensively employs MathComp's Hierarchy Builder (HB) to organize and provide algebraic structure instances, supporting robust type-class inference and endemic compatibility with the MathComp universe.
+
+- **Coercion and Packing:** 
+  Use of coercions, packing, and "on" combinators (e.g., `HB.pack_for`, `on`, `Build`) makes it possible to create composite structures that inherit properties without globally registering them as canonical, thus avoiding inference clashes.
+
+- **Local Notations and Scopes:**
+  Local notations (e.g., `fvT` for bundled vectors) and deliberate scope management (e.g., `ring_scope`, `GroupScope`) are used to reduce ambiguity and facilitate mathematical resemblance.
+
+- **Predicates, Type Aliases, and Compatibility:** 
+  Specialized predicates and type aliases (e.g., `finvect_type`, `pPrimeCharType`) are adopted to bundle together standard interfaces and to serve as glue, so that objects (fields, vector spaces, etc.) can be handled uniformly by generic theory.
+
+- **Cardinality and Exponential Notation:**
+  Standard notations for cardinality (#|X|), exponentiation (`x ^+ n`), and field theory (e.g., `[pchar F]` for the set of prime divisors of the characteristic of a ring) are consistently used.
+
+- **Deprecations and API Evolution:**
+  Numerous Notation commands mark older names as deprecated, guiding users toward the consistent and updated terminology.
+
+- **Avoidance of Global Canonical Instances Where Appropriate:**
+  Some constructions are intentionally *not* made canonical, as explained in docstrings or comments, to avoid unintentional interference in type inference—especially relevant in proof developments.
+
+- **Proof Engineering:**
+  Where necessary, techniques are used to optimize proof-checking by minimizing coercion or structure conversion overheads (e.g., local abbreviations and careful management of structure layers), reflecting deep expertise in Coq's performance characteristics.
+
+Interpretation and Usage Notes
+-----------------------------
+- This file is a foundational piece for anyone attempting to formalize or mechanically verify algebraic results over finite fields and their Galois extensions in Coq.
+- It enables generic development over a wide range of algebraic objects by providing "just enough" structure for any particular purpose, whether that be to establish cardinalities, as in enumeration theory, or to specify automorphism actions as required in Galois theory.
+- Coding patterns employed herein (such as local section variables, HB instances, and proof shape control) should be considered archetypal for further developments in algebra within MathComp or compatible libraries.
+- The careful distinction between abstract mathematical properties and their concrete realizations as types and structure instances allows for seamless interoperability with other algebraic and arithmetic modules in MathComp, as well as extension to more complex constructions (e.g., representation theory, étale algebras).
+
+===============================================================================
+*)
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

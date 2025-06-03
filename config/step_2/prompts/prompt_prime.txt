@@ -1,0 +1,132 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Prime Decomposition and Arithmetic Functions on Natural Numbers
+
+Overview
+========
+This file develops an elementary but comprehensive formalization of the arithmetic of prime numbers and integer factorization for natural numbers in the Coq proof assistant. It gathers definitions, algorithms, and theorems concerning primality, prime decomposition, divisors, arithmetic functions (notably Euler’s totient function), and the manipulation of subsets of primes (such as “pi-parts” and “pi-numbers”). The constructions in this file are designed to balance foundational mathematical correctness with practical computability, using efficient recursion tailored for Coq’s Peano natural numbers.
+
+The content is self-contained and does not depend on external number-theoretic libraries, but it is designed to integrate with the Mathematical Components (MathComp) library, from which it borrows basic types and notations. Nevertheless, this file's definitions and conventions are sufficiently independent to be understood by readers familiar with basic number theory, predicate logic, and programming with dependent types.
+
+Mathematical Objects and Formal Representations
+==============================================
+
+1. **Natural Numbers (`nat`)**:
+   - All arithmetic is performed over the type `nat` (Peano natural numbers).
+   - The code is optimized for the limitations and characteristics of unary representation.
+
+2. **Primality (`prime`)**:
+   - The predicate `prime p : bool` returns `true` iff `p` is a prime number.
+   - Primality is defined via the uniqueness of the prime decomposition, corresponding to the existence of exactly one nontrivial divisor.
+
+3. **Prime Factorization**:
+   - Main algorithm: `prime_decomp n` returns a sorted list of pairs `(p, e)` representing the multiplicities (`e`) of each prime factor (`p`) of `n`, for `n > 1`; otherwise, it returns the empty list.
+   - Each pair encapsulates the statement “p^e divides `n`, and p is prime”.
+   - The function `primes n` gives the sorted list of all prime divisors of `n` (those `p` such that `p` divides `n` and `p` is prime).
+   - `pfactor p e` computes `p^e`; `NumFactor` is a pretty-printing aid for large primes.
+   - The decomposition algorithm is specially engineered to avoid inefficiencies common to recursive Peano arithmetic by special-casing even numbers and composite reductions.
+
+4. **Divisors and Related Functions**:
+   - `divisors n` computes the sorted list of all positive divisors of `n` (for `n > 0`), based on the prime decomposition.
+   - The list is guaranteed to be sorted and without duplicates.
+   - Membership in the divisors list corresponds to the divisibility predicate `%|`.
+
+5. **Canonical Arithmetic Functions**:
+   - **Euler's Totient Function**: `totient n` computes the number of integers less than `n` that are coprime to `n`.
+   - Efficient algorithms for related invariants such as the smallest and largest prime divisors: `pdiv n` and `max_pdiv n` (with default value `1` if no prime divisors exist).
+   - Functions for extracting and managing exponent data:
+     - `logn p n` returns the largest `e` such that `p^e` divides `n` (with the convention `0` if `p` is not prime or does not divide `n`).
+     - `trunc_log p n` returns the largest `e` such that `p^e <= n` (zero by default for degenerate cases).
+     - `up_log p n` is a truncated upper logarithm: the least `e` such that `n <= p^e`.
+
+6. **Predicates and Set Notations for Primes**:
+   - **Predicate Type**: `nat_pred` is an explicit type for predicates over `nat` (implemented as `simpl_pred nat` for compatibility with MathComp).
+   - Conversions: `nat` coerces to `nat_pred` as a singleton indicator (so `p` is read as the predicate “equal to p”).
+   - **Prime Sets, Pi-Sets, and Pi-Numbers**:
+     - `\pi(n)` denotes the set of prime divisors of `n` (as a `nat_pred`).
+     - `pi^'` denotes the complement (negation) of a prime set predicate.
+     - The notation `pi.-nat n` means “all prime divisors of `n` belong to `pi`” (“n is a pi-number”).
+     - The pi-part `n`_`pi` is the largest divisor of `n` whose prime divisors lie in `pi`.
+     - Notations such as `n`_`p` (the maximal power of `p` dividing `n`) extend this for singleton predicates.
+
+7. **Algorithms**:
+   - Efficient, custom-tailored routines are provided for division by 2, extracting 2-valuation, and finding divisors or exponent patterns, as the standard algorithms are inefficient on Peano naturals.
+   - Nearly all arithmetic functions related to primes go via the factorization data.
+
+Key Notational and Coding Conventions
+=====================================
+
+- **Notations**:
+  - List notations `[:: ... ]` represent sequences (lists) over `nat`.
+  - Projections from pairs use syntax like `.1` (first element), `.2` (second element).
+  - The notation `p \in pi` asserts membership in a set of primes (`nat_pred`).
+  - Notations for pi-sets and pi-parts include:
+    - `\pi(n)` for the set of prime divisors of `n`, viewed as a predicate (“pi-set”).
+    - `n`_`pi` for the pi-part, i.e., product of powers of each `p in pi`.
+    - `pi.-nat n` for “n is a pi-number”, i.e., all its prime factors are in `pi`.
+    - `pi^'` for the complement of a predicate (`\notin`).
+    - Special canonical forms allow expressions such as `p.-nat n` and `n`_`p` as abbreviations for singleton prime sets.
+
+- **Type and Coercion Management**:
+  - The explicit declaration of a `nat_pred` type allows set-like manipulation of predicates and natural numbers.
+  - Coercions are provided so that natural numbers and finite sets can be used where predicates are required; singleton and set-of-primes interpretations are unified under coercion.
+
+- **Scoping and Sectioning**:
+  - Custom notations and operations are scoped via `nat_scope` to avoid clashes with other numeric or logical operations.
+  - Lemmas and definitions are grouped into logical sections (e.g., decompositions, pi-parts, arithmetic functions, divisors).
+
+- **Naming Conventions**:
+  - Lemmas and function names are chosen to indicate their purpose and symmetry with usual number-theoretic terminology (e.g., `primeP` for characterization via reflection, `logn`, `partn`, etc.).
+  - Predicates returning `bool` are paired with reflection lemmas (`reflect`) to facilitate proof automation.
+
+- **Algorithmic Conventions**:
+  - All structural and computational recursion is carefully managed for performance, considering the costly nature of Peano representation.
+  - Functions work robustly on "degenerate" cases (e.g., for `n = 0`, `n = 1`), with explicit conventions for return values.
+
+- **Integration with MathComp**:
+  - The file is compatible with MathComp's sequence, finite type, and big-operation conventions.
+  - `bigop`-style lemmas and notation (e.g., `\prod_`, `\sum_`) are present for sums and products indexed by lists or ranges.
+
+Summary and Retrieval Context
+============================
+This file provides all the core routines and structures for working with primes, their decompositions, arithmetic functions, divisor lists, and pi-based subsets of primes in the setting of natural numbers. It emphasizes computable, canonical definitions to serve both as a basis for elementary number theory and as efficient support for related proof developments. Critical notational conventions (especially for primes and pi-sets), as well as the types and representations of all main objects, are spelled out and made explicit by the code and accompanying explanations.
+
+Understanding this docstring alone is sufficient to contextualize and interpret more finely grained docstrings or comments on any code segment in the file, since it lays out the core mathematical and software-engineering concepts, their realization in Coq, and the idioms adopted for managing sets, products, and predicates over primes.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

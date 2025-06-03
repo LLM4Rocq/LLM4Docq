@@ -1,0 +1,112 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Group Automorphisms and Characteristic Subgroups
+
+Overview
+========
+This file provides a formal development of group automorphisms and characteristic subgroups within the framework of finite group theory, as implemented in the Mathematical Components (MathComp) library for the Coq proof assistant. The file formalizes the definitions, properties, and interactions of automorphism groups, automorphisms induced by group morphisms, conjugation automorphisms, and characteristic subgroups. Although it builds upon the MathComp ecosystem, it is intended to be self-contained in its definitions and idioms, and is readable by mathematicians or formal method practitioners familiar with group theory and basic abstract algebra.
+
+Purpose and Goal
+================
+The primary objective of this file is to define and analyze the structure of the automorphism group of a finite group, relate automorphisms to group morphisms and permutations, and to formally characterize and study characteristic subgroups—the subgroups that are preserved under all automorphisms. The file proves various foundational results about automorphism groups, their elements, the connection between group morphisms and automorphisms, and how automorphisms transform subgroups, especially characteristic ones. The code is suitable both for foundational exploration and as a reusable basis for more advanced group theoretical formalizations.
+
+Mathematical Objects and Their Representations
+==============================================
+
+1. Finite Groups and Sets
+   - Finite groups of type `finGroupType` are the ambient structure, represented as subtypes (`{{group gT}}`) of a finite type `gT`.
+   - Finite sets (`{{set gT}}`) denote subgroups and supports.
+
+2. Permutations and Morphisms
+   - Permutations: Elements of `{{perm gT}}` represent bijections on the finite set `gT`.
+   - Morphisms: Group homomorphisms are given explicit structure, usually written `{{morphism G >-> rT}}` for a homomorphism from group `G` to codomain group `rT`. 
+   - Injective morphisms are denoted by the `"injm"` predicate, and images/kernels by `f @* G` / `'ker f`.
+
+3. Automorphism Groups
+   - The automorphism group `Aut G` is defined as the set of permutations of `gT` that preserve the group structure of `G` and fix it outside `G`. Thus, `Aut G` is a subgroup of `{{perm gT}}`.
+   - `Aut G` uses the structure and notations of finite groups, not just sets.
+   - Automorphisms may be represented as permutations (`a : {{perm gT}}`) equipped with proofs that they preserve group operations and do not alter points outside `G`.
+
+4. Automorphisms Induced by Morphisms
+   - For an injective endomorphism or group monomorphism `f`, the file constructs the unique automorphism of its domain whose restriction matches `f`.
+   - The function `aut` produces the associated automorphism-permutation from such a morphism, and key equivalence properties are established between morphisms and their automorphic representatives.
+
+5. Automorphism Group Isomorphisms
+   - Given an injective group homomorphism `f : {{morphism D >-> rT}}`, the file constructs a canonical injective group homomorphism from `Aut G` to `Aut (f @* G)` (for subgroups `G ⊆ D`), and proves the associated isomorphism theorems.
+
+6. Conjugation Automorphisms
+   - For each group element `x` (belonging to subgroup or normalizer where required), the conjugation permutation `conjgm G x` is defined as `y ↦ x^-1 y x`. This acts as an explicit automorphism of `G`, and its fundamental properties (such as injectivity and kernel being the centralizer) are developed.
+
+7. Characteristic Subgroups
+   - A characteristic subgroup `H` of `G` (notation: `H \char G`) is defined as a subgroup that is mapped to itself by every automorphism of `G`.
+   - The file provides multiple equivalent formulations, criteria, and closure properties for characteristic subgroups, including their inheritance under group images and isomorphisms.
+
+Key Conventions and Notational Choices
+======================================
+
+- **Scopes and Notation**:
+  - The notation `[Aut G]` denotes the automorphism group of `G` as a group, and is used within `Group_scope` (invoked via `%G`).
+  - `[Aut G]%G` is the explicit group structure for the automorphism group; `[Aut G]` alone is the underlying set.
+  - The characteristic subgroup relation is written as `H \char G`, using the infix `\char` operator.
+
+- **Implicit and Canonical Arguments**:
+  - The use of `Set Implicit Arguments` and canonical structures allows Coq to infer most type arguments automatically, reducing notation clutter.
+  - Canonical structures are employed to enable smooth conversion between automorphisms, their underlying permutations, and morphisms.
+
+- **Closure Properties**:
+  - Definitions and lemmas consistently formalize closure under group operations and subgroup relations, matching standard mathematical practice.
+  - Images and preimages under automorphisms and morphisms are written as `aut @: A` and `aut @^-1: A`, respectively, using MathComp's notation for image/preimage.
+
+- **Reflective Predicates and Boolean Logic**:
+  - Boolean predicates (e.g., for characteristic subgroups) are paired with reflection lemmas, bridging the gap between constructive Boolean expressions and propositional logic in Coq proofs.
+
+- **Sections and Argument Patterns**:
+  - Each principal concept (automorphisms, permutation induction, characteristicity, etc.) is developed in its own Coq section.
+  - Where possible, properties are proven in general for all groups or sets, with explicit variables and hypotheses, to maximize reusability.
+
+- **Injective Homomorphisms and Isomorphisms**:
+  - Whenever possible, the code factors isomorphisms and their properties through explicit injectivity hypotheses, to ensure correspondence between structures.
+
+Context for Retrieval and Documentation
+======================================
+This docstring provides the necessary context to interpret definitions, notations, and results in the file. The overall focus is the algebraic and set-theoretic machinery for automorphism groups and characteristic subgroups in the setting of finite groups. Each construct is given in terms of the MathComp representation (using explicit types for groups, sets, permutations, and morphisms), with careful attention to group-theoretic authenticity (e.g., automorphisms as permutations with restricted support and group properties). Key naming conventions, notation, and scope management are highlighted, providing a blueprint for both understanding and extending the file’s contents.
+
+A reader can use this summary to quickly orient themselves within the file, understand the representation of each mathematical object, and decode the purpose and meaning of specific code elements, even in the absence of the file's internal comments or full source listing.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

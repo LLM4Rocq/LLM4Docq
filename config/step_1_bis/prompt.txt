@@ -95,6 +95,4 @@ Key coding and notational conventions
     - Polynomial scaling utilities (`ZpolyScale`)
     - Integral spans and Smith normal form
     - Eisenstein criterion
-   Each section can be imported independently, preserving its notation and definitions.
-
 ```

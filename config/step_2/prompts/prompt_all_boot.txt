@@ -1,0 +1,126 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+***************************************************************************
+Prelude for Mathematical Components: Algebraic and Finite Structures
+***************************************************************************
+
+Purpose and Goal
+================
+This Coq source file serves as a foundational prelude for the Mathematical Components (MathComp) formalization ecosystem. Its principal objective is to assemble, expose, and organize a comprehensive suite of algebraic, combinatorial, and finiteness-theoretic libraries. By exporting these modules, the file equips users and subsequent developments with a consistent context of mathematical infrastructures and notations—ranging from elementary logic up to finiteness structures, modular arithmetic, and basic graph theory. The goal is to provide a self-contained algebraic and combinatorial environment where significant results, data structures, and idioms of MathComp are readily available and harmonized.
+
+Mathematical Objects and Representations
+========================================
+This prelude aggregates definitions and results about the following key mathematical structures, all formalized as concrete types or typeclasses in Coq using the SSReflect extension:
+
+1. **Booleans and Propositional Reasoning**:
+   - Core logical operations and boolean predicates, with extensive reflection between booleans and propositions enabling computational proofs.
+
+2. **Functions and Equivalences**:
+   - Tools for working with total and partial functions, extensionality, and injectivity; equality types (`eqType`), which provide decidable equality on types.
+
+3. **Natural Numbers**:
+   - Arithmetic on the natural numbers (`nat`), including recursion, induction, and basic number-theoretic results, as well as division and modular operations (`div`, `modn`).
+
+4. **Finite Types and Structures**:
+   - Definition and manipulation of finite types (`finType`), tuples (`tuple`), finite functions (`finfun`), and finite sets (`finset`).
+   - Finiteness reasoning is central to many algebraic combinatorics results, such as enumeration, counting, and searching.
+
+5. **Sequences and Tuples**:
+   - Lists (sequences) (`seq`) and their properties, transformation tools, folds, combinators, and extensions to fixed-size tuples.
+
+6. **Choice and Decidability**:
+   - Mechanisms for constructive existential choices on possibly infinite types, via the `choiceType` structure, which is a prerequisite for much of MathComp development.
+
+7. **Algebraic Structures**:
+   - Monoids (`monoid`) and basic algebra, including structures on natural numbers, booleans, and functions.
+   - Commutativity, associativity, and identity laws are formalized both as axioms and as conveniently reusable notations.
+
+8. **Modules and n-ary Structures**:
+   - The `nmodule` formalism for finite-support n-ary algebraic structures, supporting additive and multiplicative monoids, especially useful for polynomial and vector space developments.
+
+9. **Paths and Graphs**:
+   - Formalization of finite graphs (`fingraph`), paths, and basic related combinatorics; central for proof developments in combinatorics and finite model theory.
+
+10. **Big Operators**:
+    - Abstracted sum and product operations (`bigop`) over finite types/collections, supporting generalized, algebraic aggregation with rich notation.
+
+11. **Prime Numbers and Binomial Coefficients**:
+    - Results on primality (`prime`), as well as binomial coefficients (`binomial`), central to combinatorial number theory.
+
+12. **Quotients and Equivalence Relations**:
+    - General mechanisms for constructing quotient types (`generic_quotient`) and reasoning up to equivalence, providing types for modular arithmetic, multisets, and other quotients.
+
+13. **Set-Theoretic Notions**:
+    - Finite sets (`finset`), including basic set-theoretic operations, cardinality, and proofs about the structure of collections of finite objects.
+
+14. **Commutative Algebraic Laws**:
+    - A collection of standard associativity and commutativity lemmas, supporting rewriting and proof automation for basic operations (`ssrAC`).
+
+Key Notational and Coding Conventions
+=====================================
+1. **Reflected Booleans and Propositions**:
+   - Predicates and properties are typically presented in boolean form, with reflection lemmas connecting them to standard logical propositions. This enables uniform automation with rewriting and decision procedures.
+
+2. **Canonical Structures**:
+   - MathComp crucially employs Coq’s canonical structures mechanism to provide typeclass-like inference of properties (equality, finiteness, choice, etc). This ensures that, for instance, lists over an eqType are automatically recognized as eqTypes.
+
+3. **Infix and Notation Scopes**:
+   - Many algebraic operations use systematically named notations and scopes (e.g., `%N` for naturals, `%g` for monoids, `\sum_(_ < _) _` for big operators), allowing concise yet type-safe expressions.
+
+4. **Sectioning and Module Exports**:
+   - This file only exports modules; it neither defines new objects nor proves new theorems directly, relying on careful module import/export discipline to establish a harmonized context.
+
+5. **Finite Enumeration**:
+   - Many combinatorial operators are predicated on finiteness (e.g., big sums/products, enumeration, finite search), reflected both at type-level (`finType`, finite tuples) and in the arguments of key operators.
+
+6. **Genericity and Instantiation**:
+   - Abstractions such as monoids, modules, and choice types are consistently parameterized over types, promoting code reuse and compositional reasoning.
+
+Context for Retrieval
+=====================
+This file acts as the universal entry point and ambient context for developments in the MathComp style, guaranteeing the availability of all core structures, notations, and lemmas standard for algebraic combinatorics, number theory, and computation over finite objects. All proofs, statements, and definitions in code chunks from this file’s import graph are to be interpreted against this backdrop; in particular, they are expected to freely use
+- boolean/propositional duality,
+- typeclass-driven algebraic structure inference,
+- big operator notations,
+- finite-type reasoning patterns,
+- and reusable results for modular computation, enumeration, and combinatorial algebra.
+
+It is assumed that subsequent developments may reference any operator, structure, or concept available through these exports, and that these conventions define the idiomatic basis for interpreting or generating documentation about code chunks originating in this context.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

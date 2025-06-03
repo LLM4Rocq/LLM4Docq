@@ -1,0 +1,118 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Integer Divisibility and Modular Arithmetic in Coq
+
+Overview and Purpose
+====================
+This Coq source file develops a comprehensive algebraic theory of integer divisibility within the framework of the Mathematical Components (MathComp) library. Its primary goal is to provide a robust formalization of classical arithmetic concepts—including Euclidean division, divisibility, greatest common divisors (GCDs), least common multiples (LCMs), coprimality, the Chinese Remainder Theorem, and operations on integer polynomials—using the type `int` of Coq's signed integers. By systematically implementing these notions, the file enables the formal mechanization of number-theoretic reasoning and provides key foundational results for higher algebraic developments, such as the existence of the Smith normal form for integer matrices.
+
+Mathematical Objects and Their Representations
+==============================================
+
+1. **Signed Integers (`int`)**
+   - All arithmetic is performed in the type `int`, representing the set of integers with positive (`Posz n`) and negative (`Negz n`) constructors. Absolute values and sign determinations are handled by `|m|` and `sgz m`, respectively.
+
+2. **Euclidean Division and Remainder**
+   - *Quotient*: `divz m d` (notation: `(m %/ d)%Z`) computes the integer quotient of `m` divided by `d` based on the Euclidean division algorithm.
+   - *Remainder*: `modz m d` (notation: `(m %% d)%Z`) computes the least non-negative remainder such that `m = (m %/ d)%Z * d + (m %% d)%Z`. Special cases are handled when `d = 0`.
+   - Both functions ensure compatibility with the conventions that the remainder is always non-negative and less than `|d|` for nonzero divisors.
+
+3. **Divisibility**
+   - The predicate `dvdz d m` (notation: `(d %| m)%Z`) states that integer `d` divides integer `m`. The actual implementation checks divisibility via the absolute values of the operands and leverages the natural number divisibility test.
+   - Reflective lemmas relate Boolean divisibility to existential properties (i.e., existence of integer quotients).
+
+4. **Congruence Modulo an Integer**
+   - Modular equivalence is notated as `(m = n %[mod d])%Z` for propositional equality and `(m == n %[mod d])%Z` (or `(m != n %[mod d])%Z`) for Boolean equality or inequality.
+   - These express standard modular congruences between integers.
+
+5. **Greatest Common Divisor and Least Common Multiple**
+   - `gcdz m n` computes the non-negative greatest common divisor of `m` and `n`. If both arguments are zero, the GCD is defined as zero.
+   - `lcmz m n` computes the least common multiple, likewise always non-negative.
+   - These utilize natural number operations (`gcdn`, `lcmn`), coercing to `int` as needed.
+
+6. **Coprimality and Bézout's Identity**
+   - `coprimez m n` (Boolean) expresses that `m` and `n` are coprime (i.e., `gcdz m n = 1`).
+   - `egcdz m n : int * int` returns a pair `(u, v)`—Bézout coefficients—such that `u * m + v * n = gcdz m n`. There are specification and reflection lemmas ensuring existence and correctness of such coefficients.
+
+7. **Chinese Remainder Theorem (CRT) Utilities**
+   - For coprime moduli `m1`, `m2`, the file provides:
+     - `zchinese r1 r2`: a canonical integer solution to the CRT, i.e., an integer simultaneously congruent to `r1` modulo `m1` and to `r2` modulo `m2`, constructed using Bézout coefficients.
+     - Lemmas characterizing when two integers are congruent modulo the product `m1 * m2` in terms of their residues modulo the prime factors.
+
+8. **Integer Polynomials**
+   - `zcontents p`: computes the content (the GCD of the coefficients, up to sign) of a polynomial `p` over `int`.
+   - `zprimitive p`: computes the primitive part of a polynomial (the polynomial divided by its content).
+   - Lemmas establish multiplicative properties analogous to those in Gauss's lemma, supporting results about irreducibility and factorization.
+
+9. **Smith Normal Form for Integer Matrices**
+   - The file concludes by proving the existence of the Smith normal form for integer matrices of arbitrary size, demonstrating the module-theoretic structure of finitely generated abelian groups. This is presented as an existence theorem for appropriate invertible matrices and a diagonal matrix with divisibility relations among its entries.
+
+Key Conventions and Notational Practices
+========================================
+
+- **Scopes and Notations**
+  - Most custom infix and relation notations (e.g., `%/`, `%%`, `%|`, congruence modulo) are set within the `int_scope`, ensuring clarity and preventing clashes with natural number arithmetic. Natural numbers are often embedded as integers via `%:Z`.
+
+- **Sign and Absolute Value**
+  - Sign management is formalized using `sgz` (the sign function) and absolute values `|m|`. These normalize canonical forms (e.g., for GCDs, contents, etc.) and ensure that standard non-negativity properties are maintained throughout.
+
+- **Boolean Predicates and Reflection**
+  - Properties such as divisibility, modular equality, and coprimality are defined as Boolean functions complemented by “reflection” lemmas. These connect Boolean and propositional statements, allowing for flexible proof styles (case analysis, rewriting, etc.) and compatibility with Ssreflect’s rewriting infrastructure.
+
+- **Coercion Between Types**
+  - While foundational work occurs in the integer domain, auxiliary computations (especially for divisibility and degree calculations) often coerce to or from natural numbers, using `|m|%N` or `%:Z` accordingly, so as to reuse results and algorithms available for naturals.
+
+- **Sectioning and Organization**
+  - The file is logically structured into sections for: core definitions and operations, arithmetic lemmas, divisibility theory, modular arithmetic, GCD/LCM/copimality properties, the Chinese Remainder Theorem, operations on integer polynomials, and matrix canonical forms (Smith normal form).
+
+- **Default Parameters and Arguments**
+  - Many definitions and lemmas employ Coq's notation and argument mechanisms to manage implicit parameters (in particular, the divisor and modulus), aligning with MathComp’s idiomatic style for clarity and reusability.
+
+Interpretation for Documentation or Code Generation
+===================================================
+Readers should view this file as the MathComp “standard library” for integer divisibility, modular arithmetic, and their extensions to polynomials and matrices. Every formalized entity is accompanied by specification, computational behavior, and key algebraic laws—making it possible to reason both constructively (finding quotients, coefficients, or solutions) and abstractly about divisibility and related notions over `int`.
+
+When interpreting or documenting particular code fragments, it is essential to keep in mind:
+- All notation (e.g., `%/`, `%%`, `%|`, congruence forms) refers specifically to the operations defined in this file for `int`.
+- Boolean-valued predicates generally have reflection lemmas connecting them to existential or algebraic characterizations.
+- Proofs and definitions are tightly coupled: computational content (as in `divz`, `egcdz`, `zchinese`, etc.) is always supported by specification lemmas expressing the mathematical property represented.
+
+This file aims to make integer arithmetic in Coq both mathematically faithful and computationally effective—serving as a foundational layer for formalizations in number theory, algebra, and beyond.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

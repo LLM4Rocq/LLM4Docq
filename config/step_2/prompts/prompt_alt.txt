@@ -1,0 +1,100 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Symmetric and Alternating Groups
+
+Overview
+========
+This file formalizes the definitions and key properties of symmetric and alternating groups within the Coq proof assistant using the Mathematical Components (MathComp) library. Its aim is to provide a robust foundation for reasoning about group-theoretic constructs and the structure of permutation groups acting on finite types. The file develops both the basic group instances for these classical groups and fundamental results concerning their cardinality, normality, simplicity, index, and permutation actions.
+
+Mathematical Objects and Representations
+========================================
+
+1. **Finite Types (`finType`):**
+   The ambient type `T` over which permutations are considered is required to be a finite type, formalized via MathComp's `finType` interface. This ensures finite cardinality and allows enumeration of all elements.
+
+2. **Permutations (`{{perm T}}`):**
+   The type `{{perm T}}` denotes bijections (permutations) on `T`. Permutations are represented as invertible functions, equipped with group operations (composition and inverse) as per MathComp’s `ssrbool` and `fingroup` libraries.
+
+3. **Symmetric Group (`'Sym_T`):**
+   The symmetric group on `T` consists of all permutations of `T`. In code, `'Sym_T` is defined as the set of all elements of `{{perm T}}` (the full group), denoted by `[set: {{perm T}}]`. `'Sym_T` is furnished with a canonical group structure via MathComp's `[group of ...]` construction.
+
+4. **Alternating Group (`'Alt_T`):**
+   The alternating group on `T` is defined as the kernel of the sign homomorphism (`odd_perm`), i.e., those permutations with even parity. Formally, `'Alt_T` is given as the kernel `[ker odd_perm]`. It inherits a canonical group structure.
+
+5. **Group-Theoretic Structures:**
+   - **Normal Subgroups (`<|`):** The alternating group is shown to be a normal subgroup of the symmetric group.
+   - **Index (`#|G:H|`):** The index of the alternating group in the symmetric group (i.e., the number of cosets) is formalized and computed.
+   - **Simplicity:** The file proves when the alternating group is simple, particularly for |T| = 5 and for |T| ≥ 5, as well as when it is not (e.g., |T| = 4).
+   - **Transitivity and Faithfulness:** The action properties of the symmetric and alternating groups are encoded, including higher-degree transitivity and faithful actions.
+
+6. **Restriction and Extension of Permutations:**
+   The file elaborates on how to restrict a permutation of `T` to a permutation of `T' = {{y | y ≠ x}}` (the complement of a point) and conversely, how to extend a permutation back to `T`. Injectivity is used to promote these as actual group morphisms or isomorphisms, and a morphism structure is provided.
+
+7. **Primitive Operations:**
+   - **Transpositions and Cycles:** Generating sets for the symmetric group (via transpositions and cycles) are discussed, along with the generation result for a cyclic shift and a transposition.
+
+8. **Solvability:**
+   The file proves conditions under which the symmetric and alternating groups are non-solvable, relating this to the size of the base set.
+
+Key Coding and Notational Conventions
+=====================================
+
+- **Canonical Structures and Notations:** The MathComp approach uses canonical structures and local/global abbreviations (`'Sym_T`, `'Alt_T`) to refer to these groups uniformly. The notation is established at defined levels to be compatible both in general algebra and group-theoretic scopes.
+
+- **Morphisms and Kernels:** Group morphisms (e.g., the sign map) are constructed using MathComp's Morphism facilities, establishing homomorphism properties and enabling reasoning about kernels and images.
+
+- **Coset and Index Notation:** The cardinality and index of groups and subgroups use MathComp notations (`#|G|`, `#|G : H|`), where `#|G|` is the order and `#|G : H|` is the index.
+
+- **Normal Subgroup Relations:** Normality predicates (`<|`) and normalizer subsets are used extensively, with normality proofs leveraging MathComp’s standard mechanisms.
+
+- **Labelling and Lemma Naming:** Lemma names systematically reflect their content and purpose (e.g., `Alt_index`, `simple_Alt5_base`, `gen_tperm_circular_shift`), facilitating reference and automation.
+
+- **Sectioning for Generalization:** Results are parametrized over a general finite type `T`, either within sections or via section variables, ensuring abstraction and reusability.
+
+- **Action and Faithfulness:** The notions of transitivity, primitivity, and faithful action are formalized using MathComp predicates (like `[transitive^n ...]`, `[faithful G, on X | 'P]`), which encode group actions with various properties.
+
+- **Restriction/Extension Mechanism:** When removing a point from `T`, subtypes and injective mappings are used to relate the groups on `T` and `T'`. The code introduces notation (e.g., `T' := {{y | y != x}}`) to denote the punctured set, and provides constructions for restriction (`rfd`) and extension (`rgd`).
+
+Comprehension and Use
+=====================
+This file establishes both the foundational type-theoretic representations and the classical properties of symmetric and alternating groups as encountered in abstract algebra. All results are expressed with a view toward maximal generality and compatibility with other MathComp components. The idioms and notations align closely with group theory in classical mathematics, though with attention paid to the formal, computational representation of sets, subgroups, actions, and morphisms.
+
+Anyone seeking context for specific functions, proofs, or constructions in this file should reference this overview for clarification of the mathematical intent, data representations, and notational choices. This docstring provides the necessary background to interpret later code segments, their mathematical goals, and the conventions that guide their formalization.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

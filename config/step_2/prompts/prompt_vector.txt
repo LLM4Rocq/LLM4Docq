@@ -1,0 +1,132 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Finite-Dimensional Vector Spaces in Coq
+
+Overview and Purpose
+====================
+This file provides a comprehensive formalization of finite-dimensional (detachable) vector spaces and their linear algebra in the Coq proof assistant, within the Mathematical Components (MathComp) framework. Its central goal is to offer structures, canonical instances, operations, and properties for vector spaces of finite dimension over fields or sufficiently rich rings, together with linear maps, subspaces, bases, coordinates, and standard algebraic constructs (such as sums, intersections, complements, direct sums, projections, and eigenstructures), all with careful formal support for dimension counts and constructive representation.
+
+Mathematical Scope and Representations
+======================================
+
+1. **Finite-Dimensional Vector Spaces (`vectType`)**:
+   - The core notion is the interface structure `vectType R`, encapsulating the type of finite-dimensional vector spaces over a ring `R` (usually a field, sometimes merely a non-zero ring).
+   - Finite dimension means that a canonical linear isomorphism exists between the carrier type and a row vector space `'rV[R]_n` of fixed dimension `n`, and this isomorphism is *detachable* (decidable equality and constructive bijection).
+
+2. **Subspaces**:
+   - Subspaces are types of the form `{{vspace vT}}`, where `vT : vectType`. These represent finite-dimensional (detachable) vector subspaces and support all standard lattice operations: sum `+`, intersection `:&:`, complement `^C`, and difference `:\:`.
+   - The embedding of subspaces is formalized via membership predicates: for `U : {{vspace vT}}`, `v \in U` tests whether `v` is a member.
+   - Subspaces are also associated with `dimv U`, their (finite) dimension.
+
+3. **Linear Maps/Homomorphisms (`'Hom(aT, rT)`)**:
+   - The type `'Hom(aT, rT)` denotes the set of linear (vector) maps from `aT` to `rT`, themselves vector spaces.
+   - Linear endomorphisms `'End(vT)` are linear maps from a vector space to itself.
+   - Linear maps coerce to plain Coq functions and support pointwise addition, scalar multiplication, composition, and inversion where defined.
+
+4. **Canonical Constructions and Containers**:
+   - Many structures standard in linear algebra are equipped with canonical instances of `vectType`, such as matrices, function spaces, tuples, products, and subspace types.
+
+5. **Generators, Bases, and Coordinates**:
+   - The file supports explicit generation of subspaces (`span X`) from collections `X` of vectors, checks for linear independence (`free X`), defines explicit bases (`basis_of U X`, canonical `vbasis U`), and provides coordinate mappings (`coord X i v`).
+   - Canonical isomorphisms relate vectors and their coordinate representations, and vice versa (`rVof`, `vecof`).
+
+6. **Matrix Encodings and Correspondences**:
+   - Subspaces and linear maps are described via their associated matrices with respect to explicit bases (e.g., `mxof e e' f` encodes `f` in given bases, `hommx` reverses this).
+   - Subspaces have matrix representations (`msof`, `vsof`), and these facilitate computations linking algebraic structure with concrete representations.
+
+7. **Additional Structures**:
+   - Projections and decompositions: Direct sum projections and associated maps (`projv`, `daddv_pi`, `addv_pi1`, `addv_pi2`, `sumv_pi_*`).
+   - Eigenspaces: Definitions (`leigenspace`, `leigenvalue`) for linear endomorphisms.
+
+Key Conventions and Notational Practices
+========================================
+
+1. **Scopes and Notations**:
+   - Dedicated mathematical scopes provide infix notations for subspace operations (`%VS` for vector spaces, `%VF` for linear functions), enabling expressions such as `(U + V)%VS` or `(f \o g)%VF`.
+   - Explicit notations cover subspaces (`{{vspace vT}}`), homomorphisms (`'Hom(aT, rT)`), endomorphisms (`'End(vT)`), direct sums, and componentwise operations.
+   - Notations for special subspaces are provided: `0%VS` for the trivial subspace, `fullv`/`{{:vT}}` for the whole space, `\dim U` for dimension.
+
+2. **Canonical Structures and Instances**:
+   - Canonical instances ensure that relevant types (matrices, functions, products, tuples, subspaces, etc.) inherit the `vectType` and related structures automatically, supporting typeclass-driven programming.
+   - Conversion between algebraic and matrix representations leverages canonical isomorphisms that are defined in the internal `VectorInternalTheory` module.
+
+3. **Construction Patterns and Reflective Predicates**:
+   - Boolean predicates (such as subspace membership, linear independence, basis properties, etc.) are paired with reflection lemmas to allow both propositional and Boolean reasoning.
+   - Subspaces and operations are constructed in a way that supports both decision procedures and constructive computation or extraction.
+
+4. **Modularity and Locality**:
+   - Many constructs are parametric over the base field or ring, or the vector space. Structure is layered, with local canonical instances and explicit section parameters.
+   - Functions and operations are typically parametrized explicitly over their domain and codomain types for clarity, not relying on inference from context.
+
+5. **Interplay with Matrices and Linear Algebra**:
+   - The file leverages the close connection between vector spaces and matrices, making use of matrix row spaces, null spaces, and operations from related MathComp modules.
+
+6. **Subspace and Map Equivalences**:
+   - Equality and inclusion are defined in terms of matrix representations or images, so that two subspaces are equal if and only if their respective representations coincide.
+   - Many properties are stated in terms of equality up to isomorphism, and dimension counts are used extensively to witness equalities and direct sum properties.
+
+7. **Abbreviations and Suffix Conventions**:
+   - Name suffixes such as `v` (for vector spaces), `vs` (for subspaces), or `l` (for linear maps) distinguish related operations (e.g., `addv`, `capv`, `complv`, `dimv`, `lker`, `limg`, `projv`, etc.).
+   - Many operations are “locked” (via the Ssreflect `locked` idiom) to encourage controlled unfolding and proof stability.
+
+Summary of Core Functionalities and Lemmas
+==========================================
+
+The file provides a rich suite of definitions and theorems including, but not limited to:
+- Construction and manipulation of subspaces via sums, intersections, complements, and preimages/images under linear maps.
+- Basis selection, dimension computations, and properties of linear independence.
+- Encoding and decoding between vectors, coordinates, and matrices; basis change.
+- Comprehensive development of linear maps: identities, composition, pointwise arithmetic, kernel, image, invertibility, and reflection setup.
+- Direct sum decompositions, various forms of projections and their universal properties.
+- Specialized support for eigenvalues and eigenspaces, endomorphism algebra, and canonical algebraic structures on spaces of linear maps.
+
+Context for Code Reading and Interpretation
+==========================================
+
+Anyone examining this file can expect to encounter:
+- Systematic representation of all finite-dimensional linear algebraic notions over a field (or suitable rings), modeled constructively in Coq.
+- Integration of algebraic and matrix-theoretic viewpoints, with notational infrastructure for seamless interaction.
+- Canonical, extensible interface types with morphisms and instances, enabling polymorphic usage across matrix, tuple, function, and subspace constructions.
+- Careful attention to formal dimension counting, decidability, and computational content.
+- A framework intended as the foundation for further development in linear algebra, module theory, and beyond, within the MathComp libraries.
+
+All objects and operations adhere to conventions and idioms from MathComp, but care has been taken for this file and its documentation to be interpretable by mathematically trained readers with some acquaintance with proof assistants and formal mathematics.
+
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

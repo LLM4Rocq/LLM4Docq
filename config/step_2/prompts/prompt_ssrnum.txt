@@ -1,0 +1,87 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+(** Numeric Structure Hierarchy: Ordered Modules, Numeric Domains, and Fields
+
+Overview
+========
+This file serves as a central integration point for the bundled hierarchy of numeric structures within the Mathematical Components (MathComp) library. Its main goal is to re-export the foundational mathematical modules that formalize ordered additive abelian groups (ordered modules), numeric domains, and numeric fields, along with their associated definitions and theorems, under a unified interface. By consolidating these structures and their theory, the file facilitates convenient and consistent access to the numeric building blocks required for further formalization of real numbers, analysis, and abstract algebraic hierarchies in Coq.
+
+Mathematical Objects and Representations
+=======================================
+
+The file orchestrates three fundamental families of mathematical structures, each encapsulated in its own library module and mapped to corresponding Coq type classes and canonical structures:
+
+1. **Ordered Additive Commutative Groups (Ordered Z-Modules):**
+   - *Mathematical concept*: These are abelian groups equipped with a compatible total ordering, supporting operations of addition, negation, and comparison.
+   - *Coq representation*: Provided by the typeclass `orderedZmodType`, with additive notation (0, +, -), and order relations such as ≤ and <.
+   - *Exported content*: The module `orderedzmod` supplies both the structure and basic lemmas for working in an ordered abelian group context.
+
+2. **Numeric Domains:**
+   - *Mathematical concept*: Integral domains whose elements can be equipped with an absolute value mapping to an ordered group, enabling the definition of inequalities among elements. Examples include the integers and real subrings.
+   - *Coq representation*: The `numDomainType` class builds on `orderedZmodType` with a nontrivial multiplication operation (1, *, /), ensuring no zero divisors and a compatible order.
+   - *Exported content*: The module `numdomain` covers this class together with core results about comparison, sign, and absolute value.
+
+3. **Numeric Fields:**
+   - *Mathematical concept*: Ordered fields such as the rationals or the reals, possessing multiplicative inverses for nonzero elements, and a compatible ordering.
+   - *Coq representation*: The `numFieldType` class extends `numDomainType` to fields (every nonzero element invertible), together with full numeric and order structure.
+   - *Exported content*: The module `numfield` provides the formalization and main results for ordered fields.
+
+These structures are mutually layered and allow generic development in algebra and analysis, using canonical structures and typeclasses to enable type inference within Coq’s proof automation.
+
+Key Coding and Notational Conventions
+=====================================
+
+- **Module Organization and Re-exports:** The file wraps the exports inside a single top-level `Num` module, further splitting into submodules `Theory`, `Def`, and `ExtraDef`. Each submodule aggregates corresponding definitions or theorems from `orderedzmod`, `numdomain`, and `numfield`, making them uniformly available. The use of `Export` inside modules allows users to import all relevant notations, definitions, and facts with a single import.
+
+- **Namespacing and Canonical Structures:** Typeclass and structure names are consistently prefixed by either `orderedZmod`, `numDomain`, or `numField`, signaling their place in the algebraic hierarchy and enabling smooth interplay with MathComp’s canonical structures for algebra.
+
+- **Notational Conventions:** Standard MathComp notations for arithmetic and comparison are assumed in scope, such as additive (`+`, `-`, `0`), multiplicative (`*`, `/`, `1`), and order relations (`<=`, `<`). The absolute value, sign functions, and related order predicates are available according to structure.
+
+- **Theory vs. Def modules:** The `Theory` submodule contains general lemmas and theorems, while the `Def` submodule contains core definitions and operations associated with the structured types (for example, `sqrtr` for square roots in a numeric field). This separation clarifies which constructs are mere definitions and which are substantive results.
+
+- **Deprecation and Compatibility:** The file provides a backward-compatibility notation for the square root function (`sqrtr`), signaled as deprecated and pointing users to its canonical location in current module organization. This supports maintenance of old developments with minimal friction.
+
+Context for Usage and Retrieval
+==============================
+
+This file is intended to be the standard single entry point for developments that require access to numeric structure, order, and basic numeric analysis in formal mathematics using Coq and MathComp. Its modular design means that any element, definition, or theorem from ordered commutative groups up through ordered fields is available via qualified module paths (e.g., `Num.Def`, `Num.Theory`). The conventions, representations, and structure organization documented here enable a reader to reason about or generate documentation for specific functions, lemmas, and definitions found in this interface.
+
+In summary, the file ensures that, for any downstream file or user, the constructs, type classes, operations, and order-theoretic machinery foundational for numeric computation and reasoning in Coq are readily available and clearly namespaced.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

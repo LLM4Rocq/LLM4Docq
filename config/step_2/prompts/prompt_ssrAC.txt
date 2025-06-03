@@ -1,0 +1,108 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+(*--------------------------------------------------------------------------*
+  Rewriting with Associative and Commutative Operators (AC) in Small Scale  *
+*---------------------------------------------------------------------------*
+
+Overview and Purpose
+====================
+This file implements a robust and modular infrastructure for rewriting mathematical expressions involving binary operations that are associative and commutative (AC), such as addition and multiplication, within the Coq proof assistant. Its main goal is to enable fine-grained, small-scale rewriting steps—analogous to usual "rewrite" tactics, but specialized for handling the structural flexibility permitted by associativity and commutativity. The infrastructure provides notation, algorithms, and tactics to permute and re-associate operands within nested applications of AC operators efficiently and safely, resolving a longstanding usability challenge in the formal manipulation of such expressions.
+
+This file is designed to work harmoniously with and extend the core Mathematical Components (MathComp) library, but it is intended to be self-contained with respect to its AC reasoning apparatus.
+
+Mathematical Scope and Represented Concepts
+===========================================
+
+1. **Positive Numbers and Indexing:**
+   - Uses the type `positive` (binary positive numbers) from Coq’s standard library for efficient encoding and indexing of binary tree positions and leaves.
+
+2. **AC Operator Terms and Syntax Trees:**
+   - Terms are represented as binary trees (the inductive type `AC.syntax`), where `AC.Leaf n` stands for the n-th operand and `AC.Op s s'` represents the application of the operator to two (possibly compound) operands.
+   - Patterns for matching and transformations are themselves represented with this syntax, allowing precise specification of shape and rearrangements.
+
+3. **Evaluation Environments (env):**
+   - An abstract environment `env` encapsulates a binary tree of actual values indexed by positive numbers, mirroring the shape of the pattern trees.
+   - Implementations include efficient lookup, update (set), and traversal mechanisms to bind pattern positions to concrete values during rewrites.
+
+4. **Pattern Matching and Reordering:**
+   - Patterns are specified as formal binary trees, with leaves numbered to encode positions (e.g., `Leaf 1`, `Op (Leaf 2) (Op (Leaf 3) (Leaf 4))`).
+   - Reordering instructions are also given as trees of positions, supporting arbitrary permutation of operands and bracketing changes allowed by AC laws. Specialized notation (e.g., `op.[AC p s]`, `op.[ACl s]`, `op.[ACof p s]`) is provided for these operations.
+
+5. **Canonical Structures for AC Operators:**
+   - Binary operators suitable for AC rewriting must have instances of the `Monoid.com_law` canonical structure—a Coq encoding of associativity, commutativity, and unit laws.
+   - The code provides device-specific support for user-specified or inferred AC operations, with mechanisms for accessing their law instances.
+
+6. **Notation and Syntactic Scopes:**
+   - Pattern and reordering syntax is embedded into a dedicated `AC_scope`, facilitating concise, readable, and non-ambiguous notation for rewrite actions within proofs.
+   - Custom numerical notation (`Number Notation`) is mapped to `positive`, supporting natural and hex input for pattern indices.
+
+Conventions and Coding Patterns
+==============================
+
+- **Small Scale Rewriting Paradigm:** Rather than heavy, global rewriting modulo AC (as in some major automation tools), this infrastructure supports *small, predictable, and local* rewrites, improving proof readability and maintainability.
+
+- **Pattern and Reordering Syntax:**
+  - Patterns (`p`) are binary trees with integer-labeled leaves denoting operand positions. For instance, the shape `((1*2)*3)` in pattern syntax refers to particular nested grouping of operands.
+  - Reorderings (`s`) are similar trees whose leaves specify the desired output order for operands, e.g., `(1*3)*2` to swap operands 2 and 3.
+  - Syntactic sugar via coercions from `nat` and `positive` eases the writing of pattern and position indices.
+
+- **User Notation for Rewriting:**
+  - The notation `op.[AC p s]` performs an AC rewrite for operation `op`, shape `p`, and reordering `s`.
+  - Variants include omitting the operator (allowing inference via canonical structures), omitting patterns (which defaults to fully left-associated forms), and the more generic `AC p s` and `ACl s`.
+  - Care is required with certain Coq notation bugs: operators must not contain "holes" (anonymous arguments); fully qualified forms (e.g., `(@GRing.mul R)`) may be needed.
+
+- **Pattern Checking and Safety:**
+  - The infrastructure checks at elaboration time that the pattern shape and the requested reordering are compatible, failing early on mismatches or identity rewrites that cannot progress.
+
+- **Binary Tree Manipulation Utilities:**
+  - Functions for serializing, mapping, and relabeling syntax trees are present, underpinning the pattern machinery.
+  - Binary trees are traversed in left-to-right order, and positions are one-based.
+
+- **Integration with MathComp/Naming:**
+  - The design is compatible with canonical structures as used throughout MathComp. For AC reasoning over, e.g., addition or multiplication, no additional user setup is required if the operator already carries a canonical instance.
+  - Custom notations and auxilliary definitions are exported via modules for downstream use.
+
+- **Advanced Usage:**
+  - The code supports complex rewrites, such as those needed to permute or regroup nested applications (e.g., swapping deep operands or flattening nested associations), powering fine control in algebraic proofs.
+
+Summary
+=======
+This file provides a precise, flexible, and notation-rich toolkit for manipulating and rewriting expressions with associative and commutative binary operators in Coq. By representing patterns and permutations as formal objects, and by employing efficient binary tree encodings and position labeling, it enables safe, expressive, and modular integration of AC reasoning into small-scale proof scripts. Key infrastructure includes binary syntax trees for patterns, efficient environments for evaluation, scope-bound notations for AC rewrites, and rigorous checking of pattern shape and legality, all tailored for seamless use with (but not limited to) the MathComp hierarchy.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

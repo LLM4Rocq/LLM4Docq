@@ -1,0 +1,90 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+General Utility Lemmas and Definitions for Functions and Sum/Option Types (MathComp Core Extensions)
+
+Overview and Purpose
+====================
+This file serves as a core extension module providing utility definitions and lemmas related to function types, sum types (coproducts), option types, and pairs. Its main objective is to supply foundational building blocks that supplement and harmonize with the Mathematical Components (MathComp) library, especially in contexts where additional basic results or naming conventions are needed—sometimes to bridge between versions or as a staging ground for MathComp core updates.
+
+The code advances MathComp’s support for general-purpose functional programming and basic logic by formalizing properties such as injectivity, idempotence, function manipulation, and canonical behaviors of sum and option constructors. It also introduces some notations and conventions aimed at increasing code clarity, modularity, and maintainability, particularly for use in heavily parametric and abstract developments.
+
+Mathematical Structures, Types, and Concepts
+============================================
+
+1. **Functions and Higher-Order Functionality**
+   - *Injectivity of Functions and Binary Functions*: The predicate `injective` normally expresses that a function maps distinct inputs to distinct outputs. The generalized `injective2` defined here asserts that a binary function `f : A × B → R` is injective in both arguments simultaneously, i.e., if `f x₁ y₁ = f x₂ y₂`, then both `x₁ = x₂` and `y₁ = y₂`.
+   - *Idempotence*: The concept of idempotent operations is embodied by `idempotent_op`, which captures operations `op` on a type `S` such that `op x x = x` for all `x`. Similarly, `idempotent_fun` expresses that a unary function `f` satisfies `f (f x) = f x` for all `x`.
+
+2. **Option Types**
+   - The `option` type in Coq expresses potential partiality: an element is either `Some a` for some `a : T`, or `None`.
+   - *Option Map (`omap`)*: The function `omap f` maps a function over the contents of an `option`, returning `None` for `None` and `Some (f a)` for `Some a`. The module provides lemmas about the injectivity of `omap` (`inj_omap`), its identity property (`omap_id`), equality preservation (`eq_omap`), and a form of cancellation with respect to composing two functions over options (`omapK`).
+
+3. **Sum Types (Coproducts)**
+   - *Sum Types*: `sum A B` is the binary coproduct (either `inl a` or `inr b`), sometimes written as `A + B`.
+   - *Injectivity of Constructors*: The file includes lemmas that establish the injectivity of the left (`inl`) and right (`inr`) constructors of sum types, i.e., the functions tagging a value from either component are injective.
+
+4. **Sigma Types and Tagging**
+   - *Tagged Values*: The module covers essentials about dependent pairs (sigma types), particularly using the form `{{i : I & T_ i}}`. The lemma `taggedK` verifies that reconstructing a tagged dependent pair from its tag recovers the original pair via `Tagged` and `tagged` (projection and reconstruction functions).
+
+5. **Pairs and Swapping**
+   - *Pair Swapping*: The function `swap_pair` exchanges elements in a product type (`T1 * T2`), turning `(x, y)` into `(y, x)`. The property `swap_pairK` shows this operation is an involutive cancellation (applying twice yields the original).
+
+Key Notational and Coding Conventions
+=====================================
+
+- **Implicit Arguments**: The file relies heavily on implicit argument mechanisms for clarity and brevity, following MathComp conventions (`Set Implicit Arguments`, `Unset Strict Implicit`, etc.).
+- **Delimiting Notations and Scopes**: 
+  - Specialized notations for functions are handled by declaring and manipulating custom scopes (`function_scope`, `fun_scope`), ensuring that function-specific constructs do not interfere with other notations.
+- **Deprecation and Naming Harmony**:
+  - Deprecated names (such as `idempotent`) are marked and mapped to their recommended replacements (like `idempotent_op`) for forward compatibility and clarity in cross-version developments.
+- **Exporting and Warnings**:
+  - Some directives adjust the behavior of warning and scoping messages to smoothly integrate with evolving versions of MathComp and related core libraries, maintaining compatibility with larger projects.
+
+Context for Retrieval and Commenting
+====================================
+This file should be interpreted as a cohesive set of utility definitions and proofs, relevant for foundational developments that manipulate or reason about option types, sum types, function properties (like injectivity and idempotence), and basic operations on pairs and sigma-types. It follows the idiomatic MathComp style of concise explicitness, but broadens the basic library with practical, proof-oriented lemmas that are frequently required in more advanced developments but not always present in the library proper.
+
+When commenting on or interpreting specific sections, one should keep in mind:
+- The precise (often parametric) type signatures of constructs.
+- The emphasis on proving elementary properties like injectivity, idempotence, and functional equivalences for commonly used operations (like `omap`, sum injectors, or pair swapping).
+- The use of MathComp's conventions for notation, scoping, and lemma/proof structure.
+
+This foundational toolkit is intended to be reusable and extensible, ensuring that proofs about generic data structures and functional programs are both conveniently expressible and robustly maintainable.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

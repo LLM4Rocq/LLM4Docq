@@ -1,0 +1,111 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Solvable Groups, Schur-Zassenhaus, Hall Subgroups, and Coprime Action
+
+Overview
+========
+This Coq file is a major component of a formal development of the structure theory of finite solvable groups. Its core purpose is to mechanize substantial results concerning the existence, conjugacy, and intersections of Hall subgroups (subgroups with order coprime to their index), as well as the behavior of coprime group actions on finite groups. Central theorems proven include the Schur-Zassenhaus splitting and transitivity theorems under solvability assumptions and P. Hall's generalization of Sylow's theorem. The formalization also covers significant applications to so-called "coprime action"—the study of how groups of order coprime to their target act on subgroups, especially Hall and Sylow subgroups.
+
+Mathematical Objects and Their Formal Representation
+===================================================
+
+1. **Finite Groups (`finGroupType`, `{{group gT}}`)**
+   Finite groups are parameterized by a type `gT` equipped with a group structure, instantiated as `finGroupType` from the Mathematical Components (MathComp) library. Concrete subgroups are encoded as objects of type `{{group gT}}`.
+
+2. **Hall π-subgroups (`pi.-Hall(G) H`)**
+   Given a predicate `pi : nat_pred` on primes, a Hall π-subgroup `H` of a group `G` satisfies: order of `H` consists only of primes in `pi` and the index of `H` in `G` is coprime to the order of `H`. The file studies existence, conjugacy (transitivity), and embedding results for such subgroups, denoted by the `pi.-Hall(G) H` predicate.
+
+3. **Normality and Group Actions**
+   - **Normal subgroups (`H <| G` or `K \subset 'N(H)`)**: Classical notation is retained; normalizers and centralizers are given by `N_G(H)` and `C_G(A)`.
+   - **External group actions** are handled via the `groupAction` type, enabling formal reasoning about semidirect products and actions on different groups.
+
+4. **Solvable Groups (`solvable G`)**
+   A core assumption across results is that of solvability—a group property formalized via an inductive predicate `solvable G`.
+
+5. **Coprimality (`coprime m n`)**
+   Throughout, the notion of coprimality (e.g., `coprime #|G| #|A|`) is critical; it underpins many existence and conjugacy theorems when acting groups and targets have coprime orders.
+
+6. **Sylow Subgroups**
+   For a prime `p`, `p.-Sylow(G) P` encodes that `P` is a Sylow p-subgroup of `G`, used in the generalized Hall-Sylow theorems and coprime action statements.
+
+7. **Commutators, Centers, Quotients**
+   - **Commutator subgroups** are noted as `[~: G, A]`
+   - **Factor groups**: coset quotients appear as `G / H`.
+   - **Centralizer** `C_G(A)` and normalizer `N_G(A)`: the subgroup fixing or stabilizing a subset or subgroup.
+
+8. **Transitivity and Conjugation**
+   Subgroup conjugacy is encoded through `H1 :=: H2 :^ x`, meaning `H1` is the conjugate of `H2` by `x`. Transitivity properties relate to conjugacy actions.
+
+Key Notations and Coding Conventions
+=====================================
+
+- **Type Parameters and Implicit Arguments**
+  The sections are parameterized over the ambient group type (`gT : finGroupType`), and the main quantifiable mathematical objects (groups, subgroups, actions) are consistently introduced as variables or implicit arguments. This enables general, reusable theorems.
+
+- **Action and Conjugation Notation**
+  - `'N_G(H)`, `'C_G(A)`: normalizer and centralizer subgroups within `G`.
+  - `H :^ x`: conjugate of `H` by `x`.
+  - `[acts A, on H | to]`: property that group `A` acts (via external action `to`) on subgroup `H`.
+  - `:=:`: equality up to conjugation.
+
+- **Subgroup Predicates**
+  Subgroups are compared and embedded using `\subset`. Group order is accessed via `#|G|`.
+
+- **Sections and Theorem Organization**
+  The file is structured in named sections focusing on different scopes:
+    - `Hall`: core Schur-Zassenhaus and Hall subgroup existence/conjugacy.
+    - `HallCorollaries`: easy consequences and corollaries for Hall subgroups.
+    - `InternalAction`: results about coprime actions on Hall subgroups with internal action (i.e., ordinary conjugation).
+    - `ExternalAction`: analogous results when actions are external (as in semidirect product decompositions).
+    - `SylowSolvableAct`: specialization to Sylow theory under solvability and coprime action.
+
+- **Naming and Reference Conventions**
+  The names of results often correspond to classic theorems or their labels in the literature (e.g., Aschbacher's Lemma 18.7, B & G Proposition 1.5). The internal comments sometimes allude to parts of proofs or relative strength of statements.
+
+- **Auxiliary Structures**
+  - Section-local notations (e.g., `inA`, `inG`, etc.) clarify the image of group elements under action morphisms.
+  - Quotients and morphisms (e.g., `G / H`, `injm`, etc.) leverage MathComp's established quotient and action framework.
+
+Contextual Summary for Future Retrieval
+=======================================
+This file provides a comprehensive formal infrastructure for reasoning about the structure and action of Hall and Sylow subgroups in finite (especially solvable) groups under various coprimality and normality assumptions. Hall subgroup existence, uniqueness up to conjugacy, and their invariance under group actions (internal and external) are systematically derived. Essential results such as Schur-Zassenhaus’s splitting/transitivity and Hall’s theorems are instantiated for all relevant contexts—ordinary group structure, group actions, and semidirect products. The file also develops crucial results about the interplay of centralizers, normalizers, and quotients under coprime action, supporting further developments (such as transfer theory and local analysis) in the theory of finite solvable groups.
+
+Anyone reviewing or generating documentation or comments for code in this file should be aware that statements are uniformly about subgroups of finite groups, with a central focus on solvability and the effect of coprime actions—either via internal conjugation or external group action morphisms—on the structure and conjugacy of Hall and Sylow subgroups and their normalizers and centralizers.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

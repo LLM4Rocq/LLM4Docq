@@ -1,0 +1,73 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+ssrmatching: Core Tactics and Lemmas for Pattern Matching in Small Scale Reflection
+
+Overview
+========
+This file provides the core import and export of the `ssrmatching` module, a foundational component in the infrastructure for small-scale reflection (SSR) in Coq developments. Its main objective is to make available an extended set of tactics, notations, and matching lemmas that facilitate concise and robust pattern matching for mathematical structures, predicates, and proofs, particularly following the conventions of the SSReflect/MathComp style. By re-exporting the contents of `ssrmatching`, this file ensures that downstream developments have consistent access to these matching tools without redundancy or conflict, streamlining foundational imports for larger formalizations.
+
+Mathematical Scope and Objects
+=============================
+Although this file does not introduce or manipulate concrete mathematical structures itself, it is crucial within the larger context of formal mathematics in Coq, as it provides the machinery for structured reasoning by matching on algebraic, logical, or computational patterns within terms and proofs. The mathematical objects influenced by `ssrmatching` typically include:
+
+- Propositional formulas and types (used extensively for proof reflection and pattern matching on hypotheses or goals).
+- Mathematical structures such as sets, relations, groups, rings, etc., when those are defined and reasoned about using reflection-based techniques.
+- Boolean predicates that are made to reflect logical statements into computational content.
+
+In Coq, these are generally represented as types inhabiting the universes `Type`, `Prop`, or computational Booleans (`bool`), and the tactics provided by `ssrmatching` are designed to generically operate over these representations.
+
+Key Conventions
+===============
+1. **Re-Export Pattern**: This file uses `Require Export` to re-export all definitions, notations, and tactics from the `ssrmatching` module in the `Corelib` hierarchy. This enables any file importing this one to automatically benefit from the full suite of SSR matching utilities, preserving coherence across the ecosystem.
+
+2. **Matching Tactics**: The `ssrmatching` toolkit usually includes custom tactics such as `match goal`, `match ... in ... return ... with ... end`, and their SSR-enhanced variants that allow for more elegant destructuring of terms in proofs while maintaining tight, scriptable proof engineering. Pattern matching can be used both for destructing data and for identifying specific forms in hypotheses or goals.
+
+3. **Notational Conventions**: Key notations for pattern matching and destructuring are typically set in the appropriate SSR scope (such as `ssrpattern_scope`). This includes syntax for writing concise, focused match expressions within proofs.
+
+4. **Reflection and Boolean Reasoning**: The matching framework supports the SSReflect philosophy of using Boolean-valued predicates as proxies for logical statements, and pattern matching often bridges computation and classical logic.
+
+5. **Extensible Infrastructure**: By centralizing such tools in this interface file, the codebase follows a modular design, separating core infrastructural extensions from problem-specific developments and ensuring they are easily composable.
+
+Use and Context
+===============
+This file is intended to be imported at the beginning of other formalization files that wish to utilize SSReflect-style matching tactics and associated infrastructure. It ensures that downstream developments have all necessary access to core matching notation and proof tools without explicit, potentially duplicated imports. This approach is especially pertinent in large-scale mathematical formalizations rooted in the MathComp ecosystem, where structural congruence, reflection, and matching are central to proof organization.
+
+Therefore, when interpreting or generating comments for code chunks from any file that imports this one, one should expect pervasive use of advanced pattern matching tactics, reflective proof styles, and specialized notations, all made available by the foundational export of `ssrmatching`.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

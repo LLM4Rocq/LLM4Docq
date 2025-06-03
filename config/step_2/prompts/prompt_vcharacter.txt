@@ -1,0 +1,129 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Virtual Characters in Finite Group Theory
+
+Overview
+========
+This file formalizes core notions of virtual character theory for finite groups within the Coq proof assistant, using the Mathematical Components (MathComp) library. Its main objective is to define and analyze the algebraic and combinatorial structure of virtual characters, which are integral linear combinations of irreducible group characters. This is a foundational aspect of the character theory of finite groups and underpins major results in group representation theory.
+
+More concretely, the file provides:  
+- Predicates and expansions for integer (virtual) character spaces;
+- Basic operations and closure properties on virtual characters;
+- Notions of orthogonality and orthonormality for sets of class functions;
+- A robust infrastructure for handling normal virtual characters—integral linear combinations of irreducibles of norm one—and related combinatorics;
+- Character-theoretic isometries, automorphisms, restrictions and inductions respecting the virtual character structure.
+
+Mathematical Objects and Their Representations
+=============================================
+The file manipulates the following principal mathematical structures and encodings:
+
+1. **Finite Group and Class Functions**:
+    - A finite group `G` is represented by `{{group gT}}` for some finite group type `gT`.
+    - The space of complex-valued class functions on `G`, denoted `'CF(G)`, is the Coq type representing functions constant on conjugacy classes, with vector space and algebra structures.
+
+2. **Irreducible Characters and their Indices**:
+    - The set of irreducible characters of `G` is `irr G`, and their indices form the type `Iirr G`.
+    - Notation `'chi_i` refers to the irreducible character indexed by `i : Iirr G`.
+
+3. **Virtual Characters**:
+    - The file encodes virtual characters as elements in the integral span of `irr G`: specifically, the set `'Z[irr G]` comprises all integral (ℤ-linear) linear combinations of irreducibles.
+    - More generally, for any finite sequence `S` of class functions and subset `A` of `G`, `'Z[S, A]` denotes the set of all ℤ-linear combinations of `S` supported on `A`.
+
+4. **Norm-1 (Normal) Virtual Characters**:
+    - Functions in `'Z[irr G]` of norm (self dot-product) 1 form the so-called **normal virtual characters**, collected under the predicate `dirr G`.
+    - Each such function is, up to sign, an irreducible character.
+    - An explicit index type for these is `dIirr G = bool * Iirr G`, where the boolean tracks sign: for `(b, i)`, `dchi (b, i) = (-1)^b *: 'chi_i`.
+
+5. **Constituents and Related Structures**:
+    - `dirr_constt phi` denotes the (normal) virtual character constituents of `phi`—those of norm one appearing with positive coefficient in `phi`.
+    - Functions such as `to_dirr` relate ordinary irreducibles to their signed versions as normal virtual characters.
+
+6. **Orthogonality and Isometries**:
+    - Orthogonality, orthonormality, and related decompositions for sets of class functions are formalized and used to structure expansions and computations in the space of virtual characters.
+    - The file develops infrastructure for analyzing linear isometries and automorphisms of these spaces, e.g., under field automorphisms or group automorphisms.
+
+7. **Operations Respecting Virtual Character Structure**:
+    - Restriction (`Res`) and induction (`Ind`) operations on characters are lifted to virtual characters and shown to preserve their defining properties.
+    - Automorphisms and complex conjugation likewise.
+
+8. **Predicates, Expansions, and Subspace Operations**:
+    - Rich predicate infrastructure (subspace closure, restriction to various subgroups or supports, etc.) allows fine-grained manipulation and proofs about virtual character spaces, their bases, expansions, and subsets.
+
+Key Conventions and Notation
+============================
+1. **Notation for ℤ-linear Spaces**:
+    - `'Z[S, A]` denotes the set of ℤ-linear combinations of the sequence `S` (class functions) with support in the subset `A`.
+    - `'Z[S]` is shorthand for `'Z[S, setT]`—ℤ-combinations supported everywhere.
+    - `'Z[irr G]` is the virtual character space for `G`.
+
+2. **Norm and Inner Product**:
+    - The notation `'[f, g]` denotes the standard inner product (dot product) of class functions (typically over the group, weighted by size of centralizers).
+    - The self dot product `'[f]` abbreviates `'[f, f]`, called the "norm."
+
+3. **Normal Virtual Characters and Their Indexing**:
+    - `dirr G` is the predicate for normal virtual characters of `G`.
+    - The index type `dIirr G` is used uniformly for (sign, irreducible) pairs, with notations like `dchi i` for the corresponding character.
+    - Boolean indicators in tuples always indicate a sign (`false` for +1, `true` for –1).
+
+4. **Expansions and Support Sets**:
+    - Various lemmas provide "expansion" theorems: expressing any virtual character as an explicit integer linear combination of a chosen basis.
+    - `support phi` denotes the set of group elements where `phi` is nonzero; this is used in support-restricted predicates.
+
+5. **Functional and Set-Notation Conventions**:
+    - `{{pred T}}` is the MathComp type of predicates over a type `T` (i.e., subsets or characteristic functions).
+    - `{{set T}}` denotes finite sets.
+    - `{{subset A <= B}}` denotes the containment of predicates or sets.
+    - `{{in S, P}}` restricts a property `P` to items in `S`.
+
+6. **Mixfix and Scope Declarations**:
+    - Specific notations are associated with the "group_scope."
+    - Notations such as `'CF(G, A)` denote the set of class functions supported on `A`.
+
+7. **Impredicative, Prenex, and Section Conventions**:
+    - The file is structured with reusable sections, often parametrized over finite groups and their subgroups.
+    - Explicit use of prenex implicits and instance registration ensures that properties (like closure under addition, scalar multiplication, etc.) are automatically available via canonical structure resolution.
+
+8. **Functionality and Proof Automation**:
+    - Canonical and HB (Hierarchy Builder) instances are included so operations like linear structure, additive closure, and involutive negation are available for the various virtual character spaces.
+
+Contextual Application and Usage
+===============================
+This file is intended as both a foundational module and a toolkit for subsequent developments in character theory and related representation-theoretic formalizations. All key predicates, expansions, and constructions are designed to be directly usable in downstream proofs and modules, either for stating lemmas about group representations, working with character tables, or analyzing the behavior of characters under group operations (like induction and restriction) and automorphisms. The conventions and notation standardized here enable users and tools (manual or LLM-based) to read, interpret, and generate context-aware documentation or code for any chunk from this file, especially those related to the structure, decomposition, or manipulation of virtual characters and their subspaces.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

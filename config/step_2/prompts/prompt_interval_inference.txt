@@ -1,0 +1,123 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Numbers Within Intervals: Canonical Types and Structures for Bounded Values
+
+Overview
+========
+This file defines a collection of types, canonical structures, and operations for working with numbers that are known to lie within specific intervals, chiefly within the context of real and numerical domains in Coq. Its main objective is to make the manipulation, reasoning, and proof automation about such bounded numbers both expressive and convenient.
+
+The development leverages and extends the type-class and canonical structure mechanisms of Coq (as commonly employed in MathComp-style mathematics) to:
+- Represent numbers certified to belong to an interval of the form `[a, b]` or variants.
+- Enable automatic inference and propagation of interval bounds through common numeric operations (addition, multiplication, etc.).
+- Provide coercions back and forth between the "bounded" number types and their underlying numerical types.
+- Equip these interval-bound types with appropriate order-theoretic and algebraic structure, so they can participate naturally in formalized mathematics.
+
+Mathematical Objects and Representations
+========================================
+The core mathematical concepts and their Coq realizations are:
+
+1. **Intervals and Interval Bounds**
+   - Intervals on the integers (`interval int`) are used as templates for bounding values in numeric domains. These are written using interval notations (e.g., `[a, b]`, `]0, +oo[`, etc.), and `itv_bound int` encodes the bound objects with open/closed and infinite possibilities.
+   - Intervals are manipulated via operations reflecting the arithmetic (addition, multiplication, etc.) of endpoints over the integers, as these canonicalize best with discrete data.
+
+2. **Numbers Within Intervals (`{{itv R & i}}` and Canonical Subtypes)**
+   - The principal type introduced is `{{itv R & i}}`: this is the type of elements `x` in some numeric domain `R` (with at least the structure of a `numDomainType`) for which `x` is (provably) a real number *and* lies within the real "shadow" of the integer interval `i`.
+   - Several common bounded number types are defined as notational abbreviations:
+     - `{{i01 R}}`: numbers in `[0, 1]` (typical for probabilities and barycentric coordinates).
+     - `{{posnum R}}`: strictly positive numbers in `]0, ∞[`.
+     - `{{nonneg R}}`: nonnegative numbers in `[0, ∞[`.
+   - For each, constructive information is carried so proofs about belonging to the stated interval are preserved.
+
+3. **Canonical Operations on Bounded Types**
+   - Canonical instances allow expressions involving operations (`+`, `-`, `*`, etc.) on interval-bound numbers to remain within appropriately derived intervals—i.e., the type `{{itv R & j}}` is automatically inferred for expressions combining elements of types `{{itv R & i}}`.
+   - These behaviors are extended via helper definitions for arithmetic over intervals at the integer level, ensuring sharpest possible inferred intervals.
+
+4. **Casting and Coercions**
+   - Notations such as `x %:num` allow extraction of the underlying number from a bounded type.
+   - Conversely, `x %:itv` and special-purpose casts such as `x %:i01`, `x %:pos`, and `x %:nng` attempt to inject a value into the corresponding bounded type, exploiting canonical instances to infer which interval to use.
+   - These casts may fail unless a canonical instance or sufficient proof is available that a bound is respected.
+
+5. **Proofs and Predicates Derived from Interval Bounds**
+   - Notations like `[gt0 of x]`, `[ge0 of x]`, `[le0 of x]`, `[cmp0 of x]`, `[neq0 of x]`, etc., provide access to common sign and comparison facts about a bounded number `x` as derived from its type (e.g., if `x : {{posnum R}}`, then `[gt0 of x]` gives a proof that `0 < x%:num`).
+   - Proof-search hints using these facts are registered so that goals about positivity, negativity, and similar properties of bounded numbers are solved automatically if the typing information is available.
+
+6. **Constructors for Interval-Types**
+   - The file defines explicit constructors, e.g.,
+     - `ItvNum`, `ItvReal` for general intervals.
+     - `Itv01`, `PosNum`, `NngNum` for the standard subtypes, each requesting the relevant proof of bounds.
+   - These support both manual instance construction and automation.
+
+7. **Order Theory and Canonical Structures**
+   - Interval-bound types are equipped with appropriate order-theoretic (partial order, total order) and algebraic structures, so that bounded number types behave as subtypes of their numeric domains.
+   - Generic integration with Min/Max semantics ensures that operations like `Order.min`, `Order.max`, and related morphisms are available and compatible.
+
+8. **Automation of Interval Reasoning**
+   - Canonical/unification machinery is provided for automatic widening (providing easier subtyping between intervals, including the triviality that the top interval `]-oo, +oo[` contains every number).
+   - Instances and mechanisms for matching and typeclass resolution make it possible to automatically infer facts about the interval to which a value belongs in proof scripts.
+
+9. **Examples and Test Sections**
+   - The file concludes with example sections and illustrative definitions (e.g., manipulating `{{i01 R}}` types in ways that demonstrate the utility of the automation and conventions in practice).
+
+Key Coding and Notational Conventions
+=====================================
+
+- **Notation**: The file reserves and establishes notations for all interval-bound types and casts:
+  - `{{itv R & i}}`: value in interval `i`.
+  - `{{i01 R}}`, `{{posnum R}}`, `{{nonneg R}}`: standard subtypes.
+  - `x %:itv`, `x %:i01`, `x %:pos`, `x %:nng`: explicit casts into bounded types.
+  - `x %:num`, `x %:posnum`, `x %:nngnum`: extraction of the underlying value.
+  - Proof notations: `[ge0 of x]`, `[gt0 of x]`, etc.
+- **Scope Management**: Numeric and interval types and notations are bound to the `%R` "ring_scope" and the "type_scope" as appropriate.
+- **Automation**: Proof hints and type-class instances are registered to resolve goals about signs and bounds of bounded numbers using their type-based knowledge automatically.
+- **Canonical Structures**: The file is heavily organized around canonical structures (a key MathComp idiom), so that most arithmetic and order-theoretic properties of bounded numbers are inferred transparently.
+- **Type-Driven Inference**: The system relies on the type of values to propagate and make available interval containment information in both term construction and proofs.
+
+Intended Use and Context
+========================
+
+This module is designed to serve as a foundational mechanism for formal developments in analysis, measure theory, probability, or any context where interval information on real or numeric values is pervasive and proofs would greatly benefit from such information propagating automatically.
+
+Anyone reading further documentation or code comments from this file can assume:
+- All types such as `{{i01 R}}`, `{{posnum R}}`, and expression-level interval casts have the semantics described here.
+- Notational conventions and proof automation concerning signs, order, and interval containment come from the structures and instances defined herein.
+- Where a value `x` is of a bounded type, the proofs or properties regarding its interval membership and corresponding inequalities will be automatically available (and generally accessible through the established notations).
+
+By organizing interval-bounded numbers as first-class, type-driven citizens, and integrating them deeply with Coq's canonical/instance infrastructure, this file streamlines both specification and verification of interval-based numerical properties in formalized mathematics.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

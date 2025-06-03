@@ -1,0 +1,97 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Experimental Proof Skeletons over Natural Numbers and Booleans
+
+Purpose and Goal
+================
+This Coq source file serves as an experimental testbed for generating and manipulating minimalist proof skeletons involving the types of natural numbers (`nat`), Booleans (`bool`), and parameterized Propositions. Its primary objective is to provide a variety of lemma statements that exercise different patterns of argument duplication, permutation, application, and let-binding in hypotheses, all involving standard base types. The file is especially suitable for testing and developing tooling—such as tactic automation or code transformation systems—that operates on the syntactic structure of lemma statements, including argument order, type inference, and hypothesis propagation.
+
+Mathematical Objects and Their Representation
+============================================
+The file manipulates the following fundamental mathematical types and constructs, each represented in the native Coq and MathComp style:
+
+1. **Natural Numbers (`nat`):**
+   - The type `nat` corresponds to the set of natural numbers, defined inductively in Coq.
+   - Typical operations include predicates such as `odd`, which determines whether a given number is odd.
+
+2. **Booleans (`bool`):**
+   - The type `bool` represents Boolean values (`true` and `false`).
+   - Boolean values may serve as parameters or as results of computations or comparisons over natural numbers.
+
+3. **Propositions (`Prop`):**
+   - Parameterized by variables `P`, `Q`, `R` of type `Prop`.
+   - Represent arbitrary logical assertions which may serve as hypotheses or conclusions in lemma statements.
+
+4. **Functions Between Types (`A -> B`):**
+   - General function spaces, permitting lemmas over arbitrary types `A` and `B`.
+   - Supports statements about function application and higher-order reasoning.
+
+5. **Let Bindings (`let ... in ...`):**
+   - Several lemmas introduce local definitions using `let` bindings.
+   - This idiom serves multiple purposes: (a) simulating intermediate computational steps; (b) modeling local context variables; (c) tracking data flow in hypotheses; or (d) testing meta-level rewriting tools' ability to handle scoped variables and substitutions.
+
+Key Notational and Coding Conventions
+=====================================
+- **Argument Naming and Duplication:**
+  - Many lemmas intentionally repeat variable names or types across different statements (e.g., both `test_dup1` and `test_dup2` use `n` or `let n := ...`), exploring scenarios with duplicate hypotheses or parameters.
+  - Several lemmas involve parameters of the same type (`nat`, `bool`, `Prop`) and test behaviors under permutation or duplication of arguments.
+
+- **Permutation and Grouping:**
+  - Lemmas named with `swap` (e.g., `test_swap1`, `test_swap_plus`) exhibit permutation of argument order or grouping in premises, modeling cases where the order of hypotheses may affect proof development or tactic pattern matching.
+
+- **Let-Binding Scope and Variable Introduction:**
+  - Frequent use of local `let` bindings within the lemma statement body, especially in hypotheses (e.g., `let x := 0 in False`), is used to simulate intermediate constructs or to constrain the form of antecedents for meta-level transformation and analysis.
+
+- **False as Goal:**
+  - Each lemma is formulated to conclude with `False`, signaling that the lemma statements are intentionally unprovable or incomplete. This structure is typical for stub or skeleton lemmas intended solely for syntactic experimentation rather than constructive proving.
+
+- **Naming Convention and Purpose:**
+  - Lemmas are named in a manner that encodes the skeleton's structural idea (`dup` for duplication, `swap` for permutation, `apply` for function application), providing an immediate hint about the pattern being tested.
+
+- **Minimal Use of MathComp:**
+  - While the file imports the MathComp core modules to ensure compatibility with standard basic types and notation (e.g., `nat`, `bool`, the `odd` predicate), the content deliberately avoids reliance on any advanced MathComp algebraic hierarchies or specialized notations.
+
+Context for Retrieval and Further Use
+=====================================
+This file is designed as a template or playground for developing and testing tooling that interacts with the syntactic structure of lemma statements over basic types and logical connectors in Coq. The patterns encoded here—argument duplication, hypothesis permutation, functional application, let-binding, and hypothesis structuring—are representative of situations encountered in real-world formalization, automated rewriting, or code generation. 
+
+An expert or system analyzing code fragments from this file should interpret statements as exercises in the manipulation of statement forms, rather than as proposed mathematical results. The presence of unprovable goals (`False`) and the use of schematic variables signal that proof content is not the focus; rather, the file’s main value is in testing or demonstrating how meta-level systems, tools, or documentation generators process and comment on varying syntactic forms in lemma statements.
+
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

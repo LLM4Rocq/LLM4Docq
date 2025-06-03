@@ -1,0 +1,131 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Number Structures: Ordered and Normed Fields in Coq
+
+Overview
+========
+This file is a foundational component for formalized mathematics in Coq, focusing on algebraic structures that combine ring and field theory with order and norm operations, collectively referred to as "number structures." The main objective is to define and explore various classes of fields and domains that are equipped with a partial or total order (making them ordered or real fields), a norm (an absolute value-like map), and, in some cases, complex structure (with conjugation and imaginary units). 
+
+By providing abstract interfaces and basic theorems for these number structures, the file creates a uniform framework to reason about real numbers, complex numbers, real closed fields, and related structures. It also develops a systematic theory for polynomial equations of degree at most 2 (quadratic polynomials) over these fields.
+
+Mathematical Objects and Their Representations
+=============================================
+1. **Number Structures (Type Classes):**
+   - **numFieldType:** Represents a field equipped with an order and a norm. In Coq, this is a structure based on an underlying ring type with the `isNumRing` property, a compatible partial order, and a norm map.
+   - **numClosedFieldType:** A "closed" numFieldType capturing algebraically closed ordered fields with a conjugation operation and an explicit imaginary unit (generalizing the complex numbers).
+   - **realDomainType:** An integral domain with a total order and a norm, in which every element is either positive or negative.
+   - **realFieldType:** An ordered field such that every nonzero element is positive or negative; the abstract notion of real numbers.
+   - **rcfType:** A real field equipped with the "real closed field axiom" (every positive element has a square root and every polynomial of odd degree has a root), allowing quantifier elimination and model completeness properties.
+
+   These algebraic structures are expressed as hierarchically-organized Coq "structures" (similar to typeclasses). Instances are bundled with appropriate mixins ensuring the required properties.
+
+2. **Order, Norm, and Positivity:**
+   - Partial and total order relations: `<=`, `<`, and related predicates.
+   - The norm operation: denoted as `|x|`, acting analogously to absolute value.
+   - Predicates such as positive (`pos`) and negative (`neg`) membership.
+   - Square roots (`sqrt`, `sqrtC`), nth roots (`n.-root`), and their properties over nonnegative elements.
+
+3. **Complex Structure:**
+   - Conjugation (`z^*`), imaginary unit (`'i`), real and imaginary part projections (`'Re z`, `'Im z`), and related algebraic properties.
+   - Notions and operations are defined for number fields with a complex-like structure (i.e., closed fields).
+
+4. **Polynomials:**
+   - Theory for degree-2 polynomials (quadratic polynomials) over various number structures.
+   - Extraction of roots, factorization, and determination of minimal/maximal values in the real or real-closed setting.
+   - Specialized sections for monic polynomials (those with leading coefficient 1).
+
+5. **Arithmetic-Geometric Mean, Inequalities, and Intervals:**
+   - Mean, midpoints, and versions of the Arithmetic-Geometric Mean (AGM) inequality for real or ordered fields.
+   - Interval notations and midpoint calculations (`mid x y = (x+y)/2`).
+
+6. **Auxiliary Notions:**
+   - Reflection principles to relate Boolean-valued order/positivity to logical propositions (e.g., `reflect (x < y) (x < y)`).
+   - Morphisms and properties of the norm, conjugation, and real/imaginary projections.
+
+Key Conventions and Notational Practices
+========================================
+1. **Short and Qualified Notations:**
+   - Many standard operations are given short notations in the "Numeric" (Num) namespace, e.g., `sqrt` for square root, `n.-root` for nth roots, `minr`/`maxr` for minimum/maximum, and so on.
+   - Projections and operations on closed/complex fields use the notations `'i`, `z^*`, `'Re z`, `'Im z` to resemble mathematical convention.
+   - Prefixes such as `p` (positive), `n` (negative), `sp` (strictly positive), `sn` (strictly negative), `i`/`e` (intervals), and `w` (weak/nonstrict) are used in lemma names to indicate contexts.
+
+2. **Scopes and Imports:**
+   - Different logical operations and infix notations are associated with Coq "scopes" such as `ring_scope`, `order_scope`, and `group_scope` to manage overloading and prevent ambiguity.
+   - Essential theories and definitions are imported locally within each relevant section.
+
+3. **Mathematical Components Hierarchy Builder (HB):**
+   - The Horizontal Builders (HB) system is used to construct, compose, and export typeclass-based structures and their interrelations. Each structure seen here (`NumField`, `ClosedField`, etc.) is built and exported through HB conventions.
+
+4. **Bundled Mixins:**
+   - Additional properties (e.g., the existence of a square root, the presence of a closed field axiom) are packaged as "mixins" and tied to the relevant structure using HB machinery.
+
+5. **Reflection and Morphisms:**
+   - Boolean and propositional forms are kept in sync through reflection lemmas, making it easy to move between algorithmic (boolean) and mathematical logic styles.
+   - Key operations (`Re`, `Im`, conjugation) are proven to be morphisms with respect to addition or other algebraic operations.
+
+6. **Structure-Oriented Development:**
+   - The file is organized into sections corresponding to structure levels: general number fields, real fields, real closed fields, and closed fields, with increasing levels of axiom strength.
+   - Dedicated submodules formalize the quadratic polynomial theory over each structure, with variants specialized to the case where the quadratic is monic.
+
+7. **Abstract and Uniform API:**
+   - The entire development is parameterized—results are stated for arbitrary types having the requisite structure, not tied to any concrete number system. This supports code reuse, generalization, and layered extension.
+
+8. **Mathematical Lemmas and their Naming:**
+   - Lemma and definition names generally follow a structured convention, indicating both the operation and the structural context (e.g., `deg2_poly_root1` for the root of a degree-2 polynomial).
+   - Lemmas involving inequalities frequently encode the underlying hypothesis and logical structure in their names for clarity.
+
+How to Use and Extend This Theory
+=================================
+To use the definitions and facts in this file, import `Num.Theory` in your scripts to access the available operations and theorems. If you want shorter, unqualified names (such as `minr` for `Num.min`), import `Num.Def`. When working with particular number types (e.g., reals, complex numbers), ensure you instantiate the corresponding structure (e.g., `rcfType`, `numClosedFieldType`) for your type.
+
+The theory supports classical mathematical reasoning about real and complex numbers, as well as abstract ordered fields and domains. It facilitates a uniform approach to quadratic equations, root extraction, and basic inequalities, with a high degree of notation and naming compatibility with mathematical conventions.
+
+Section Summary
+===============
+- **Number Structures**: Abstract definitions for fields with order and norm.
+- **Square roots and Nth roots**: Existence, properties, and monotonicity.
+- **Complex Structure**: Conjugation, real/imaginary parts, and root extraction.
+- **Polynomial Theory (Degree 2)**: Factorization and root analysis for quadratic and monic quadratic polynomials in various settings.
+- **Inequalities and Means**: AGM inequalities and midpoints in ordered settings.
+- **Naming Conventions**: Consistent, prefix-based lemma names.
+- **Reflection and Morphisms**: Boolean/propositional correspondence and algebraic morphisms for key operations.
+
+This context and notational landscape should enable the reader, or a language model, to interpret any segment of code in this file, recognize the structural and mathematical concepts at play, and compose appropriate explanations or docstrings for its internal definitions, lemmas, or modules.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

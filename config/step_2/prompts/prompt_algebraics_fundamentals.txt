@@ -1,0 +1,112 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Algebraic Closures with Involutive Automorphism: The Fundamental Theorem of Algebraics
+
+Overview
+========
+This Coq source file formalizes, in the framework of constructive mathematics and using the Mathematical Components (MathComp) library, an existence theorem expressing a central property of algebraic numbers: that there exists an algebraically closed field equipped with an automorphism of order two, specifically one that acts as a "complex conjugation." This theorem is the foundation for constructing the field of algebraic numbers and, indirectly, the field of complex numbers as a completion. The file develops both the necessary theoretical infrastructure and key auxiliary results, culminating in the `Fundamental_Theorem_of_Algebraics`, which asserts the existence of an algebraically closed field with an involutive, nonidentity automorphism.
+
+The file is intended as the mathematical and formal backbone for subsequent developments on algebraic and complex numbers, including their norms, orderings, and automorphism structure.
+
+Mathematical Objects and their Formalization
+===========================================
+
+1. **Fields and Field Extensions**
+   - *Base Field (`rat`):* The field of rational numbers, often the starting point for the constructions.
+   - *Algebraic Closures (`closedFieldType`):* The construction and use of algebraic closures of countable fields, formalized as types implementing `closedFieldType`.
+   - *Field Extensions (`fieldExtType`):* Number fields built as extensions of subfields of the algebraic closure, formalized as `fieldExtType F`, representing a field extension of `F`.
+   - *Archimedean and Real Subfields:* Real fields and real extensions are treated both as subfields and as fields equipped with a compatible archimedean ordering.
+
+2. **Algebraic Elements and Minimal Polynomials**
+   - An element `x` is *algebraic* over a field `F` if it is a root of a nonzero polynomial over `F`.
+   - *Minimal Polynomial:* The unique monic irreducible polynomial over `F` which has `x` as a root. For any algebraic element in an extension, this concept is made precise via the function `minPoly`, and is shown to exist for all algebraic elements of the algebraic closure.
+   - The property of being *integral* (satisfying a monic polynomial) is captured via the predicate `integralOver`.
+
+3. **Morphisms and Automorphisms**
+   - *Ring and Field Morphisms:* Morphisms between fields, particularly those extending the identity morphism on the rationals (`{{rmorphism rat -> C}}`), are crucial for specifying how subfields embed into closures.
+   - *Automorphisms of Fields:* The main automorphism considered is of order two, representing a generalization of complex conjugation. It is a ring automorphism (structure-preserving bijection) `conj : {{rmorphism L -> L}}` such that `conj (conj x) = x` for all `x` (involutive), and `conj` is not the identity.
+   - *Extension and Uniqueness:* Automorphisms are constructed and uniquely extended using Galois theory and specific stepwise field extensions to ensure the involutivity and to fix the correct real subfield.
+
+4. **Number Fields and their Construction**
+   - *Primitive Elements and Galois Theory:* The file makes substantial use of the primitive element theorem and features from Galois theory (splitting fields, automorphism groups) to organize the hierarchy and embedding of number fields.
+   - *Inductive Construction via Adjunction:* The sequence of fields `Q[x_n]` is built by adjoining roots of suitable polynomials (often determined by systematically encoding potential requirements via natural numbers) to ensure that all algebraic and real elements are eventually included.
+   - *Conjugation Structure:* At each stage, an order-2 automorphism (conjugation) is constructed and shown to extend compatibly.
+
+5. **Decision and Existence Principles**
+   - *Decidable Embeddings:* The notion of `decidable_embedding` captures whether, for a fixed embedding `f`, it is possible to decide for every `y` in the target whether it is in the image of `f`. This property is established for the embeddings considered, making constructions effective in a constructive setting.
+   - *Existence of Minimal Polynomials:* The file establishes that every algebraic element over the rationals (and suitable subfields) has a minimal polynomial with certain algorithmic properties (e.g., being able to decide membership in its roots).
+
+Key Conventions and Notational Choices
+======================================
+
+- **Type Classes and Notations:** The file uses the MathComp system of type classes (e.g., `closedFieldType`, `fieldExtType`) to systematically manage structures on fields and extensions, enabling broad genericity and code reuse.
+- **Morphism Notation:** For field morphisms, `{{rmorphism rat -> C}}` denotes a structure-preserving map from the rationals to a field `C`.
+- **Polynomial Operations:** Notations such as `p ^ f` denote mapping a polynomial’s coefficients through a field morphism `f`, and `p ^@` abbreviates mapping through the canonical embedding into an algebraic closure.
+- **Explicit Construction and Effectivity:** Proofs often rely on constructive witnesses (e.g., explicit elements, concrete minimal polynomials, effectivity in deciding properties), not just existence via abstract arguments.
+- **Naming:** Prefixes and suffixes such as `Q`, `ofQ`, `inQ` are used to denote extensions, canonical images, and inverses with respect to the base field of rationals.
+- **Ordering and Real Closedness:** While real embeddings and orderings are key for constructing the subfields and automorphisms, the consistency or transfer of orderings between extensions is intentionally not forced throughout; instead, the focus is on the necessary algebraic and Galois-theoretic properties.
+
+File Structure and Granular Purpose
+===================================
+
+The file orchestrates an incremental, layered proof featuring the following main conceptual steps:
+
+1. **Preparation (Lemmas and Definitions):** Prove facts about minimal polynomials, embeddings, and the effectivity of algebraicity and integrality within the algebraic closure.
+2. **Construction of Number Fields:** Build an ascending chain of number fields by inductive adjunction of algebraic elements, maintaining key properties (e.g., being real, containing the necessary roots).
+3. **Automorphism Engineering:** At each stage, construct and consistently extend "conjugation" automorphisms of order two, ensuring that they fix a maximal real subfield and exchange key elements.
+4. **Fundamental Theorem:** Assemble the constructions and results to prove the existence of an algebraically closed field with the desired involutive automorphism, in alignment with the algebraic version of the Fundamental Theorem of Algebra for algebraic numbers.
+
+Intended Audience and Usage Context
+==================================
+
+This file serves mathematicians and formal method experts interested in the foundations of algebraic number theory, either as users or contributors to formalizations in MathComp. All critical algebraic concepts are treated formally and constructively, making the material suitable both for foundational developments and as a blueprint for further extensions (e.g., defining complex numbers or exploring related symmetry groups). Technical conventions and notation have been chosen for clarity within Coq and MathComp, and for facilitating downstream integration with files focusing on normed, ordered, or topological field structures.
+
+A reader familiar with basic abstract algebra, the formalization of algebraic structures in type theory, and constructive mathematics will be well equipped to interpret specific definitions, lemmas, and proofs within this file based on the above summary.
+
+Summary of Main Theorem
+=======================
+The theorem `Fundamental_Theorem_of_Algebraics` asserts the existence of a type `L` (an algebraically closed field) and a morphism `conj : L → L` such that:
+
+  - `conj` is a field automorphism (structure-preserving bijection),
+  - `conj` is involutive: `conj (conj x) = x` for all `x`,
+  - and `conj` is nontrivial: it is not the identity automorphism.
+
+This provides, in a purely algebraic (and constructive) setting, the analog of complex conjugation on the field of complex numbers, laying the groundwork for formal algebraic analysis over such fields in Coq.
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.

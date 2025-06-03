@@ -1,0 +1,138 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+
+Formal Matrix Theory and Polynomials: Matrix-Polynomial Correspondence, Resultants, Minimal and Characteristic Polynomials, and Diagonalization
+
+Overview and Purpose
+====================
+This Coq file develops a comprehensive formalization of the algebraic relationships between matrices and univariate polynomials, with a focus on finite-dimensional linear algebra over rings and fields. Its main objectives are:
+
+- To provide foundational tools that relate matrices to polynomials, such as the construction of matrix-valued polynomial morphisms (notably, the Horner evaluation morphism), and to characterize fundamental invariants such as the characteristic and minimal polynomials of a matrix.
+- To formalize classical results such as the Cayley-Hamilton theorem and the structure of companion, Sylvester, and resultant matrices.
+- To establish and formalize the theory of eigenvalues, eigenpolynomials, (generalized) eigenspaces, and their connections with annihilating polynomials.
+- To present a robust toolkit for reasoning about matrix similarity, diagonalization, and simultaneous (co)diagonalizability, culminating in precise algebraic and rank-theoretic characterizations.
+- To extend the first-order term and formula infrastructure from scalar algebra to matrices, supporting the construction and evaluation of matrix formulae in an environment compatible with quantifier elimination and logical reasoning.
+
+This file is chiefly intended as a basis for further development in algebraic linear algebra, computational linear algebra, Galois theory, and module theory over (commutative) rings and fields, within the context of proof assistants and formal verification.
+
+Mathematical Structures and Concepts
+====================================
+
+**1. Matrices and Matrix Spaces**
+- *Matrix Types*: Denoted `'M[R]_n` for n×n matrices over a ring or field `R`, and more generally with dimension annotations as needed.
+- *Subspaces, Rank, Direct Sums*: The file manipulates subspaces of row spaces, expresses predicates like `row_free`/`row_full`, and constructs direct sums (`mxdirect`) of matrix subspaces.
+- *Matrix Operations*: Multiplication (`*m`), inversion (`invmx`), kernel computation (`kermx`), and the construction of block, diagonal (`diag_mx`), and companion matrices.
+
+**2. Polynomials and their Representation**
+- `{{poly R}}` is the type of univariate polynomials over `R`, with polynomial operations (sum, product, degree, modulus, evaluation, monicity, etc.).
+- *Representation Bijection*: The file establishes and uses an explicit bijection between row vectors of bounded length and polynomials of bounded degree:
+    - `rVpoly v`: Encodes a row vector `v : 'rV[R]_d` as a polynomial of degree at most `d-1`.
+    - `poly_rV p`: Partial inverse, mapping a polynomial `p` (degree < d) to a row vector.
+
+**3. Matrix-Polynomial Correspondence**
+- *Horner Matrix Morphism*: `horner_mx A` interprets a polynomial as a matrix expression evaluated at `A`; a ring morphism from `{{poly R}}` to endomorphisms of `R^n`. This underpins the Cayley-Hamilton theorem.
+- *Power Matrices*: `powers_mx A d` stacks vectorizations of `A^k` (for k < d), encoding the orbit of powers under multiplication.
+- *Matrix Minimal and Characteristic Polynomials*:
+    - `char_poly A` and `char_poly_mx A`: The characteristic polynomial (matrix and as a scalar-valued polynomial) of `A`.
+    - `mxminpoly A`: The minimal polynomial of `A`, i.e., the monic polynomial of smallest degree with `horner_mx A (mxminpoly A) = 0`.
+    - `degree_mxminpoly A`: The degree of the minimal polynomial, a key invariant.
+- *Sylvester Matrix and Resultant*:
+    - `Sylvester_mx p q`: The Sylvester matrix of polynomials `p` and `q`, encoding their mutual roots.
+    - `resultant p q`: The resultant is the determinant of the Sylvester matrix, vanishing iff `p` and `q` share a non-trivial root.
+
+**4. Similarity, Diagonalization, and Basis Change**
+- *Conjugation*: `conjmx V f` denotes the conjugation of `f` by the (possibly rectangular) matrix `V`, representing base change.
+- *Similarity Relations*:
+    - `A ~_P {{in S}}`: `A` is similar to some matrix in set `S` via base change `P`.
+    - `diagonalizable A`: There exists a basis over which `A` is diagonal.
+    - *Simultaneous (Co)diagonalizability*: The existence of a common basis that diagonalizes a family of matrices (`codiagonalizable`).
+
+**5. Spectral Theory: Eigenvalues and Eigenspaces**
+- *Eigenvalue, Eigenspace, Generalized Eigenspace*:
+    - `kermxpoly g p`: Kernel of the matrix polynomial `p(g)`.
+    - `eigenspace g a`: The space of eigenvectors for eigenvalue `a`.
+    - `geigenspace g a`: The generalized eigenspace of `g` at `a`.
+    - `eigenpoly g p`: Indicates that `p` is an eigenpolynomial, i.e., the associated kernel is non-trivial.
+- *Algebraic and Integral Elements*:
+    - `integralOver RtoK u`: Element `u` lies in the integral closure of the image of `R` in `K`.
+    - `algebraicOver FtoE u`: `u` is a root of a nonzero polynomial over the image of field embedding `FtoE`.
+
+**6. Logical Infrastructure and Formulas on Matrices**
+- *MatrixFormula Submodule*: Lifts the first-order framework (terms, formulas, evaluation, quantifiers, etc.) from the existing algebra structure to matrices.
+    - Construction and evaluation of formulas about ranks (`mxrank_form`), subspace relations (`submx_form`), and row environments.
+
+Coding and Notational Conventions
+==================================
+- **Naming**:
+    - Lowercase `p`, `q` for (possibly monic) polynomials; `A`, `B`, `C` for matrices; `f`, `g` when these denote linear maps; `V`, `W` for matrices denoting bases or subspaces.
+- **Implicit Arguments and Scopes**:
+    - `Set Implicit Arguments.` and the explicit use of notation and variable scopes allows smoother use of standard mathematical notation.
+    - Notations for similarity, diagonalizability, (co)diagonalization, and restrictions are provided and explained at the end of the file, following their mathematical semantics.
+- **Boolean Predicates and Reflection**:
+    - Many mathematical notions (e.g., equality, divisibility, similarity) are always paired with their Boolean/reflective versions, enabling efficient proof search and tactic use in Ssreflect.
+- **Parametricity and Mapping**:
+    - For each main construction, lemmas are provided on how it interacts with ring morphisms (`map_mx`, `map_poly`), enabling tight control over base changes and field/ring extensions.
+- **Operator Overloading and Conventions**:
+    - Notation such as `~_P`, `~_{{in S}}`, `sim`, etc., is designed to follow standard mathematical practice for matrix similarity and conjugacy.
+    - The notation `restrictmx` is used to abbreviate conjugation by a row basis of a subspace, streamlining the description of invariant subspaces and their restrictions.
+- **Term Lifting and Environments**:
+    - The `MatrixFormula` module provides systematic lifting of scalar notions (formulas, environments, variables) to matrices, always via explicit construction (e.g., for row vectors, environments, quantifiers).
+
+Prerequisite and Audience
+=========================
+This file assumes familiarity with basic algebra (rings, fields, polynomials, matrices), elementary linear algebra (invariant subspaces, eigenvalues, minimal and characteristic polynomials), and some formal methods experience (especially with the Coq proof assistant). However, it is self-contained with respect to the mathematical structures it defines and does not assume prior knowledge of the MathComp library; all conventions and data representations relevant for interpreting subsequent code are summarized above.
+
+The development and documentation here are designed to enable a reader (human or machine) to generate or understand precise docstrings, comments, and formal documentation for any code chunk in this file without having to refer to external sources.
+
+Summary Table of Key Definitions
+================================
+- `rVpoly v` / `poly_rV p`: Bijection between bounded-degree polynomials and row vectors.
+- `horner_mx A`: Morphism evaluating polynomials at a matrix argument.
+- `powers_mx A d`: Stack of first `d` powers of `A`.
+- `char_poly A`, `mxminpoly A`: Characteristic and minimal polynomials.
+- `Sylvester_mx p q`, `resultant p q`: Sylvester matrix and resultant for polynomial systems.
+- `companionmx p`: Companion matrix of a polynomial.
+- `kermxpoly g p`, `eigenspace g a`, `geigenspace g a`: Spectral subspace constructions.
+- `integralOver`, `algebraicOver`: Notions of integrality and algebraicity under ring embeddings.
+- `conjmx V f`, `restrictmx V`, `~_P`, `diagonalizable`, `codiagonalizable`: Tools and notations for similarity, base change, and diagonalization.
+- `MatrixFormula`: Lifting of logical terms and formulas from scalars to matrices (ranks, inclusion, quantification over row vectors).
+
+This modular toolkit provides a foundation for both computation and the logical analysis of linear algebraic constructions, enabling user-driven extensions and problem-specific developments in the broader setting of formalized mathematics.
+
+
+
+
+Here is a Coq source file from the mathcomp library:
+
+"{source}"
+
+I need you to help me write all the docstring.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+[{{"fullname": "Definition trunc x := if 0 <= x then sval (trunc_subproof x) else 0%N.", "docstring": "The function trunc returns the greatest natural number less than or equal to x when x is at least zero by using the constructive truncation proof; otherwise it returns zero."}}, ....
+
+More precisely, I want you do it for the following:
+
+{missing}
+
+Here are the guidelines to write the docstrings:
+
+Follow these rules when writing “docstring”:
+
+1.  **Natural language only.**  Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2.  **Complete sentences.**  Write at least one full sentence; use clear subject-verb-object structure.  
+3.  **Explicit**.  Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).  
+4.  **Self-contained.**  Anyone reading just the docstring should understand what the lemma does without needing to see Coq syntax or names.  
+5.  **Embedding-friendly.**  Avoid pronouns or references that need extra context (e.g. “this” or “it”); mention the inputs and outputs by name or role.  
+6.  **Don't cite the name of the premise in the docstring**.
+
+Here is some examples of good docstrings:
+
+"A lemma stating that in a finite field F, the number of invertible elements equals the total number of elements in F minus one, since exactly the zero element is not invertible."
+"A notation introducing {{unit R}} to denote the group of invertible elements of a ring R, enabling implicit conversion between units and ring elements as a subtype."
+"A lemma stating that multiplication operation on the ring of integers modulo p is commutative."
+"A notation denoting the type of integers modulo the maximum of p and two."
+"A factory record asserting that a subset of a unital algebra contains zero and one, is closed under subtraction, multiplication, taking inverses of units, and scalar multiplication, thus forming a division-closed subalgebra."
+
+Your final json must be contains in a json code block.
