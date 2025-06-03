@@ -46,11 +46,10 @@ if __name__ == "__main__":
                 filepath = os.path.join(root, file)
                 with open(filepath, 'r') as file:
                     content = file.read()
-                
-                assert (content.count('Proof.') - content.count('Qed.') - content.count('Abort.'))==0, f"Issue, source file {filepath} contains proofs that are not well contained in a Proof.[..]Qed. block"
 
                 content = remove_proofs(content)
                 content = remove_comments(content)
                 content = remove_blank(content)
                 with open(filepath, 'w') as file:
                     file.write(content)
+                assert (content.count('Proof.') - content.count('Qed.') - content.count('Abort.'))==0, f"Issue, source file {filepath} contains proofs that are not well contained in a Proof.[..]Qed. block"
