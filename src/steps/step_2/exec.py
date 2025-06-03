@@ -56,6 +56,7 @@ def process_prompt(prompt, export_path, data, client, config, delay=0, max_retry
                 name_data = entry_data[1]['name']
                 name_output = entry_output['name']
                 if distance_tolerance < distance(name_output, name_data):
+                    print(export_path)
                     print(name_output, name_data)
                     raise OutOfTolerance(f"{name_output} not detected in output")
             with open(export_path, 'w') as file:
@@ -142,11 +143,11 @@ if __name__ == '__main__':
             prompt = prompt_template.format(**{"source":chunk, "missing":missing})
 
             export_path = os.path.join(args.output, parent+f'#chunk_{k}')
-            to_do.append((prompt, export_path, chunk_data))
-        # break
+
+            if not os.path.exists(export_path):
+                to_do.append((prompt, export_path, chunk_data))
     delay_max = args.mean_delay*2
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.max_workers) as executor:  # Adjust the number of workers as needed
-        futures = []
-        futures += [executor.submit(process_prompt, prompt, export, entry, client, config['request_config'], delay=random.randint(0, delay_max), max_retry=args.max_retry, distance_tolerance=args.distance_tolerance) for prompt, export, entry in to_do]
+        futures = [executor.submit(process_prompt, prompt, export, entry, client, config['request_config'], delay=random.randint(0, delay_max), max_retry=args.max_retry, distance_tolerance=args.distance_tolerance) for prompt, export, entry in to_do]
         for _ in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
             pass

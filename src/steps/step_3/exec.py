@@ -46,12 +46,15 @@ if __name__ == "__main__":
                     assert distance(name_output, name_data) <= args.tolerance, f"Issue with {entry_output}, {name_output}"
 
                     entry_data[1]['docstring'] = entry_output['docstring']
-                
+                    stats[entry_data[1]['kind']] += 1
                 result_list[parent] += chunk_data
 
     for parent in result_list:
         result_list[parent].sort(key=lambda x:x[1]['end_line'])
         result[parent] = result[parent] | dict(result_list[parent])
+
+    for key, value in stats.items():
+        print(f"{key}: {value}")
 
     os.makedirs(args.export_dir, exist_ok=True)
     with open(os.path.join(args.export_dir, 'result.json'), 'w') as file:
