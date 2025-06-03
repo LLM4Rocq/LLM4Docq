@@ -15,7 +15,7 @@ def extract_entries(source_code, delta_line=0):
     source_code = re.sub(r'\*\)\s*\(\*', '', source_code)
     pattern = (
         r'(Lemma|Definition|Notation|Fact|Theorem|Record|Fixpoint)\s+'  # capture kind
-        r'((\".+?\")|(\S+)).*?\.\s'                  # capture name (either quoted or bare), up to “.\n”
+        r'((\".+?\")|(\S+)).*?\.\s*\n'                  # capture name (either quoted or bare), up to “.\n”
     )
     matches = re.finditer(pattern, source_code, flags=re.DOTALL)
 
