@@ -3,12 +3,14 @@ import json
 from collections import defaultdict
 import argparse
 
+from tqdm import tqdm
+
 from label_studio_sdk.client import LabelStudio
 from label_studio_sdk.core.request_options import RequestOptions
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate retro pixelated images.")
+    parser = argparse.ArgumentParser(description="Create projects based on provided dataset.")
     parser.add_argument("--label-studio-url", default='http://localhost:8080')
     parser.add_argument("--ds-path", default="export/ds.json", help="Directory for output images")
     args = parser.parse_args()
@@ -23,12 +25,13 @@ if __name__ == "__main__":
         data = json.load(f)
 
     all_datasets = defaultdict(list)
-    for entry in data:
-        fqn = entry['data']['fqn']
-        filename = ".".join(fqn.split('.')[:3])
-        all_datasets[filename].append(entry)
+    for parent in data:
+        for element_name, element in data[parent].items():
+            fqn = parent + '.' + element_name
+            element['fqn'] = fqn
+            all_datasets[parent].append(element)
 
-    for key in all_datasets:
+    for key in tqdm(all_datasets):
         project_resp = ls.projects.create(title=key,enable_empty_annotation=False, label_config=interface)
         project_id = project_resp.id
         data = all_datasets[key]
