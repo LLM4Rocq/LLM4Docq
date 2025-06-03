@@ -1,0 +1,100 @@
+I need you to generate a comprehensive, self-contained docstring that explains the purpose, mathematical scope, and key conventions of the following Coq source file.
+
+Your docstring must be written for an audience who may not be familiar with the codebase or the Mathematical Components (MathComp) library, but who has some background in mathematics and formal methods.
+
+Requirements:
+
+    Purpose and Goal: Clearly state the main objective of the file.
+
+    Mathematical Objects: List and explain all important mathematical structures, types, and concepts manipulated in the file. Indicate how they are represented in Coq.
+
+    Key Conventions: Explain critical notational or coding conventions.
+
+    Context for Retrieval: The goal is to allow someone (or an LLM) who only reads this docstring, and not the full file, to understand the context and be able to interpret or generate comments/docstrings for specific code chunks from the file. 
+
+    No Source Code: Do not copy or paraphrase comments from the file itself, but synthesize information based on its mathematical and software engineering content.
+
+    Format: Write the answer in complete sentences and paragraphs, organized in logical sections.
+
+    Clarity and Self-Sufficiency: The docstring must be standalone, with no external references needed to grasp the file’s role.
+
+Please write your answer in a code block with the language tag code.
+
+Here is the Coq source file:
+"""
+{source}
+"""
+
+Example of a Model Output:
+
+```code
+Integer divisibility
+
+Overview
+========
+This file provides the core MathComp module that formalizes and proves the algebra of divisibility over the type `int` of signed integers, which are defined using the two constructors `Posz` and `Negz`. It extends the basic arithmetic of `ssrint` by including operations such as Euclidean division (`divz`, `modz`), divisibility predicates (`dvdz`), greatest common divisors (`gcdz`), least common multiples (`lcmz`), and coprimality (`coprimez`). Beyond foundational results, the file also features:
+
+  • Chinese Remainder Theorem (`zchinese`)
+  • Computation of Bézout coefficients (`egcdz`) and associated applications
+  • A formal development of the Smith normal form for integer matrices
+  • Operations on integer polynomials (content, primitive part) and a formalization of Eisenstein’s irreducibility criterion
+
+Altogether, this module serves as a number-theoretic backbone for MathComp’s libraries on linear algebra, field theory, and algebraic number theory.
+
+Mathematical objects and their representations
+==============================================
+• Signed integers (`int`) form the ambient ring for all developments.
+
+• Euclidean division:
+    - `divz m d` computes the quotient of `m` by `d`
+    - `modz m d` computes the remainder of `m` modulo `d`
+  These satisfy the equation `m = (m %/ d)%Z * d + (m %% d)%Z`, with the remainder chosen in the interval `[0, d)` when `d ≠ 0`.
+
+• Divisibility and congruence:
+    - `d %| m` represents the predicate “d divides m”
+    - `m = n %[mod d]` expresses the congruence of `m` and `n` modulo `d`
+  Both notions are equipped with reflection lemmas, enabling Boolean equalities to be rewritten using `rewrite`, just like algebraic ones.
+
+• Arithmetic invariants:
+    - `gcdz m n` computes the non-negative greatest common divisor
+    - `lcmz m n` computes the non-negative least common multiple
+    - `coprimez m n` expresses that `m` and `n` are coprime
+    - `egcdz m n` returns a pair `(u, v)` such that `u * m + v * n = gcdz m n`
+  These are used to construct proofs of coprimality and derive Gauss-style lemmas.
+
+• Chinese remainder artifacts:
+  The section `Chinese` provides:
+    - a Boolean equivalence (`zchinese_remainder`) connecting a modulus `m₁ * m₂` with its projections
+    - a function `zchinese r₁ r₂` that constructs the unique solution to a pair of congruences when `m₁` and `m₂` are coprime
+
+• Polynomial tools on `{{poly int}}`:
+    - `zcontents p` computes the gcd of the coefficients of `p`
+    - `zprimitive p` returns the primitive part of `p`, i.e., `p` divided by its contents
+    - `zcontentsM` and `zprimitiveM` are multiplicative lemmas supporting the development of Gauss’s lemma and Eisenstein’s criterion
+
+• Integral spans and Smith normal form:
+    - `inIntSpan s v` asserts that `v` is an integer linear combination of the tuple `s`
+    - `int_Smith_normal_form` proves the existence of Smith normal forms for rectangular integer matrices, based on the `matrix_canonical_forms` ecosystem
+
+Key coding and notational conventions
+=====================================
+1. Named scopes: All integer-specific infix notations (`%/`, `%%`, `%|`, congruence symbols) are defined in `int_scope`. Natural number literals are coerced to `int` using `%:Z`.
+
+2. Sign management: The auxiliary function `sgz : int -> int` returns the sign (−1, 0, or 1) of an integer. The absolute value `|m|` is used throughout to ensure that quantities like `gcd`, `lcm`, and contents remain non-negative.
+
+3. Canonically reflected predicates: Boolean predicates such as `dvdz`, modular equality, and `coprimez` are paired with reflection lemmas, making it easy to shift between Boolean and propositional styles using Ssreflect's `apply/` syntax.
+
+4. Recycling natural-number infrastructure: Many results reduce to the case of natural numbers via coercions like `|m|%N` and `%:Z`, or embed integers into the rationals using `%:~R` to leverage field-level automation.
+
+5. Sectioning pattern: The file is organized into the following logically closed sections:
+    - Basic definitions
+    - Elementary lemmas (alignment with `nat`)
+    - Divisibility theory
+    - GCD, LCM, and coprimality
+    - Chinese remainder theorem
+    - Polynomial scaling utilities (`ZpolyScale`)
+    - Integral spans and Smith normal form
+    - Eisenstein criterion
+   Each section can be imported independently, preserving its notation and definitions.
+
+```
