@@ -44,7 +44,6 @@ if __name__ == "__main__":
         for file in files:
             if file.endswith('.v'):
                 filepath = os.path.join(root, file)
-                print(filepath)
                 with open(filepath, 'r') as file:
                     content = file.read()
                 
