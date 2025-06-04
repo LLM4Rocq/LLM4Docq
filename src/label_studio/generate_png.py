@@ -198,30 +198,29 @@ def generate_leaderboard(data, output_path, font_path, top_k=8):
     """
     Generate a '90s video game'–style leaderboard PNG with exactly `top_k` rows.
     If there are fewer than top_k players, the remaining rows are left blank.
-    The title is centered at the top of the figure.
+    The title is centered at the top.
 
     Args:
-        data (dict[str, int]): Mapping from player_name -> score.
-        output_path (str or Path): Where to save the resulting PNG.
-        font_path (str or Path): Path to a TTF/OTF font file.
-        top_k (int): Number of rows (including empty rows) to show.
+        data (dict[str,int]): Mapping from player_name -> score.
+        output_path (str or Path): Where to write the PNG.
+        font_path (str or Path): Path to a .ttf/.otf font file.
+        top_k (int): How many total rows (including empty) to show.
     """
-    # 1) Sort descending by score, then take the top_k entries
+    # 1) Sort descending by score and take up to top_k entries
     sorted_lb = sorted(data.items(), key=lambda x: x[1], reverse=True)
-    actual = sorted_lb[:top_k]  # take up to top_k players
+    actual = sorted_lb[:top_k]  # may be fewer than top_k
 
+    # 2) Separate names & scores
     names  = [n for n, _ in actual]
     scores = [s for _, s in actual]
 
-    # 2) If fewer than top_k, pad with empty strings and zero‐scores
+    # 3) Pad with empty rows if needed
     n_actual = len(names)
     if n_actual < top_k:
-        # pad names with "" and scores with 0
         names += [""] * (top_k - n_actual)
         scores += [0] * (top_k - n_actual)
 
-    # 3) If all entries are empty (i.e. data was empty), render a title‐only PNG
-    #    so we don't proceed with zero‐height axes.
+    # 4) If every name is empty, just write a title‐only PNG
     if all(name == "" for name in names):
         fig = plt.figure(figsize=(4, 2), facecolor="black")
         title_fp = register_font(font_path, size=20)
@@ -238,60 +237,53 @@ def generate_leaderboard(data, output_path, font_path, top_k=8):
         plt.close(fig)
         return
 
-    # 4) Compute fractions with respect to the top actual score (not zero).
-    #    If all scores are zero, avoid division by zero by setting max_score=1.
+    # 5) Compute fractions (avoid division by zero)
     max_score = max(scores) if max(scores) > 0 else 1
     fracs = [s / max_score for s in scores]
 
-    # 5) Measure text widths for margins
+    # 6) Prepare FontProperties
     label_fp  = register_font(font_path, size=10)
     annot_fp  = register_font(font_path, size=10)
     title_fp  = register_font(font_path, size=20)
 
-    # a) Longest actual name (empty strings are width 0)
-    max_name_w = 0.0
-    for name in names:
-        w = get_text_width_inch(name, label_fp)
-        max_name_w = max(max_name_w, w)
+    # 7a) Compute left margin: measure only non‐empty, string names
+    valid_names = [n for n in names if isinstance(n, str) and n != ""]
+    max_name_w = max((get_text_width_inch(n, label_fp) for n in valid_names), default=0.0)
     left_margin_in = max_name_w + 0.1
 
-    # b) Largest possible score string, which is str(max_score)
+    # 7b) Compute right margin: width of the largest possible score (as a string)
     largest_str = str(max_score)
     annot_w = get_text_width_inch(largest_str, annot_fp)
     right_margin_in = annot_w + 0.1
 
-    # 6) Compute figure size (in inches)
-    #    Height = top_k * 0.6 (per row) + 1" padding for title
-    row_h = top_k * 0.6 + 1
-    fig_h = max(row_h, 2)  # at least 2" tall
-
-    #    Width: ensure at least 6" total, and that the bar‐axes area gets ~4"
+    # 8) Compute figure size (in inches)
+    row_h = top_k * 0.6 + 1        # 0.6" per row + 1" for title padding
+    fig_h = max(row_h, 2)          # at least 2" tall
     min_axes_w = 4
     fig_w = max(left_margin_in + min_axes_w + right_margin_in, 6)
 
-    # 7) Convert margins to fraction of figure size
+    # 9) Convert margins to fraction of figure width
     left_frac  = left_margin_in / fig_w
     right_frac = 1 - (right_margin_in / fig_w)
 
-    # 8) Create figure & axis (no tight_layout)
+    # 10) Create the figure & axis
     fig, ax = plt.subplots(figsize=(fig_w, fig_h), facecolor="black")
     ax.set_facecolor("black")
 
-    # 9) Draw horizontal bars for exactly top_k rows
+    # 11) Draw bars for all top_k rows
     y = list(range(top_k))
     ax.barh(y, fracs, color="#00FF00", edgecolor="white", height=0.6)
 
-    # 10) Set y‐tick labels (names or "" for empty rows)
+    # 12) Set y‐tick labels (some may be "")
     ax.set_yticks(y)
     ax.set_yticklabels(names, color="white", fontproperties=label_fp, fontsize=10)
-    ax.invert_yaxis()   # highest score at top
-
+    ax.invert_yaxis()
     ax.set_xlim(0, 1)
     ax.set_xticks([])
 
-    # 11) Annotate each bar's score, if non-zero
+    # 13) Annotate each bar’s score (skip empty rows)
     for i, (frac, sc, nm) in enumerate(zip(fracs, scores, names)):
-        if nm and sc > 0:
+        if isinstance(nm, str) and nm and sc > 0:
             sc_str = str(sc)
             if frac >= 0.8:
                 xtext = frac - 0.02
@@ -306,9 +298,8 @@ def generate_leaderboard(data, output_path, font_path, top_k=8):
                 fontproperties=annot_fp,
                 fontsize=10
             )
-        # If name is "" or score is zero, skip annotation
 
-    # 12) Centered title using fig.suptitle at x=0.5
+    # 14) Centered title via fig.suptitle(x=0.5)
     fig.suptitle(
         "LEADERBOARD",
         x=0.5, y=0.95,
@@ -318,15 +309,15 @@ def generate_leaderboard(data, output_path, font_path, top_k=8):
         fontsize=20
     )
 
-    # 13) Adjust subplot region so margins and title aren’t clipped
+    # 15) Adjust subplot so nothing is clipped
     fig.subplots_adjust(
         left=left_frac,
         right=right_frac,
-        top=0.90,    # leave room for suptitle
+        top=0.90,    # a little room for the title above
         bottom=0.05
     )
 
-    # 14) Save to disk
+    # 16) Save the figure
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=150, facecolor="black", bbox_inches="tight")
     plt.close(fig)
