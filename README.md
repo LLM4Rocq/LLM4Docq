@@ -1,5 +1,5 @@
 # LLM4Docq
-Automatic docstring generation for MathComp using LLMs
+Collaborative project to add docstrings to MathComp.
 
 _All informations are updated once every 15 minutes_
 <div style="text-align: center;">
@@ -152,7 +152,7 @@ Select "Acceptable" and submit.
 #### Needs Improvement case
 
 The docstring is mostly correct, but could be improved or clarified.
-Select "Needs Improvement” and either suggest a better version or leave a comment.
+Select "Needs Improvement”, suggest a better version and leave a comment.
 
 <div style="text-align: left;">
 <img src="img/improvement_3.png" alt="Alt Text" width="70%">
