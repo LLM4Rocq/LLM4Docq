@@ -49,7 +49,7 @@ if __name__ == "__main__":
         leaderboard[username] = leaderboard_id[user_id]
     
     progress_path = os.path.join(args.output_dir)
-    leaderboard_path = os.path.join(args.output_dir, "retro_leaderboard.png")
+    leaderboard_path = os.path.join(args.output_dir, "leaderboard.png")
 
     generate_progress(detailed_result, progress_path, args.font)
     generate_leaderboard(leaderboard, leaderboard_path, args.font)
