@@ -15,28 +15,32 @@ _All informations are updated once every 15 minutes_
 <img src="http://51.38.234.127:8000/leaderboard.png" alt="Alt Text" width="50%">
 </div>
 
-If you want a closer look at each section’s progress, see [progress](#progress).
+Want more details? Jump to [progress](#progress) to see section-by-section status.
 
 ## Introduction
-This collaborative project has three parts:
-- **Adding detailed docstrings to the MathComp library**, covering:
-  - Definitions: 3 067
-  - Lemmas: 14 925
-  - Notations: 3 386
-  - Theorems: 61
-  - Facts: 654
-  - Fixpoints: 140
-  - Records: 256
-- **Developing an embedding-based retrieval system** in a VSCode plugin for Rocq users.
-- **Building an annotator–formalizer model** that can:
-  1. Given a formal statement and context, write a docstring.
-  2. Given a context and docstring, generate the corresponding formal statement.
+**LLM4Docq** is a collaborative research project with three main objectives:
 
-The main contribution is the underlying dataset, which requires MathComp experts to ensure docstring quality. To assist experts, we follow an iterative process based on this three steps:
-1. Generate a draft of all docstrings using LLMs.
-2. Gather feedback from experts.
-3. Regenerate docstrings for any elements deemed incorrect or unvalidated.
+1. **Docstring enrichment for MathComp:**  
+   We aim to add detailed docstrings to all elements of the MathComp library:
+   - Definitions: 3,067
+   - Lemmas: 14,925
+   - Notations: 3,386
+   - Theorems: 61
+   - Facts: 654
+   - Fixpoints: 140
+   - Records: 256
 
+2. **Embedding-based retrieval system:**  
+   A VSCode plugin for Rocq users, enabling retrieval from natural language query.
+
+3. **Annotator–formalizer models:**  
+   - Generate a docstring from a formal statement and its context.
+   - Reconstruct a formal statement from a docstring and context.
+
+To gather the underlying dataset, we use an iterative process:
+1. LLMs generate initial docstrings.
+2. Experts review and give feedback on a subpart of the generated docstrings.
+3. Unseen or refused entries are regenerated with new instructions based on previous feedback.
 
 ### Progress
 
@@ -89,15 +93,83 @@ The main contribution is the underlying dataset, which requires MathComp experts
 </details>
 
 ## How to contribute
-1. **Gain access to the project.** 
-2. **Choose a source file.** Each source file is managed as its own project on the collaborative platform (Label Studio). Choose one of them in the table of content of the section [project hierarchy](#project-hierarchy).
-3. ...
-and so on (TODO)
+1. **Request access** to join the project.
+2. **Pick a source file:**  
+   Each file is managed as a separate project in our collaborative platform (Label Studio). Find one in the [project hierarchy](#project-hierarchy) below.
+3. **Annotate entries:**  
+   For each entry, you can:
+   - **Validate annotation** (mandatory):  
+     - Acceptable
+     - Needs Improvement
+     - Incorrect
+   - **Suggest improvements** (if needed).
+   - **Comment** for additional feedback.
+   - **Skip** if unsure.
+   - **Submit** your work.
 
+### Complete the entry
+
+## How to Contribute
+
+1. **Request access** to join the project.
+2. **Pick a source file:**  
+   Each file is managed as a separate project in our collaborative platform (Label Studio). Find one in the [project hierarchy](#project-hierarchy) below.
+3. **For each entry, choose one of the following interactions:**
+
+### Entry Interactions
+
+- **Annotate** (required):  
+  Review the proposed docstring and select its status:
+  - **Acceptable:** The docstring is correct and sufficiently detailed.
+  - **Needs Improvement:** The docstring is mostly correct but could be clearer or more precise.
+  - **Incorrect:** The docstring is wrong or irrelevant.
+
+- **Suggest an improved version:**  
+  If the annotation is "Needs Improvement" or "Incorrect", provide a better docstring.
+
+- **Add comments:**  
+  Share additional feedback, clarifications, or suggestions for future improvements.
+
+- **Skip:**  
+  If you are unsure how to annotate the entry, you can skip it.
+
+- **Submit:**  
+  Submit your review once you have finished annotating or commenting.
+
+
+
+**See below for some examples:**
+
+#### Acceptable case
+
+The docstring is correct and complete.
+Select "Acceptable" and submit.
+
+<div style="text-align: left;">
+<img src="img/correct_2.png" alt="Alt Text" width="70%">
+</div>
+
+#### Needs Improvement case
+
+The docstring is mostly correct, but could be improved or clarified.
+Select "Needs Improvement” and either suggest a better version or leave a comment.
+
+<div style="text-align: left;">
+<img src="img/improvement_3.png" alt="Alt Text" width="70%">
+</div>
+
+#### Incorrect case
+
+The docstring is incorrect or unrelated to the code.
+Select "Incorrect" and provide a corrected version and comment.
+
+<div style="text-align: left;">
+<img src="img/incorrect_4.png" alt="Alt Text" width="70%">
+</div>
 
 ### Project hierarchy
 
-Here is the overall hierarchy. To contribute, click on a source file in an expandable section.
+Below is the overall hierarchy. To contribute, click on a source file in an expandable section.
 
 <details>
 <summary>Algebra</summary>
@@ -157,6 +229,7 @@ Here is the overall hierarchy. To contribute, click on a source file in an expan
 * [ssrnotations](http://51.38.234.127:8080/projects/92/data?tab=4&labeling=1)
 * [tuple](http://51.38.234.127:8080/projects/32/data?tab=4&labeling=1)
 </details>
+
 <details>
 <summary>Character</summary>
 
@@ -168,6 +241,7 @@ Here is the overall hierarchy. To contribute, click on a source file in an expan
 * [mxrepresentation](http://51.38.234.127:8080/projects/4/data?tab=4&labeling=1)
 * [vcharacter](http://51.38.234.127:8080/projects/54/data?tab=4&labeling=1)
 </details>
+
 <details>
 <summary>Field</summary>
 
