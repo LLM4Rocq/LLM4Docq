@@ -35,72 +35,84 @@ def get_text_width_inch(text, font_prop):
 
 def generate_progress(sections, output_dir, font_path):
     """
-    For each section, generate a PNG with horizontal bars, and place the section title
-    centered at the top of the figure via fig.suptitle(x=0.5).
+    For each section, generate a PNG with exactly 3 horizontal‐bar columns,
+    balancing the modules as evenly as possible across those 3 columns, and
+    centering the title via fig.suptitle(x=0.5).
+
+    Args:
+        sections (dict[str, dict[str, int]]):
+            Mapping from section name to {module_name: percentage (0–100)}.
+        output_dir (str or Path):
+            Directory where output PNGs will be saved.
+        font_path (str or Path):
+            Path to a .ttf or .otf font file for rendering text.
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    max_rows = 5
+    sec_cols = 3  # always use 3 columns
 
     for section_name, modules in sections.items():
-        # 1) Handle “empty” section (no modules)
+        # 1) Empty‐section case
         if not modules:
             fig = plt.figure(figsize=(4, 2), facecolor='black')
-            title_prop = register_font(font_path, size=20)
+            title_fp = register_font(font_path, size=20)
             fig.suptitle(
                 section_name.upper(),
                 x=0.5, y=0.5,
                 ha='center', va='center',
                 color='white',
-                fontproperties=title_prop,
+                fontproperties=title_fp,
                 fontsize=20
             )
-            safe_name = section_name.replace(".", "_").replace(" ", "_")
-            out_path = output_dir / f"{safe_name}.png"
+            safe = section_name.replace(".", "_").replace(" ", "_")
+            out_path = output_dir / f"{safe}.png"
             fig.savefig(out_path, dpi=150, facecolor='black', bbox_inches='tight')
             plt.close(fig)
             print(f"Saved empty section title: {out_path}")
             continue
 
-        # 2) Determine how many columns we need
-        n_items = len(modules)
-        sec_cols = math.ceil(n_items / max_rows)
+        # 2) Determine rows_per_col to spread modules evenly across 3 columns
+        items = list(modules.items())
+        n_items = len(items)
+        rows_per_col = math.ceil(n_items / sec_cols)
 
-        # 3) Measure text widths (to set margins)
+        # 3) Measure text widths (for left/right margins)
         label_fp = register_font(font_path, size=8)
         annot_fp = register_font(font_path, size=10)
 
-        # a) Longest module name
+        # a) Longest module name (in inches)
         max_label_w = 0
         for lbl in modules.keys():
             w = get_text_width_inch(lbl, label_fp)
             max_label_w = max(max_label_w, w)
-        left_margin_in = max_label_w + 0.1  # add 0.1" padding on left
+        left_margin_in = max_label_w + 0.1  # 0.1" padding
 
-        # b) “100%” width
+        # b) “100%” width (in inches)
         annot_example = "100%"
         annot_w = get_text_width_inch(annot_example, annot_fp)
         right_margin_in = annot_w + 0.1
 
-        # 4) Compute overall figure size (in inches)
-        row_h = max_rows * 0.5 + 1           # e.g. 5*0.5 + 1 = 3.5"
-        fig_h = max(row_h, 2)               # at least 2" tall
+        # 4) Compute figure‐height and ‐width (in inches)
+        #    Height = rows_per_col * 0.5 + 1 (0.5" per row + 1" title padding)
+        row_h = rows_per_col * 0.5 + 1
+        fig_h = max(row_h, 2)  # at least 2"
 
-        # Guarantee at least 4" per column, or enough to fit margins+bars
+        #    Width: ensure at least 4" per column OR enough to fit margins + bars
+        #    (so bars get ~2" each if many modules), but at least 4" total.
         fig_w = max(
-            sec_cols * 4,                             # 4" per column baseline
+            sec_cols * 4,                              # 4" per column baseline
             left_margin_in + (sec_cols * 2) + right_margin_in,
-            4                                          # at least 4" total
+            4                                           # at least 4" total
         )
 
-        # 5) Compute wspace so that there’s ~0.2" padding between columns
+        # 5) Compute wspace so there’s ~0.2" gap between columns
         total_axes_w = fig_w - left_margin_in - right_margin_in
         axes_w = total_axes_w / sec_cols
         desired_space_in = 0.2
         wspace = (desired_space_in / axes_w) + 1.3
 
-        # 6) Create subplots (no constrained_layout)
+        # 6) Create subplots (3 columns, no constrained_layout)
         fig, axes = plt.subplots(
             nrows=1,
             ncols=sec_cols,
@@ -108,29 +120,30 @@ def generate_progress(sections, output_dir, font_path):
             facecolor='black',
             constrained_layout=False
         )
+        # Normalize axes list
         if sec_cols == 1:
             axes = [axes]
         else:
             axes = list(axes)
 
-        # 7) Pad modules so total slots = sec_cols * max_rows
-        items = list(modules.items())
-        total_slots = sec_cols * max_rows
-        padded = items + [("", 0)] * (total_slots - len(items))
+        # 7) Pad items so that total slots = 3 * rows_per_col
+        total_slots = sec_cols * rows_per_col
+        padded = items + [("", 0)] * (total_slots - n_items)
 
-        # 8) Plot each column
+        # 8) Plot each of the 3 columns
         for col_idx in range(sec_cols):
             ax = axes[col_idx]
             ax.set_facecolor('black')
 
-            block = padded[col_idx*max_rows : (col_idx+1)*max_rows]
+            block = padded[col_idx * rows_per_col : (col_idx + 1) * rows_per_col]
             labels, scores = zip(*block)
-            fracs = [s/100.0 for s in scores]
-            y = list(range(max_rows))
+            fracs = [s / 100.0 for s in scores]
+            y = list(range(rows_per_col))
 
             ax.barh(y, fracs, color='#00FF00', edgecolor='white', height=0.6)
             ax.set_yticks(y)
-            ax.set_yticklabels(labels, color='white', fontproperties=label_fp, fontsize=8)
+            ax.set_yticklabels(labels, color='white',
+                               fontproperties=label_fp, fontsize=8)
             ax.set_xlim(0, 1)
             ax.set_xticks([])
             ax.invert_yaxis()
@@ -152,7 +165,7 @@ def generate_progress(sections, output_dir, font_path):
                         fontsize=10
                     )
 
-        # 9) Adjust margins: use left_frac/right_frac based on inches → fraction
+        # 9) Convert margins from inches → figure fractions
         left_frac  = left_margin_in / fig_w
         right_frac = 1 - (right_margin_in / fig_w)
 
@@ -164,7 +177,7 @@ def generate_progress(sections, output_dir, font_path):
             wspace=wspace
         )
 
-        # 10) Add the section title centered at x=0.5 (figure coords)
+        # 10) Centered section title
         title_fp = register_font(font_path, size=20)
         fig.suptitle(
             section_name.upper(),
@@ -306,7 +319,12 @@ if __name__ == "__main__":
             "mathcomp.algebra.ssrint1": 15,
             "mathcomp.algebra.vector1": 40,
             "mathcomp.algebra.finalg1": 100,
-            "some.super.long.module.name1": 60
+            "some.super.long.module.name1": 60,
+            "mathcomp.algebra.mxpoly2": 80,
+            "mathcomp.algebra.ssrint2": 15,
+            "mathcomp.algebra.vector2": 40,
+            "mathcomp.algebra.finalg2": 100,
+            "some.super.long.module.name2": 60
         },
         "test": {
             "mathcomp.algebra.mxpoly": 80,
