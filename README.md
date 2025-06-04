@@ -96,25 +96,7 @@ To gather the underlying dataset, we use an iterative process:
 1. **Request access** to join the project.
 2. **Pick a source file:**  
    Each file is managed as a separate project in our collaborative platform (Label Studio). Find one in the [project hierarchy](#project-hierarchy) below.
-3. **Annotate entries:**  
-   For each entry, you can:
-   - **Validate annotation** (mandatory):  
-     - Acceptable
-     - Needs Improvement
-     - Incorrect
-   - **Suggest improvements** (if needed).
-   - **Comment** for additional feedback.
-   - **Skip** if unsure.
-   - **Submit** your work.
-
-### Complete the entry
-
-## How to Contribute
-
-1. **Request access** to join the project.
-2. **Pick a source file:**  
-   Each file is managed as a separate project in our collaborative platform (Label Studio). Find one in the [project hierarchy](#project-hierarchy) below.
-3. **For each entry, choose one of the following interactions:**
+3. **Annotate entries.**
 
 ### Entry Interactions
 
@@ -135,8 +117,6 @@ To gather the underlying dataset, we use an iterative process:
 
 - **Submit:**  
   Submit your review once you have finished annotating or commenting.
-
-
 
 **See below for some examples:**
 
