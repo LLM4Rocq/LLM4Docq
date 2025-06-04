@@ -2,3 +2,4 @@ label-studio
 label-studio-sdk
 pygments
 levenshtein
+matplotlib

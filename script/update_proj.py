@@ -4,12 +4,12 @@ import argparse
 
 from label_studio_sdk.client import LabelStudio
 
-from label_studio.generate_png import generate_leaderboard, generate_progress
+from src.label_studio.generate_png import generate_leaderboard, generate_progress
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate retro pixelated images.")
-    parser.add_argument("--font", default="export/lilliput_steps.otf", help="Path to a pixelated TTF font")
+    parser.add_argument("--font", default="src/label_studio/lilliput_steps.otf", help="Path to a pixelated TTF font")
     parser.add_argument("--output-dir", default="export", help="Directory for output images")
     parser.add_argument("--label-studio-url", default='http://localhost:8080')
     args = parser.parse_args()
