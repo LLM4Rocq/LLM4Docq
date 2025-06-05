@@ -13,6 +13,7 @@ class NameNotFound(Exception):
 def extract_entries(source_code, delta_line=0):
     # Merging comments
     source_code = re.sub(r'\*\)\s*\(\*', '', source_code)
+    source_code = source_code + '\n' # need to add an extra \n to manage edge case 
     pattern = (
         r'(Lemma|Definition|Notation|Fact|Theorem|Record|Fixpoint)\s+'  # capture kind
         r'((\".+?\")|(\S+)).*?\.\s*\n'                  # capture name (either quoted or bare), up to “.\n”
