@@ -3,3 +3,4 @@ label-studio-sdk
 pygments
 levenshtein
 matplotlib
+bm25s
