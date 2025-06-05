@@ -7,7 +7,7 @@ from collections import defaultdict
 
 
 def remove_proofs(content: str) -> str:
-    pattern = r'Proof\.(.*?)(Qed\.|Abort\.)'
+    pattern = r'Proof\.(.*?)(Qed\.|Abort\.|Defined\.)'
     to_do = []
     for match in re.finditer(pattern, content, flags=re.DOTALL):
         start, end = match.start(0), match.end(0)
@@ -46,10 +46,10 @@ if __name__ == "__main__":
                 filepath = os.path.join(root, file)
                 with open(filepath, 'r') as file:
                     content = file.read()
-
+                assert (content.count('Proof.') - content.count('Qed.') - content.count('Abort.')) - content.count('Defined.')==0, f"Issue, source file {filepath} contains proofs that are not well contained in a Proof.[..]Qed. block"
+            
                 content = remove_proofs(content)
                 content = remove_comments(content)
                 content = remove_blank(content)
                 with open(filepath, 'w') as file:
                     file.write(content)
-                assert (content.count('Proof.') - content.count('Qed.') - content.count('Abort.'))==0, f"Issue, source file {filepath} contains proofs that are not well contained in a Proof.[..]Qed. block"
