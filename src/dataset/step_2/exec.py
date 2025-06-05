@@ -109,7 +109,7 @@ if __name__ == '__main__':
             prompt_template = file.read()
         source_path = os.path.join(args.library_dir, parent.replace('.','/')+'.v')
         with open(source_path, 'r') as file:
-            source_content = file.read()
+            source_content = file.read() + "\n\n\n" # add some extra lines to avoid issue in the while loop stop condition
         source_lines = source_content.split('\n')
         subdict_items = sorted(list(subdict.items()), key=lambda x: x[1]['end_line'])
         subdict_idx = 0
@@ -123,14 +123,15 @@ if __name__ == '__main__':
         while end_line < len(source_lines) and subdict_idx < len(subdict_items):
 
             if end_line - start_line >= args.chunk_size or len(chunk_data) >= args.max_annotations:
-                splits.append((source_lines[start_line:end_line], chunk_data))
+                if chunk_data:
+                    splits.append((source_lines[start_line:end_line], chunk_data))
         
                 start_line = end_line - args.chunk_overlap
                 chunk_data = []
             
             end_line += 1
             next_entry = subdict_items[subdict_idx]
-            if next_entry[1]['end_line']<= end_line:
+            if next_entry[1]['end_line'] <= end_line or subdict_idx == len(subdict_items) - 1:
                 chunk_data.append(next_entry)
                 subdict_idx += 1
 
