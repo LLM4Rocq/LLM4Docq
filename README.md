@@ -5,14 +5,14 @@ _All informations are updated once every 15 minutes_
 <div style="text-align: center;">
   <em>Current state of the project</em>
 </div>
-<img src="http://51.38.234.127:8000/global.png" alt="Alt Text" width="100%">
+<img src="http://51.38.234.127:8000/global.png?" alt="Alt Text" width="100%">
 
  
 <div style="text-align: center;">
   <em>Thanks to our contributors</em>
 </div>
 <div style="text-align: center;">
-<img src="http://51.38.234.127:8000/leaderboard.png" alt="Alt Text" width="50%">
+<img src="http://51.38.234.127:8000/leaderboard.png?" alt="Alt Text" width="50%">
 </div>
 
 Want more details? Jump to [progress](#progress) to see section-by-section status.
@@ -47,49 +47,49 @@ To gather the underlying dataset, we use an iterative process:
 <details>
 <summary>Algebra</summary>
 
-![Algebra Progress](http://51.38.234.127:8000/algebra.png)
+![Algebra Progress](http://51.38.234.127:8000/algebra.png?)
 </details>
 
 <details>
 <summary>Boot</summary>
 
-![Boot Progress](http://51.38.234.127:8000/boot.png)
+![Boot Progress](http://51.38.234.127:8000/boot.png?)
 </details>
 
 <details>
 <summary>Character</summary>
 
-![Character Progress](http://51.38.234.127:8000/character.png)
+![Character Progress](http://51.38.234.127:8000/character.png?)
 </details>
 
 <details>
 <summary>Field</summary>
 
-![Field Progress](http://51.38.234.127:8000/field.png)
+![Field Progress](http://51.38.234.127:8000/field.png?)
 </details>
 
 <details>
 <summary>Fingroup</summary>
 
-![Fingroup Progress](http://51.38.234.127:8000/fingroup.png)
+![Fingroup Progress](http://51.38.234.127:8000/fingroup.png?)
 </details>
 
 <details>
 <summary>Order</summary>
 
-![Order Progress](http://51.38.234.127:8000/order.png)
+![Order Progress](http://51.38.234.127:8000/order.png?)
 </details>
 
 <details>
 <summary>Solvable</summary>
 
-![Solvable Progress](http://51.38.234.127:8000/solvable.png)
+![Solvable Progress](http://51.38.234.127:8000/solvable.png?)
 </details>
 
 <details>
 <summary>Test Suite</summary>
 
-![Test Suite Progress](http://51.38.234.127:8000/test_suite.png)
+![Test Suite Progress](http://51.38.234.127:8000/test_suite.png?)
 </details>
 
 ## How to contribute
