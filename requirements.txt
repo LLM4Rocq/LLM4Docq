@@ -4,3 +4,6 @@ pygments
 levenshtein
 matplotlib
 bm25s
+torch
+transformers
+faiss-cpu
