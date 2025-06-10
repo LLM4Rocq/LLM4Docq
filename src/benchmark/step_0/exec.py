@@ -15,7 +15,7 @@ def extract_entries(source_code, delta_line=0):
     source_code = re.sub(r'\*\)\s*\(\*', '', source_code)
     pattern = (
         r'((Lemma|Fact|Theorem)\s+'  # capture kind
-        r'((\".+?\")|(\S+)).*?\.)\s*\n'
+        r'((\".+?\")|(\S+)).*?\.)\s*'
         r'Proof\.(.*?)(Qed\.|Abort\.)'
     )
     matches = re.finditer(pattern, source_code, flags=re.DOTALL)
@@ -126,13 +126,15 @@ if __name__ == "__main__":
     parser.add_argument("--export-dir", default="export/benchmark/step_0")
     args = parser.parse_args()
 
+    shutil.copytree(args.library_dir, args.export_dir, dirs_exist_ok=True)
+
     output = {}
     stats = defaultdict(lambda:0)
 
     with open(args.docstring_dataset, 'r') as file:
         docstrings = json.load(file)
 
-    for (root,dirs,files) in os.walk(args.library_dir, topdown=True):
+    for (root,dirs,files) in os.walk(args.export_dir, topdown=True):
         for file in files:
             if file.endswith('.v'):
                 filepath = os.path.join(root, file)
@@ -143,7 +145,7 @@ if __name__ == "__main__":
                 new_source, skeleton = extract_skeleton(content)
                 for entry in skeleton.values():
                     stats[entry['kind']] += 1
-                relfilepath = os.path.relpath(filepath, args.library_dir)
+                relfilepath = os.path.relpath(filepath, args.export_dir)
                 relfilepath = relfilepath.removesuffix('.v').replace('/', '.')
                 
                 output[relfilepath] = skeleton
@@ -152,6 +154,9 @@ if __name__ == "__main__":
                     assert entry in docstrings[relfilepath], f"missing docstring for {entry} in {relfilepath}"
                     skeleton[entry]['docstring'] = docstrings[relfilepath][entry]['docstring']
                 assert (content.count('Proof.') - content.count('Defined.')- content.count('Qed.') - content.count('Abort.'))==0, f"Issue, source file {filepath} contains proofs that are not well contained in a Proof.[..]Qed. block"
+
+                with open(filepath, 'w') as file:
+                    file.write(new_source)
 
     for key, value in stats.items():
         print(f"{key}: {value}")
