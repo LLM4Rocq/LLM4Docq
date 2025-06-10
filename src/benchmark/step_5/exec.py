@@ -69,13 +69,13 @@ if __name__ == '__main__':
                 new_entry['rank'] = rank
                 
                 result['success'].append(new_entry)
-                result_full.append(new_entry_full)
+                result_full['success'].append(new_entry_full)
                 found = True
                 break
         
         if not found:
             result['failure'].append(new_entry)
-            result_full.append(new_entry_full)
+            result_full['failure'].append(new_entry_full)
     print(count / len(benchmark)*100)
     print(cumulative_rank/count)
     
