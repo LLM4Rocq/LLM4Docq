@@ -1,0 +1,43 @@
+You are an expert user of a retrieval system for the Coq proof assistant. Your task is to simulate a realistic query that a mathematician would make when they are stuck in the middle of a proof and looking for a relevant lemma.
+
+Here is the formal statement being proved:
+
+{statement}
+
+Here is the partial proof up to the current point:
+
+{steps}
+
+At this point, the next step in the proof uses this result: {fullname} (you do NOT know this lemma by name)
+The next step is: {next_step}
+
+To help you, here are some example docstrings available in the retrieval system:
+
+    "A definition that returns the domain D associated to a group action, representing the set of group elements allowed to act via the action."
+
+    "A lemma stating that for a group action, the function is injective with respect to its first argument, which ensures that the action does not map distinct elements to the same image."
+
+    "A notation that represents the type of a group action for a group of type aT acting on a type T, assuming the action is defined everywhere on the group."
+
+    "A theorem connecting the exponentiation of a root of unity at its order to one, showing that raising the root to its order yields the identity element."
+
+Your task:
+Write a realistic search query (in natural language) that you would enter in a retrieval system to try to find a result like {fullname}, given only the information above and not knowing the name of the lemma. Your query should be as if you are actually searching for a result that could help you proceed with the proof.
+
+Example queries you might write:
+
+    "injectivity of group actions"
+
+    "commutativity of addition in natural numbers"
+
+    "identity element for multiplication in ring"
+
+Important:
+
+    Your query should describe what you are looking for or hoping to find, not the statement or docstring of any particular result.
+
+    Do not use the name or statement of any specific lemma; imagine you do not know them.
+
+    Make your query short and focused, as if you are searching a database for relevant results.
+
+    It should exclusively be in natural language.
