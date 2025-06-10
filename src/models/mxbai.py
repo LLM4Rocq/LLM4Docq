@@ -30,12 +30,12 @@ class MxbaiEmbedding(BaseModel):
         self.device = device
         model_id = 'mixedbread-ai/mxbai-embed-large-v1'
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
-        self.model = AutoModel.from_pretrained(model_id).to(device)
+        self.model = AutoModel.from_pretrained(model_id).to(device, dtype=torch.bfloat16)
 
     def generate(self, sentence:str, query=False) -> Tensor:
         if query:
             sentence = transform_query(sentence)
-        inputs = self.tokenizer(sentence, padding=True, return_tensors='pt', truncation=True).to(self.device, dtype=torch.bfloat16)
+        inputs = self.tokenizer(sentence, padding=True, return_tensors='pt', truncation=True).to(self.device)
         outputs = self.model(**inputs).last_hidden_state
         embeddings = pooling(outputs, inputs, 'cls')
         return embeddings

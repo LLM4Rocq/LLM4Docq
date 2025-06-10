@@ -26,7 +26,7 @@ class GteQwenEmbedding(BaseModel):
         model_id = 'Alibaba-NLP/gte-Qwen2-7B-instruct'
         self.device = device
         self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-        self.model = AutoModel.from_pretrained(model_id, trust_remote_code=True).to(device)
+        self.model = AutoModel.from_pretrained(model_id, trust_remote_code=True).to(device, dtype=torch.bfloat16)
         self.prompt_query = 'Given a natural language query, retrieve formal Coq statements whose docstrings best match the intent of the query.'
     
     def generate(self, sentence:str, query=False) -> Tensor:

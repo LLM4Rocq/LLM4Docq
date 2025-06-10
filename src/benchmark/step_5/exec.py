@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 
 from tqdm import tqdm
 
@@ -20,9 +21,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--database-path', default='export/output/step_3/result.json', help='Database path')
     parser.add_argument('--benchmark-path', default='export/benchmark/step_4/result_outside_file.json', help='Benchmark path')
+    parser.add_argument('--export-result',  default='export/benchmark/step_5')
     parser.add_argument('--model-name', default='mxbai', help="Embedding model's name")
     parser.add_argument('--device', default='cpu', help="Device for embedding model")
     parser.add_argument('--batch-size', default=1, help="Batch size used to pre compute embedding")
+    parser.add_argument('--top-k', default=10, help="Top-k parameter use for retrieval")
     args = parser.parse_args()
 
     with open(args.database_path, 'r') as file:
@@ -37,19 +40,41 @@ if __name__ == '__main__':
 
     count = 0
     cumulative_rank = 0
+    result = {'success':[], 'failure': []}
     for entry in tqdm(benchmark):
         query = entry['query']
         constant_fqn = entry['query_constant']['fqn']
+        parent = entry['query_constant']['parent']
+        relative_name = entry['query_constant']['relative_name']
 
+        constant = database[parent][relative_name]
+        
         score = index.query(query, top_k=10)
+        found = False
+        new_entry = {
+            "rank": -1,
+            "query": query,
+            "fullname": constant['fullname'],
+            "docstring": constant['docstring']
+        }
         for rank, (_, fqn) in enumerate(score):
             if fqn == constant_fqn:
                 count += 1
                 cumulative_rank += rank
-    
+                new_entry['rank'] = rank
+                result['success'].append(new_entry)
+                found = True
+                break
+        
+        if not found:
+            result['failure'].append(new_entry)
     print(count / len(benchmark)*100)
     print(cumulative_rank/count)
-        
+    
+    os.makedirs(args.export_result, exist_ok=True)
+    export_path = os.path.join(args.export_result, 'result.json')
+    with open(export_path, 'w') as file:
+        json.dump(result, file, indent=4)
 
 
     

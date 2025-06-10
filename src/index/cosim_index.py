@@ -55,7 +55,7 @@ class FaissIndex(CosimIndex):
                 self.all_fqn.append(fqn)
                 self.all_embeddings.append(embedding.unsqueeze(0))
 
-        self.all_embeddings = torch.cat(self.all_embeddings, dim=0)
+        self.all_embeddings = torch.cat(self.all_embeddings, dim=0).to(torch.float32)
         d = self.all_embeddings.shape[1]
 
         self.index = faiss.IndexFlatIP(d)
@@ -84,7 +84,7 @@ class FaissIndex(CosimIndex):
                 torch.save({'embedding': embedding}, export_path)
 
     def query(self, query: str, top_k=10) -> List[Tuple[float, str, str]]:
-        query_embedding = self.model.generate(query, query=True).detach().clone().cpu()
+        query_embedding = self.model.generate(query, query=True).detach().clone().cpu().to(torch.float32)
         distances, indices = self.index.search(query_embedding, top_k)
 
         result = []
