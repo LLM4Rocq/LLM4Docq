@@ -81,8 +81,10 @@ if __name__ == '__main__':
     
     os.makedirs(args.export_result, exist_ok=True)
     export_path = os.path.join(args.export_result, f'{model.name()}_top_{args.top_k}_{benchmark_name}')
+    export_debug_path = os.path.join(args.export_result, f'debug_{model.name()}_top_{args.top_k}_{benchmark_name}')
     with open(export_path, 'w') as file:
         json.dump(result, file, indent=4)
-
+    with open(export_debug_path, 'w') as file:
+        json.dump(result_full, file, indent=4)
 
     
