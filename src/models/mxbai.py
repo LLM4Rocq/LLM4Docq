@@ -3,6 +3,7 @@ from typing import Dict
 import torch
 from torch import Tensor
 import numpy as np
+import torch.nn.functional as F
 
 from transformers import AutoModel, AutoTokenizer
 
@@ -38,7 +39,7 @@ class MxbaiEmbedding(BaseModel):
         inputs = self.tokenizer(sentence, padding=True, return_tensors='pt', truncation=True).to(self.device)
         outputs = self.model(**inputs).last_hidden_state
         embeddings = pooling(outputs, inputs, 'cls')
-        return embeddings
+        return F.normalize(embeddings, p=2, dim=1) 
 
     def name(self) -> str:
         return "mxbai"

@@ -38,8 +38,9 @@ class FaissIndex(CosimIndex):
     ):
         super().__init__()
         self.model = model
-        self.all_fqn = []
         self.all_embeddings = []
+        self.all_fqn = []
+        self.all_constants = []
         self.cache_path = os.path.join(cache_path, model.name())
         self.content = copy.deepcopy(content)
 
@@ -53,11 +54,12 @@ class FaissIndex(CosimIndex):
                 embedding = entry["embedding"]
                 fqn = f'{parent}.{relative_name}'
                 self.all_fqn.append(fqn)
+                self.all_constants.append(entry)
                 self.all_embeddings.append(embedding.unsqueeze(0))
 
-        self.all_embeddings = torch.cat(self.all_embeddings, dim=0).to(torch.float32)
+        self.all_embeddings = torch.cat(self.all_embeddings, dim=0).to(torch.float32).numpy()
         d = self.all_embeddings.shape[1]
-
+        faiss.normalize_L2(self.all_embeddings)
         self.index = faiss.IndexFlatIP(d)
         self.index.add(self.all_embeddings)
 
@@ -90,7 +92,7 @@ class FaissIndex(CosimIndex):
         result = []
         for i, idx in enumerate(indices[0]):
             result.append(
-                (distances[0][i], self.all_fqn[idx])
+                (distances[0][i], self.all_constants[idx], self.all_fqn[idx])
             )
 
         return result

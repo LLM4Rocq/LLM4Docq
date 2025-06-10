@@ -61,13 +61,13 @@ if __name__ == '__main__':
             "docstring": constant['docstring']
         }
         new_entry_full = deepcopy(new_entry)
-        new_entry['full_rank'] = [(float(rank), fqn) for rank, (_, fqn) in enumerate(score)]
-        for rank, (_, fqn) in enumerate(score):
-            if fqn == constant_fqn:
+        new_entry_full['full_rank'] = [(rank, float(score), c['fullname'], c['docstring']) for rank, (score, c, _) in enumerate(score)]
+        for rank, (_, constant, fqn) in enumerate(score):
+            if constant_fqn == fqn:
                 count += 1
                 cumulative_rank += rank
                 new_entry['rank'] = rank
-                
+                new_entry_full['rank'] = rank
                 result['success'].append(new_entry)
                 result_full['success'].append(new_entry_full)
                 found = True
