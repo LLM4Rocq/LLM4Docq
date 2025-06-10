@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
         constant = database[parent][relative_name]
         
-        score = index.query(query, top_k=10)
+        score = index.query(query, top_k=args.top_k)
         found = False
         new_entry = {
             "rank": -1,
