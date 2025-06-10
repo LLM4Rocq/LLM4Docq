@@ -46,42 +46,42 @@ def check_list(data_list, port=8765):
     second_eval_tactics = timeout(seconds=10)(eval_tactics)
     first_tactic = True
     for k, (data, data_path) in list(enumerate(data_list)):
-        name_thm = data['name']
-        workspace = os.path.abspath(data['workspace'])
-        filepath = data['filepath']
-        tactics = [s[0] for s in data['steps']]
-        try:
-            if first_tactic:
-                goal_init, res = first_eval_tactics(name_thm, workspace, filepath, tactics, port=port)
-                first_tactic = False
-            else:
-                goal_init, res = second_eval_tactics(name_thm, workspace, filepath, tactics, port=port)
-        except TimeoutError as e:
-            print(e)
-            stop_pet_server(server_process)
-            server_process = start_pet_server(mean_wait=1, port=port)
-            first_tactic = True
-            continue
+        # name_thm = data['name']
+        # workspace = os.path.abspath(data['workspace'])
+        # filepath = data['filepath']
+        # tactics = [s[0] for s in data['steps']]
+        # try:
+        #     if first_tactic:
+        #         goal_init, res = first_eval_tactics(name_thm, workspace, filepath, tactics, port=port)
+        #         first_tactic = False
+        #     else:
+        #         goal_init, res = second_eval_tactics(name_thm, workspace, filepath, tactics, port=port)
+        # except TimeoutError as e:
+        #     print(e)
+        #     stop_pet_server(server_process)
+        #     server_process = start_pet_server(mean_wait=1, port=port)
+        #     first_tactic = True
+        #     continue
 
-        if res[-1]['status'] != 'finish':
-            logger.warning(f'{data_path} does not compile using Pytanque. Ignore the file.')
-            logger.warning(f'Last result: {res[-1]}')
-            continue
+        # if res[-1]['status'] != 'finish':
+        #     logger.warning(f'{data_path} does not compile using Pytanque. Ignore the file.')
+        #     logger.warning(f'Last result: {res[-1]}')
+        #     continue
         
-        data['evaluation'] = res
-        data['goals'] = [goal_init] + [entry['goals'] for entry in res]
-        data['pytanque_check'] = True
+        # data['evaluation'] = res
+        # data['goals'] = [goal_init] + [entry['goals'] for entry in res]
+        # data['pytanque_check'] = True
         with open(data_path, 'w') as file_io:
             json.dump(data, file_io, indent=4)
-        if k%1000 == 999:
-            stop_pet_server(server_process)
-            server_process = start_pet_server(mean_wait=1, port=port)
-            first_tactic = True
-    stop_pet_server(server_process)
+    #     if k%1000 == 999:
+    #         stop_pet_server(server_process)
+    #         server_process = start_pet_server(mean_wait=1, port=port)
+    #         first_tactic = True
+    # stop_pet_server(server_process)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input-dataset-elements', default='export/output/step_1/result.json', help='Output path previous step')
+    parser.add_argument('--input-dataset-elements', default='export/output/step_3/result.json', help='Output path previous step')
     parser.add_argument('--input-dataset-statement', default='export/benchmark/step_0/result.json', help='Output path previous step')
     parser.add_argument('--output', default='export/benchmark/step_1/', help='New output path')
     parser.add_argument('--num-documents', default=200, help='Maximum number of final documents')
@@ -118,9 +118,9 @@ if __name__ == '__main__':
     proof_to_keep = []
     documents = []
     NUM_MIN_STEPS = 3
-    MAX_CONSTANTS = 1
 
     num_valid = 0
+    done = set()
     for parent in content:
         for k, element_name in enumerate(content_statement[parent]):
             element = content_statement[parent][element_name]
@@ -130,19 +130,24 @@ if __name__ == '__main__':
             num_current = 0
             num_outside = 0
             res_steps = []
-            overall_valid = False
             for step in steps:
                 constants = extract_constants(step, constants_dict)
                 premises = {'current_file': [], 'outside_file': []}
+                candidate = None
+                
                 for c in constants:
+                    docstring = content[c['parent']][c['relative_name']]['docstring']
                     if len(c['name']) < 4:
                         continue
                     if c['parent'] != parent:
-                        premises['outside_file'].append((c['parent'], c['relative_name'], c['fullname'])) # to avoid circular reference, we can't point to c
+                        premises['outside_file'].append((c['parent'], c['relative_name'], c['fullname'], docstring)) # to avoid circular reference, we can't point to c
+                        candidate = c
                     else:
-                        premises['current_file'].append((c['parent'], c['relative_name'], c['fullname']))
-                is_valid = 1 <= len(premises['current_file']) + len(premises['outside_file']) <= MAX_CONSTANTS
-                overall_valid = overall_valid or is_valid
+                        premises['current_file'].append((c['parent'], c['relative_name'], c['fullname'], docstring))
+                        candidate = c
+                is_valid = 1 == len(premises['current_file']) + len(premises['outside_file']) and candidate['relative_name'] not in done
+                if is_valid:
+                    done.add(candidate['relative_name'])
                 num_current += len(premises['current_file'])
                 num_outside += len(premises['outside_file'])
                 res_steps.append((step, premises, is_valid))
@@ -156,7 +161,7 @@ if __name__ == '__main__':
             element['fqn'] = f'{parent}.{element_name}'
             element['workspace'] = args.workspace_dir
             element['filepath'] = source_path
-            if len(steps) > NUM_MIN_STEPS and is_valid:
+            if is_valid:
                 if not os.path.exists(export_path):
                     to_do[parent].append((element, export_path))
                 num_valid += 1

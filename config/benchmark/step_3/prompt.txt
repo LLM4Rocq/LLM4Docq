@@ -11,6 +11,10 @@ Here is the partial proof up to the current point:
 At this point, the next step in the proof uses this result: {fullname} (you do NOT know this lemma by name)
 The next step is: {next_step}
 
+Here is some documentation to understand {fullname}:
+
+{context}
+
 To help you, here are some example docstrings available in the retrieval system:
 
     "A definition that returns the domain D associated to a group action, representing the set of group elements allowed to act via the action."

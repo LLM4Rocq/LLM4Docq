@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+from copy import deepcopy
 
 from tqdm import tqdm
 
@@ -25,7 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--model-name', default='mxbai', help="Embedding model's name")
     parser.add_argument('--device', default='cpu', help="Device for embedding model")
     parser.add_argument('--batch-size', default=1, help="Batch size used to pre compute embedding")
-    parser.add_argument('--top-k', default=10, help="Top-k parameter use for retrieval")
+    parser.add_argument('--top-k', default=10, help="Top-k parameter use for retrieval", type=int)
     args = parser.parse_args()
 
     with open(args.database_path, 'r') as file:
@@ -42,6 +43,7 @@ if __name__ == '__main__':
     count = 0
     cumulative_rank = 0
     result = {'success':[], 'failure': []}
+    result_full = {'success':[], 'failure': []}
     for entry in tqdm(benchmark):
         query = entry['query']
         constant_fqn = entry['query_constant']['fqn']
@@ -58,17 +60,22 @@ if __name__ == '__main__':
             "fullname": constant['fullname'],
             "docstring": constant['docstring']
         }
+        new_entry_full = deepcopy(new_entry)
+        new_entry['full_rank'] = list(enumerate(score))
         for rank, (_, fqn) in enumerate(score):
             if fqn == constant_fqn:
                 count += 1
                 cumulative_rank += rank
                 new_entry['rank'] = rank
+                
                 result['success'].append(new_entry)
+                result_full.append(new_entry_full)
                 found = True
                 break
         
         if not found:
             result['failure'].append(new_entry)
+            result_full.append(new_entry_full)
     print(count / len(benchmark)*100)
     print(cumulative_rank/count)
     
