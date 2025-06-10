@@ -61,7 +61,7 @@ if __name__ == '__main__':
             "docstring": constant['docstring']
         }
         new_entry_full = deepcopy(new_entry)
-        new_entry['full_rank'] = list(enumerate(score))
+        new_entry['full_rank'] = [(float(rank), fqn) for rank, (_, fqn) in enumerate(score)]
         for rank, (_, fqn) in enumerate(score):
             if fqn == constant_fqn:
                 count += 1
