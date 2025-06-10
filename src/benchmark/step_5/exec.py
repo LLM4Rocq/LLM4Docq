@@ -34,6 +34,7 @@ if __name__ == '__main__':
     with open(args.benchmark_path, 'r') as file:
         benchmark = json.load(file)
 
+    benchmark_name = args.benchmark_path.split('/')[-1]
     model = DICT_MODEL[args.model_name](device=args.device)
     index = FaissIndex(model, database)
     to_do = []
@@ -72,7 +73,7 @@ if __name__ == '__main__':
     print(cumulative_rank/count)
     
     os.makedirs(args.export_result, exist_ok=True)
-    export_path = os.path.join(args.export_result, 'result.json')
+    export_path = os.path.join(args.export_result, f'{model.name()}_top_{args.top_k}_{benchmark_name}')
     with open(export_path, 'w') as file:
         json.dump(result, file, indent=4)
 
