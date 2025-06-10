@@ -35,7 +35,7 @@ class MxbaiEmbedding(BaseModel):
     def generate(self, sentence:str, query=False) -> Tensor:
         if query:
             sentence = transform_query(sentence)
-        inputs = self.tokenizer(sentence, padding=True, return_tensors='pt', truncation=True).to(self.device)
+        inputs = self.tokenizer(sentence, padding=True, return_tensors='pt', truncation=True).to(self.device, dtype=torch.bfloat16)
         outputs = self.model(**inputs).last_hidden_state
         embeddings = pooling(outputs, inputs, 'cls')
         return embeddings

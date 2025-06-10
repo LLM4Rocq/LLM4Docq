@@ -22,6 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--benchmark-path', default='export/benchmark/step_4/result_outside_file.json', help='Benchmark path')
     parser.add_argument('--model-name', default='mxbai', help="Embedding model's name")
     parser.add_argument('--device', default='cpu', help="Device for embedding model")
+    parser.add_argument('--batch-size', default=1, help="Batch size used to pre compute embedding")
     args = parser.parse_args()
 
     with open(args.database_path, 'r') as file:

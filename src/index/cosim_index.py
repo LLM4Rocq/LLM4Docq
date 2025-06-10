@@ -34,7 +34,7 @@ class CosimIndex(ABC):
 
 class FaissIndex(CosimIndex):
     def __init__(
-        self, model: BaseModel, content: Dict = None, embedding_path: str = None, cache_path: str="export/cache/"
+        self, model: BaseModel, content: Dict = None, embedding_path: str = None, cache_path: str="export/cache/", batch_size=1
     ):
         super().__init__()
         self.model = model
@@ -44,7 +44,7 @@ class FaissIndex(CosimIndex):
         self.content = copy.deepcopy(content)
 
         os.makedirs(self.cache_path, exist_ok=True)
-        self._compute_and_save_embedding()
+        self._compute_and_save_embedding(batch_size=batch_size)
 
 
         for parent in self.content:
@@ -61,7 +61,7 @@ class FaissIndex(CosimIndex):
         self.index = faiss.IndexFlatIP(d)
         self.index.add(self.all_embeddings)
 
-    def _compute_and_save_embedding(self, batch_size=128):
+    def _compute_and_save_embedding(self, batch_size=1):
         to_do = []
         for parent in self.content:
             for relative_name in self.content[parent]:
