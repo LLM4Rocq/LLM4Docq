@@ -93,7 +93,7 @@ To gather the underlying dataset, we use an iterative process:
 </details>
 
 ## How to contribute
-1. **Request access** to join the project.
+1. **Request access** to join the project. You can reach me on [rocq zulip](https://rocq-prover.zulipchat.com/) (Théo Stoskopf).
 2. **Pick a source file:**  
    Each file is managed as a separate project in our collaborative platform (Label Studio). Find one in the [project hierarchy](#project-hierarchy) below.
 3. **Annotate entries.**
