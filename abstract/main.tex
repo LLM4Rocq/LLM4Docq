@@ -1,12 +1,18 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{geometry}
+\usepackage{changepage}
 \geometry{margin=1in}
 \usepackage{hyperref}
+\usepackage{subcaption}
 \usepackage{enumitem}
 \usepackage{caption}
 \usepackage{graphicx}
 \title{LLM4Docq: Bootstrapping Documentation for MathComp with LLMs and Expert Feedback}
-\author{}
+\author{
+   Théo Stoskopf\thanks{Inria, CNRS, ENS de Lyon, LIP, UMR 5668, France}
+  \and Jules Viennot\thanks{Inria, CNRS, Université Paris Cité, IRIF, UMR 8243, France}
+  \and Cyril Cohen\footnotemark[1]
+}
 \date{}
 
 \begin{document}
@@ -15,9 +21,9 @@
 
 \section*{Introduction}
 
-The \textbf{MathComp}\cite{mathcomp} library of the Rocq Prover contains thousands of definitions and lemmas, yet many currently lack detailed docstrings or explanatory comments \cite{florath2024coqlm,docstring_findings}. This scarcity of documentation creates steep learning curves for newcomers and makes it difficult to locate the right lemmas or understand formal statements \cite{anonymous2025leanfinder,dvivedi2023comparative}. Recent advances in large language models (LLMs) offer a promising solution: LLMs have demonstrated an ability to generate code documentation and even assist with formal proofs in interactive theorem provers \cite{chakrabarty2024codedoc,song2025leancopilot,wang2024theoremllama,kozyrev2024coqpilot}. However, directly applying general-purpose LLMs to Rocq code is non-trivial—the scarcity of training data presents unique challenges \cite{florath2024coqlm,thompson2025rango}. Addressing this gap requires \emph{domain-specific training data} and a strategy to align LLM outputs with expert knowledge \cite{ouyang2022rlhf}.
+The \textbf{MathComp} \cite{mathcomp} library of the Rocq Prover contains thousands of definitions and lemmas, yet many currently lack detailed docstrings or explanatory comments \cite{florath2024coqlm,docstring_findings}. This scarcity of documentation creates steep learning curves for newcomers and makes it difficult to locate the right lemmas or understand formal statements \cite{Lu2025leanfinder,dvivedi2023comparative}. Recent advances in large language models (LLMs) offer a promising solution: LLMs have demonstrated an ability to generate code documentation and even assist with formal proofs in interactive theorem provers \cite{chakrabarty2024codedoc,song2025leancopilot,azerbayes2024llemma,wang2024theoremllama,kozyrev2024coqpilot}. However, directly applying general-purpose LLMs to Rocq code is non-trivial—the scarcity of training data presents unique challenges \cite{florath2024coqlm,thompson2025rango}. Addressing this gap requires \emph{domain-specific training data} and a strategy to align LLM outputs with expert knowledge \cite{ouyang2022rlhf}.
 
-In this extended abstract, we present \textbf{LLM4Docq}, a project that aims to use LLMs and human feedback to augment MathComp with docstrings \cite{chakrabarty2024codedoc}. Our approach focuses on two key goals. First, we aim to improve \emph{user accessibility} to the MathComp library by enabling natural language retrieval of formal content \cite{anonymous2025leanfinder}. Second, we fine‑tune an off-the-shelf LLM for Rocq—a model trained on Rocq code paired with docstrings—for tasks such as code auto‑completion, documentation generation, and even auto‑formalization \cite{lu2025autoformalization}. This strategy combines a \emph{user‑centric application} (search by natural language) with \emph{deep learning research} (fine‑tuning on a specialized corpus). In the following, we describe our two‑step methodology for dataset creation.
+In this extended abstract, we present \textbf{LLM4Docq}, a project that aims to use LLMs and human feedback to augment MathComp with docstrings \cite{chakrabarty2024codedoc}. Our approach focuses on two key goals. First, we aim to improve \emph{user accessibility} to the MathComp library by enabling natural language retrieval of formal content \cite{Lu2025leanfinder}. Second, we fine‑tune an off-the-shelf LLM for Rocq—a model trained on Rocq code paired with docstrings—for tasks such as code auto‑completion, documentation generation, and even auto‑formalization \cite{lu2025autoformalization}. This strategy combines a \emph{user‑centric application} (search by natural language) with \emph{deep learning research} (fine‑tuning on a specialized corpus). In the following, we describe our two‑step methodology for dataset creation.
 
 \section*{Methodology: Human‑in‑the‑Loop Documentation}
 
@@ -29,69 +35,77 @@ Our human‑in‑the‑loop approach is inspired by alignment techniques like re
 
 \begin{figure}[h]
   \centering
-  \begin{minipage}{0.5\textwidth}
+  \begin{subfigure}[t]{0.45\textwidth}
     \centering
     \includegraphics[width=\linewidth]{fail.png}
-    \captionsetup{labelformat=empty}
-    \caption{(a) Failure case}
-  \end{minipage}\hfill
-  \begin{minipage}{0.5\textwidth}
+    \caption{Failure case}
+    \label{fig:fail-case}
+  \end{subfigure}%
+  \hfill
+  \begin{subfigure}[t]{0.45\textwidth}
     \centering
     \includegraphics[width=\linewidth]{success.png}
-    \captionsetup{labelformat=empty}
-    \caption{(b) Success case}
-  \end{minipage}
-  \captionsetup{labelformat=empty}
+    \caption{Success case}
+    \label{fig:success-case}
+  \end{subfigure}
   \caption{Illustration of LLM-generated docstrings: (a) a failure case and (b) a success case. Both cases are shown as they appear on the collaborative annotation platform.}
   \label{fig:llm-examples}
 \end{figure}
 
-\section*{LLM Fine‑Tuning on Rocq + Docstrings}
+\section*{LLM Fine‑Tuning on MathComp augmented with Docstrings}
 
-The curated dataset of MathComp code annotated with reviewed docstrings enables us to train a \textbf{domain‑specific LLM} for Rocq \cite{florath2024coqlm,chakrabarty2024codedoc}. We are fine‑tuning a code‑oriented model \cite{qwen25coder} (Qwen 2.5 32b coder base) on our augmented codebase, effectively performing continued pre‑training on Rocq's formal language enriched with natural language explanations \cite{wang2024theoremllama,song2025leancopilot}. This technique—\emph{training on source code together with documentation}—has precedent in software engineering: fine‑tuning an LLM on code‑comment pairs can greatly improve its ability to generate docstrings and understand code intent \cite{docstring_findings}. In our case, the model is encouraged to associate Rocq definitions/lemmas with their natural‑language descriptions. For example, the \emph{TheoremLlama} project showed that integrating informal natural language text into Lean4 proofs improved an LLM's ability to write formal proof \cite{wang2024theoremllama}.
+The curated dataset of MathComp code annotated with reviewed docstrings enables us to train a \textbf{domain‑specific LLM} for Rocq \cite{florath2024coqlm,chakrabarty2024codedoc}. We are fine‑tuning a code‑oriented model (Qwen 2.5 32b coder base \cite{qwen25coder}) on our augmented codebase, effectively performing continued pre‑training on Rocq's formal language enriched with natural language explanations \cite{azerbayes2024llemma, wang2024theoremllama,song2025leancopilot}. This technique—\emph{training on source code together with documentation}—has precedent in software engineering: fine‑tuning an LLM on code‑comment pairs can greatly improve its ability to generate docstrings and understand code intent \cite{docstring_findings}. In our case, the model is encouraged to associate Rocq definitions/lemmas with their natural‑language descriptions \cite{azerbayes2024llemma, wang2024theoremllama}.
 
-In \cite{thompson2025rango}, authors fine-tune an LLM on a large Rocq corpus (CoqStoq) and use retrieval-augmented generation to automatically synthesize proofs. While Rango focuses on proof generation, it validates the strategy of domain‑specific fine‑tuning on formal code. Other systems, such as \emph{RocqStar}, also aim to improve the proof search in Rocq using augmented retrieval techniques \cite{kozyrev2025rocqstar}.
+Recent work has combined fine-tuned LLMs on large Rocq corpora, such as CoqStoq, with retrieval-augmented generation for automatic proof synthesis \cite{thompson2025rango}. While Rango focuses on proof generation, it validates the strategy of domain‑specific fine‑tuning on formal code. Other systems, such as \emph{RocqStar}, also aim to improve the proof search in Rocq using augmented retrieval techniques \cite{kozyrev2025rocqstar}.
 
 We plan to evaluate the final model on two complementary tasks: \begin{itemize}[leftmargin=1.5em] \item \textbf{Docstring Generation (Formal $\rightarrow$ NL):} Given a formal MathComp statement and a source code context, the model must generate an explanatory docstring \cite{chakrabarty2024codedoc}. \item \textbf{Statement Reconstruction (NL $\rightarrow$ Formal):} Given a docstring and source code context, the model must produce the corresponding Rocq formal statement (definition or lemma). This is a form of \emph{auto‑formalization} on a small scale \cite{lu2025autoformalization}. \end{itemize}
 
-\newpage
+\section*{Acknowledgments}
+
+This work has received funding from the Inria "Défi LLM4Code”. We also thank Guillaume Baudart and Marc Lelarge for their valuable input.
+
+
 \bibliographystyle{plain}
 \begin{thebibliography}{9}
 
     \bibitem{mathcomp}
-    Mathematical Components Team.
-    ``Mathematical Components library.''
+    Mathematical Components Team. Mathematical Components library.
     https://github.com/math-comp/math-comp, 2007.
     
     \bibitem{song2025leancopilot}
     Peiyang Song, Kaiyu Yang, Anima Anandkumar,
-    ``Lean Copilot: Large Language Models as Copilots for Theorem Proving in Lean.''
-    \emph{arXiv preprint} 2404.12534 (2025).
+    ``Towards Large Language Models as Copilots for Theorem Proving in Lean''
+    \emph{arXiv preprint} 2404.12534, (2025).
 
-    \bibitem{anonymous2025leanfinder}
+    \bibitem{Lu2025leanfinder}
     Jialin Lu, Kye Emond, Weiran Sun, Wuyang Chen,
     ``Lean Finder: Semantic Search for Mathlib That Understands User Intents.''
-    \emph{arXiv preprint}.
+    \emph{AI4Math Workshop @ ICML 2025}.
 
     \bibitem{florath2024coqlm}
     Andreas Florath,
     ``Enhancing Formal Theorem Proving: A Comprehensive Dataset for Training AI Models on Coq Code.''
-    \emph{arXiv:2403.12627} (2024).
+    \emph{arXiv preprint} 2403.12627, (2024).
 
     \bibitem{qwen25coder}
     Binyuan Hui, Jian Yang, Zeyu Cui, Jiaxi Yang, Dayiheng Liu, Lei Zhang, Tianyu Liu, Jiajun Zhang, Bowen
-Yu, Keming Lu, et al.
-    ``Qwen2.5-Coder technical report.'' CoRR, abs/2409.12186, 2024.
+Yu, Keming Lu, et al. Qwen2.5-Coder technical report.
+    \emph{arXiv preprint} 2409.12186, (2024).
 
     \bibitem{ouyang2022rlhf}
     Long Ouyang , Jeff Wu, Xu Jiang, Diogo Almeida, Carroll L. Wainwright, Pamela Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, John Schulman, Jacob Hilton, Fraser Kelton, Luke Miller, Maddie Simens, Amanda Askell, Peter Welinder, Paul Christiano, Jan Leike, Ryan Lowe
     ``Training language models to follow instructions with human feedback.''
     \emph{NeurIPS 2022}.
 
+    \bibitem{azerbayes2024llemma}
+    Zhangir Azerbayev, Hailey Schoelkopf, Keiran Paster, Marco Dos Santos, Stephen McAleer, Albert Q. Jiang, Jia Deng, Stella Biderman, Sean Welleck.
+    ``Llemma: An Open Language Model For Mathematics.''
+    \emph{ICLR 2024}.
+    
     \bibitem{wang2024theoremllama}
     Ruida Wang, Jipeng Zhang, Yizhen Jia, Rui Pan, Shizhe Diao, Renjie Pi, Tong Zhang,
     ``TheoremLlama: Transforming General-Purpose LLMs into Lean4 Experts.''
-    \emph{arXiv:2407.03203} (2024).
+    \emph{arXiv preprint} 2407.03203, (2024).
 
     \bibitem{kozyrev2024coqpilot}
     Andrei Kozyrev, Gleb Solovev, Nikita Khramov, Anton Podkopaev,
@@ -100,13 +114,13 @@ Yu, Keming Lu, et al.
 
     \bibitem{chakrabarty2024codedoc}
     Sayak Chakrabarty, Souradip Pal,
-    ``Free and Customizable Code Documentation with LLMs: A Fine-Tuning Approach.''
-    \emph{arXiv:2412.00726} (2024).
+    ``ReadmeReady: Free and Customizable Code Documentation with LLMs - A Fine-Tuning Approach''
+    \emph{Journal of Open Source Software} (2025).
 
     \bibitem{lu2025autoformalization}
     Jianqiao Lu, Yingjia Wan, Zhengying Liu, Yinya Huang, Jing Xiong, Chengwu Liu, Jianhao Shen, Hui Jin, Jipeng Zhang, Haiming Wang, Zhicheng Yang, Jing Tang, Zhijiang Guo,
-    ``Process-Driven Autoformalization in Lean 4.''
-    \emph{ICLR 2025} (to appear).
+    ``Process-Driven Autoformalization in Lean 4.''.
+    \emph{arXiv preprint} 2406.01940, (2024).
 
     \bibitem{thompson2025rango}
     Kyle Thompson, Nuno Saavedra, Pedro Carrott, Kevin Fisher, Alex Sanchez-Stern, Yuriy Brun, João F. Ferreira, Sorin Lerner, Emily First,
@@ -116,22 +130,20 @@ Yu, Keming Lu, et al.
     \bibitem{labelstudio_github}
     Label Studio, “HumanSignal/label-studio”, GitHub, 2025.
 
-    \bibitem{arxiv_rlhf}
-    Nathan Lambert, ``Reinforcement Learning from Human Feedback'', arXiv:2504.12501, 2025.
-
     \bibitem{docstring_findings}
     William Macke, Michael Doyle,
-    ``Testing the Effect of Code Documentation on Large Language Model Code Understanding'' Findings-NAACL, 2024.
+    ``Testing the Effect of Code Documentation on Large Language Model Code Understanding''
+    \emph{Findings-NAACL}, (2024).
 
     \bibitem{dvivedi2023comparative}
     Shubhang Shekhar Dvivedi, Vyshnav Vijay, Sai Leela Rahul Pujari, Shoumik Lodh, Dhruv Kumar,
     ``A Comparative Analysis of Large Language Models for Code Documentation Generation,''
-    First ACM International Conference on AIware, July 2024 (arXiv:2312.10349).
+    \emph{First ACM International Conference on AIware}, (2024).
 
     \bibitem{kozyrev2025rocqstar}
     Nikita Khramov, Andrei Kozyrev, Gleb Solovev, Anton Podkopaev,
     ``RocqStar: Leveraging Similarity-driven Retrieval and Agentic Systems for Rocq generation.''
-    \emph{arXiv:2505.22846} (2025).
+    \emph{arXiv preprint} 2505.22846, (2025).
 
 \end{thebibliography}
 
