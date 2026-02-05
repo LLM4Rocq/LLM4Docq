@@ -147,7 +147,6 @@ class RocqExtractor:
                 context_prefix = '\n'.join(curr_prefix[-prefix_size:])
                 chunks.append((context_prefix + full_doc, curr_elements))
 
-                # Update prefix and reset
                 curr_prefix.extend([l for l in curr_lines if not l.startswith('<annotation>')])
                 curr_lines = []
                 curr_elements = []
@@ -163,7 +162,6 @@ class RocqExtractor:
             else:
                 curr_lines.append(line)
 
-        # Flush remaining content
         if curr_elements:
             full_doc = '\n'.join(curr_lines)
             context_prefix = '\n'.join(curr_prefix[-prefix_size:])
@@ -178,11 +176,8 @@ class RocqExtractor:
         """
         try:
             source = Source.from_local_path(str(filepath))
-            
-            # AST Extraction
             target_elements, proof_elements = self.parser.ast(source)
             
-            # Prepare modifications
             to_do: List[Tuple[int, str, VernacElement]] = []
             idx_notation = 0
             
@@ -205,7 +200,6 @@ class RocqExtractor:
                 span = element.span
                 
                 if task == 'COMMENT':
-                    # Generate UID
                     fqn = element.data.get('fqn', 'unknown')
                     if element.kind in (VernacKind.SYNTACTIC_DEFINITION, VernacKind.NOTATION):
                         uid = f'NOTATION_{idx_notation}'
@@ -219,7 +213,6 @@ class RocqExtractor:
                     element.data['uid'] = uid
                     uid_vernac_element[uid] = element
 
-                    # Inject Annotation
                     annotation = f"\n<annotation>{uid}</annotation>\n".encode('utf-8')
                     source_annotated_bytes = (
                         source_annotated_bytes[:span.bp] + 
@@ -230,11 +223,9 @@ class RocqExtractor:
                     )
                 
                 elif task == 'DELETE':
-                    # Remove Proofs
                     source_annotated_bytes = source_annotated_bytes[:span.bp] + source_annotated_bytes[span.ep:]
                     source_wo_proof_bytes = source_wo_proof_bytes[:span.bp] + source_wo_proof_bytes[span.ep:]
 
-            # Decode and Clean
             src_annotated_str = remove_ocaml_comments(source_annotated_bytes.decode('utf-8'))
             src_wo_proof_str = source_wo_proof_bytes.decode('utf-8')
 
@@ -276,6 +267,7 @@ def main():
         sys.exit(1)
 
     files = list(args.input_dir.rglob("*.v"))
+    files = [Path(p) for p in files]
     if not files:
         logger.warning("No .v files found in input directory.")
         sys.exit(0)
@@ -285,7 +277,6 @@ def main():
     client = PytanqueExtended(args.host, args.port)
     client.connect()
     extractor = RocqExtractor(client, args.output_dir)
-
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
         results = list(tqdm(
             executor.map(extractor.process_file, files), 
