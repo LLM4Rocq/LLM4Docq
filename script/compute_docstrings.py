@@ -6,11 +6,15 @@ Takes extracted chunks from Step 1, generates headers, and uses an LLM to annota
 
 import argparse
 import concurrent.futures
+import json
 import re
 import sys
 import yaml
+import logging
+import uuid
+
 from pathlib import Path
-from typing import List, Dict, Any, Set, Optional
+from typing import List, Dict, Any, Set, Optional, Tuple
 
 from openai import OpenAI
 from tqdm import tqdm
@@ -22,6 +26,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def load_file_content(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
 def clean_json_response(response_text: str) -> str:
     """Removes Markdown code blocks if present to ensure json.loads works."""
@@ -31,102 +37,205 @@ def clean_json_response(response_text: str) -> str:
         return match.group(1)
     return response_text
 
-def load_file_content(path: Path) -> str:
-    return path.read_text(encoding='utf-8')
+def clean_coq_response(response_text: str) -> str:
+    """Removes Markdown code blocks if present to ensure json.loads works."""
+    pattern = r"^```(?:coq)?\s*(.*)\s*```$"
+    match = re.match(pattern, response_text.strip(), re.DOTALL)
+    if match:
+        return match.group(1)
+    return response_text
+
+def docstrings_json_schema(allowed_uids: List[str]) -> Dict[str, Any]:
+    # We constrain uid via enum to guarantee no unexpected keys.
+    return {
+        "type": "object",
+        "properties": {
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "uid": {"type": "string", "enum": allowed_uids},
+                        "docstring": {"type": "string"}
+                    },
+                    "required": ["uid", "docstring"],
+                    "additionalProperties": False
+                }
+            }
+        },
+        "required": ["items"],
+        "additionalProperties": False
+    }
+
+def items_to_mapping(payload: Dict[str, Any]) -> Dict[str, str]:
+    # Converts {"items": [{"uid": "...", "docstring": "..."}, ...]} into {"uid": "docstring", ...}
+    items = payload.get("items", [])
+    out: Dict[str, str] = {}
+    for it in items:
+        uid = it.get("uid")
+        doc = it.get("docstring")
+        if isinstance(uid, str) and isinstance(doc, str):
+            out[uid] = doc
+    return out
 
 
 class LLMAnnotator:
     def __init__(self, config_path: Path):
-        with open(config_path, 'r') as f:
-            self.config = yaml.safe_load(f)
-        self.client = OpenAI()
-        
-        self.model = self.config['model']
-        self.params = self.config['parameters']
-        self.max_retries = self.config['max_retries']
+        with open(config_path, "r", encoding="utf-8") as f:
+            self.config = yaml.safe_load(f) or {}
 
-    def call_llm(self, prompt: str) -> str:
-        """Raw call to OpenAI API."""
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}, # Force JSON mode
-                **self.params
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            logger.error(f"LLM Call failed: {e}")
-            return "{}"
+        config = self.config.get("sglang", {}) or {}
+        base_url = config.get("base_url", "https://openrouter.ai/api/v1")
+        self.client = OpenAI(base_url=base_url)
+
+        self.params = self.config.get("parameters", {}) or {}
+        self.max_retries = int(self.config.get("max_retries", 0))
+
+    def call_llm(
+        self,
+        messages: List[Dict[str, str]],
+        response_format: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """
+        OpenAI-compatible call to SGLang.
+        Returns assistant message.content (expected to be JSON text when constrained).
+        """
+
+        resp = self.client.chat.completions.create(
+            messages=messages,
+            response_format=response_format,
+            **self.params,
+        )
+
+        msg = resp.choices[0].message
+        unique_filename = "test/" + str(uuid.uuid4())
+        return msg.content or ""
+
 
 class AnnotationPipeline:
     def __init__(self, annotator: LLMAnnotator, templates_dir: Path):
         self.annotator = annotator
-        self.header_template = load_file_content(templates_dir / 'prompt_header.txt')
-        self.task_template = load_file_content(templates_dir / 'prompt_task.txt')
+        self.header_template = load_file_content(templates_dir / "prompt_header.txt")
+        self.one_liner_template = load_file_content(templates_dir / "prompt_one_liner.txt")
+        self.task_template = load_file_content(templates_dir / "prompt_docstrings.txt")
 
-    def generate_header(self, source_path: Path) -> str:
-        """Step 1: Generate the context header from source.v"""
+    def generate_one_liner(self, source_path: Path) -> str:
+        """Generate the context header from source.v with structured output."""
         source_content = load_file_content(source_path)
-        
-        header_prompt = self.header_template.replace('{source}', source_content)
-        header_context = self.annotator.call_llm(header_prompt)
-        try:
-            data = json.loads(header_context)
-            if isinstance(data, dict) and 'header' in data:
-                return data['header']
-            return header_context
-        except:
-            return header_context
+        header_prompt = self.one_liner_template.replace("{source}", source_content)
 
-    def process_chunk(self, 
-                      chunk_doc_path: Path, 
-                      chunk_elements_path: Path, 
-                      header_context: str) -> Optional[Dict[str, str]]:
+        response_text = self.annotator.call_llm(
+            messages=[{"role": "user", "content": header_prompt}]
+        )
+
+        # Structured outputs should already be pure JSON, but keep a defensive clean.
+        try:
+            cleaned = clean_coq_response(response_text)
+            return cleaned
+        except Exception:
+            pass
+        
+        logger.warning(
+            f"One liner {source_path.name}: Failed to extract coq response."
+        )
+        # Fallback: return raw text if something unexpected happens.
+        return response_text
+    
+    def generate_header(self, source_path: Path) -> str:
+        """Generate the context header from source.v with structured output."""
+        source_content = load_file_content(source_path)
+        header_prompt = self.header_template.replace("{source}", source_content)
+
+        response_text = self.annotator.call_llm(
+            messages=[{"role": "user", "content": header_prompt}],
+        )
+
+        # Structured outputs should already be pure JSON, but keep a defensive clean.
+        try:
+            cleaned = clean_coq_response(response_text)
+            return cleaned
+        except Exception:
+            pass
+        
+        logger.warning(
+            f"Header {source_path.name}: Failed to extract coq response."
+        )
+        # Fallback: return raw text if something unexpected happens.
+        return response_text
+
+    def process_chunk(
+        self,
+        chunk_doc_path: Path,
+        chunk_elements_path: Path,
+        header_context: str
+    ) -> Optional[Dict[str, str]]:
         """
-        Step 2: Annotate a specific chunk with retry logic for missing elements.
+        Annotate a specific chunk with retry logic for missing elements.
+        Returns {uid: docstring}.
         """
         try:
             chunk_doc = load_file_content(chunk_doc_path)
             elements_data = json.loads(load_file_content(chunk_elements_path))
-            required_uids = {e['data']['uid'] for e in elements_data}
-            
+            required_uids = [e["data"]["uid"] for e in elements_data]
+
             if not required_uids:
                 return {}
 
             final_annotations: Dict[str, str] = {}
-            missing_uids = required_uids.copy()
+            missing_uids: List[str] = required_uids
             attempts = 0
 
-            while missing_uids and attempts < self.annotator.max_retries:
+            while missing_uids and attempts < self.annotator.max_retries + 1:
                 attempts += 1
-                
-                missing_list_str = "\n".join([f"- {uid}" for uid in missing_uids])
-                
-                prompt = self.task_template \
-                    .replace('{header}', header_context) \
-                    .replace('{source}', chunk_doc) \
-                    .replace('{missing}', missing_list_str)
 
-                response_text = self.annotator.call_llm(prompt)
-                
+                # Constrain output uid to exactly the missing set for this attempt.
+                allowed_uids = missing_uids
+
+                missing_list_str = "\n".join([f"- {uid}" for uid in allowed_uids])
+                prompt = (
+                    self.task_template
+                    .replace("{header}", header_context)
+                    .replace("{source}", chunk_doc)
+                    .replace("{missing}", missing_list_str)
+                )
+
+                response_text = self.annotator.call_llm(
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "docstring_map",
+                            "schema": docstrings_json_schema(allowed_uids),
+                            "strict": True,
+                        },
+                    },
+                )
+
                 try:
-                    cleaned_json = clean_json_response(response_text)
-                    batch_result = json.loads(cleaned_json)
-                except json.JSONDecodeError:
-                    logger.warning(f"Failed to parse JSON for {chunk_doc_path.name} (Attempt {attempts})")
+                    cleaned = clean_json_response(response_text)
+                    payload = json.loads(cleaned)
+                    batch_map = items_to_mapping(payload)
+                except Exception:
+                    logger.warning(
+                        f"Failed to parse structured JSON for {chunk_doc_path.name} (Attempt {attempts})"
+                    )
                     continue
 
-                for uid, docstring in batch_result.items():
+                # Accept only uids that were missing this round.
+                for uid, docstring in batch_map.items():
                     if uid in missing_uids:
                         final_annotations[uid] = docstring
                         missing_uids.remove(uid)
-                
+
                 if missing_uids:
-                    logger.info(f"Chunk {chunk_doc_path.name}: Missing {len(missing_uids)} elements. Retrying...")
+                    logger.info(
+                        f"Chunk {chunk_doc_path.name}: Missing {len(missing_uids)} elements. Retrying..."
+                    )
 
             if missing_uids:
-                logger.warning(f"Chunk {chunk_doc_path.name}: Failed to annotate {missing_uids} after retries.")
+                logger.warning(
+                    f"Chunk {chunk_doc_path.name}: Failed to annotate {sorted(missing_uids)} after retries."
+                )
 
             return final_annotations
 
@@ -135,46 +244,59 @@ class AnnotationPipeline:
             return None
 
     def process_folder(self, folder_path: Path) -> None:
-        """
-        Orchestrates processing for a single source folder (created in Step 1).
-        """
-        source_file = folder_path / 'source.v'
+        """Orchestrates processing for a single source folder (created in Step 1)."""
+        source_file = folder_path / "source.v"
         if not source_file.exists():
             return
 
-        header = self.generate_header(source_file)
-
-        chunk_docs = sorted(list(folder_path.glob('chunk_doc_*.v')))
+        one_liner_path = folder_path / 'one_liner.txt'
+        if not one_liner_path.exists():
+            one_liner = self.generate_one_liner(source_file)
+            with open(one_liner_path, 'w') as file:
+                file.write(one_liner)
+    
+        header_path = folder_path / 'header.txt'
+        if not header_path.exists():
+            header = self.generate_header(source_file)
+            with open(header_path, 'w') as file:
+                file.write(header)
         
-        for chunk_doc in chunk_docs:
-            match = re.search(r'chunk_doc_(\d+)\.v', chunk_doc.name)
-            if not match: continue
-            k = match.group(1)
-            
-            chunk_elem = folder_path / f'chunk_elements_{k}.json'
-            if not chunk_elem.exists(): continue
+        with open(header_path, 'r') as file:
+            header = file.read()
+        chunk_docs = sorted(list(folder_path.glob("chunk_doc_*.v")))
 
-            annotations = self.process_chunk(chunk_doc, chunk_elem, header)
+        for chunk_doc in chunk_docs:
+            match = re.search(r"chunk_doc_(\d+)\.v", chunk_doc.name)
+            if not match:
+                continue
+            k = match.group(1)
+
+            chunk_elem = folder_path / f"chunk_elements_{k}.json"
+            if not chunk_elem.exists():
+                continue
             
-            if annotations:
-                output_path = folder_path / f'annotations_{k}.json'
-                with open(output_path, 'w', encoding='utf-8') as f:
-                    json.dump(annotations, f, indent=4)
+            output_path = folder_path / f"annotations_{k}.json"
+
+            if not output_path.exists():
+                annotations = self.process_chunk(chunk_doc, chunk_elem, header)
+                if annotations:
+                    with open(output_path, "w", encoding="utf-8") as f:
+                        json.dump(annotations, f, indent=4, ensure_ascii=False)
 
 
 def main():
     parser = argparse.ArgumentParser(description="LLM Annotation Pipeline for Rocq")
-    parser.add_argument("input_dir", type=Path, help="Root folder containing exported source folders (from Step 1)")
-    parser.add_argument("--config", type=Path, default=Path("config.yaml"), help="Path to YAML config")
-    parser.add_argument("--templates", type=Path, default=Path("templates"), help="Folder containing prompt_header.txt and prompt_task.txt")
+    parser.add_argument("--input_dir", type=Path, default=Path("export/"), help="Root folder containing exported source folders (from Step 1)")
+    parser.add_argument("--config", type=Path, default=Path("config/annotator/config.yaml"), help="Path to YAML config")
+    parser.add_argument("--templates", type=Path, default=Path("config/annotator"), help="Folder containing prompt_header.txt and prompt_docstrings.txt")
     parser.add_argument("--workers", type=int, default=4, help="Number of parallel folder processors")
-    
+
     args = parser.parse_args()
 
     if not args.input_dir.exists():
         logger.error("Input directory not found.")
         sys.exit(1)
-    
+
     try:
         annotator = LLMAnnotator(args.config)
         pipeline = AnnotationPipeline(annotator, args.templates)
@@ -183,21 +305,25 @@ def main():
         sys.exit(1)
 
     folders = [f for f in args.input_dir.iterdir() if f.is_dir()]
-    
     if not folders:
         logger.warning("No folders found in input directory.")
         sys.exit(0)
 
     logger.info(f"Found {len(folders)} folders to process.")
 
+    for folder in folders:
+        print(folder)
+        pipeline.process_folder(folder)
+        exit()
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
-        results = list(tqdm(
-            executor.map(pipeline.process_folder, folders), 
-            total=len(folders), 
+        list(tqdm(
+            executor.map(pipeline.process_folder, folders),
+            total=len(folders),
             desc="Annotating Sources"
         ))
 
     logger.info("Annotation pipeline completed.")
+
 
 if __name__ == "__main__":
     main()
