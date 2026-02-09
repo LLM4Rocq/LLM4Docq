@@ -16,6 +16,7 @@ from typing import List, Tuple, Dict, Optional
 
 from tqdm import tqdm
 
+from rocq_ml_toolbox.docker.opam_docker import OpamDocker, OpamConfig
 from rocq_ml_toolbox.parser.rocq_parser import RocqParser, Source, VernacElement, VernacKind
 from rocq_ml_toolbox.inference.client import PytanqueExtended
 
@@ -26,6 +27,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+def split_at_dir(p: Path, marker: str) -> Tuple[Path, Path]:
+    try:
+        parts = p.parts
+        i = parts.index(marker)
+        # edge case is already well managed by Path (i.e. if marker is last available dir)
+        return Path(*parts[:i+1]), Path(*parts[i+1:])
+    except ValueError:
+        raise ValueError(f"{marker!r} not found in path")
 
 def remove_ocaml_comments(src: str, strict: bool = False) -> str:
     """
@@ -120,8 +130,7 @@ def normalize_text(text: str) -> str:
 
 
 class RocqExtractor:
-    def __init__(self, client:PytanqueExtended, output_dir: Path):
-        self.output_dir = output_dir
+    def __init__(self, client:PytanqueExtended):
         self.parser = RocqParser(client)
 
     def chunk_doc(self, content: str, uid_map: Dict[str, VernacElement], 
@@ -169,123 +178,170 @@ class RocqExtractor:
             
         return chunks
 
-    def process_file(self, filepath: Path) -> Optional[str]:
+    def process_file(self, source: Source, output_dir: Path, target_name: Optional[str]=None, force_process=False) -> bool:
         """
         Process a single .v file: extract AST, annotate, chunk, and save.
         Returns the filename on success, None on failure.
         """
-        try:
-            source = Source.from_local_path(str(filepath))
-            target_elements, proof_elements = self.parser.ast(source)
+        filepath = Path(source.path)
+        root = None
+        tail = Path("")
+        rel_name = filepath.stem
+        if target_name:
+            root, tail = split_at_dir(Path(source.path), target_name)
+            tail = tail.parent
+            export_folder = output_dir / target_name / tail / rel_name
+        else:
+            export_folder = output_dir / rel_name
+        export_folder.mkdir(parents=True, exist_ok=True)
+        output_final = (export_folder / 'source.v')
+
+        if output_final.exists() and not force_process:
+            return True
+        target_elements, proof_elements = self.parser.ast(source, root=root)
+        to_do: List[Tuple[int, str, VernacElement]] = []
+        idx_notation = 0
+        
+        for element in target_elements:
+            to_do.append((element.span.bp, "COMMENT", element))
+            if element.kind in (VernacKind.SYNTACTIC_DEFINITION, VernacKind.NOTATION):
+                idx_notation += 1
+        
+        for element in proof_elements:
+            to_do.append((element.span.bp, "DELETE", element))
+
+        to_do.sort(key=lambda x: x[0], reverse=True)
+
+        source_annotated_bytes = source.content_utf8
+        source_wo_proof_bytes = source.content_utf8
+        uid_vernac_element: Dict[str, VernacElement] = {}
+        idx_uid = defaultdict(int)
+
+        for _, task, element in to_do:
+            span = element.span
             
-            to_do: List[Tuple[int, str, VernacElement]] = []
-            idx_notation = 0
-            
-            for element in target_elements:
-                to_do.append((element.span.bp, "COMMENT", element))
+            if task == 'COMMENT':
+                fqn = element.data.get('fqn', 'unknown')
                 if element.kind in (VernacKind.SYNTACTIC_DEFINITION, VernacKind.NOTATION):
-                    idx_notation += 1
+                    uid = f'NOTATION_{idx_notation}'
+                    idx_notation -= 1
+                elif fqn in idx_uid:
+                    uid = f"{fqn}_duplicata_{idx_uid[fqn]}"
+                else:
+                    uid = fqn
+                
+                idx_uid[fqn] += 1
+                element.data['uid'] = uid
+                uid_vernac_element[uid] = element
+
+                annotation = f"\n<annotation>{uid}</annotation>\n".encode('utf-8')
+                source_annotated_bytes = (
+                    source_annotated_bytes[:span.bp] + 
+                    annotation + 
+                    source_annotated_bytes[span.bp:span.ep] + 
+                    b'\n<END>\n' + 
+                    source_annotated_bytes[span.ep:]
+                )
             
-            for element in proof_elements:
-                to_do.append((element.span.bp, "DELETE", element))
+            elif task == 'DELETE':
+                source_annotated_bytes = source_annotated_bytes[:span.bp] + source_annotated_bytes[span.ep:]
+                source_wo_proof_bytes = source_wo_proof_bytes[:span.bp] + source_wo_proof_bytes[span.ep:]
+        src_annotated_str = remove_ocaml_comments(source_annotated_bytes.decode('utf-8'))
+        src_wo_proof_str = source_wo_proof_bytes.decode('utf-8')
 
-            to_do.sort(key=lambda x: x[0], reverse=True)
+        src_annotated_str = normalize_text(src_annotated_str)
+        src_wo_proof_str = normalize_text(src_wo_proof_str)
 
-            source_annotated_bytes = source.content_utf8
-            source_wo_proof_bytes = source.content_utf8
-            uid_vernac_element: Dict[str, VernacElement] = {}
-            idx_uid = defaultdict(int)
+        chunks = self.chunk_doc(src_annotated_str, uid_vernac_element)
 
-            for _, task, element in to_do:
-                span = element.span
-                
-                if task == 'COMMENT':
-                    fqn = element.data.get('fqn', 'unknown')
-                    if element.kind in (VernacKind.SYNTACTIC_DEFINITION, VernacKind.NOTATION):
-                        uid = f'NOTATION_{idx_notation}'
-                        idx_notation -= 1
-                    elif fqn in idx_uid:
-                        uid = f"{fqn}_duplicata_{idx_uid[fqn]}"
-                    else:
-                        uid = fqn
-                    
-                    idx_uid[fqn] += 1
-                    element.data['uid'] = uid
-                    uid_vernac_element[uid] = element
+        for k, (chunk_text, elements) in enumerate(chunks):
+            (export_folder / f'chunk_doc_{k}.v').write_text(chunk_text, encoding='utf-8')
+            with open(export_folder / f'chunk_elements_{k}.json', 'w') as f:
+                json.dump([e.to_json() for e in elements], f, indent=4)
 
-                    annotation = f"\n<annotation>{uid}</annotation>\n".encode('utf-8')
-                    source_annotated_bytes = (
-                        source_annotated_bytes[:span.bp] + 
-                        annotation + 
-                        source_annotated_bytes[span.bp:span.ep] + 
-                        b'\n<END>\n' + 
-                        source_annotated_bytes[span.ep:]
-                    )
-                
-                elif task == 'DELETE':
-                    source_annotated_bytes = source_annotated_bytes[:span.bp] + source_annotated_bytes[span.ep:]
-                    source_wo_proof_bytes = source_wo_proof_bytes[:span.bp] + source_wo_proof_bytes[span.ep:]
+        (export_folder / 'source_wo_proof.v').write_text(src_wo_proof_str, encoding='utf-8')
+        (export_folder / 'source.v').write_text(source.content, encoding='utf-8')
 
-            src_annotated_str = remove_ocaml_comments(source_annotated_bytes.decode('utf-8'))
-            src_wo_proof_str = source_wo_proof_bytes.decode('utf-8')
+        return True
 
-            src_annotated_str = normalize_text(src_annotated_str)
-            src_wo_proof_str = normalize_text(src_wo_proof_str)
-
-            chunks = self.chunk_doc(src_annotated_str, uid_vernac_element)
-
-            rel_name = filepath.stem
-            export_folder = self.output_dir / rel_name
-            export_folder.mkdir(parents=True, exist_ok=True)
-
-            for k, (chunk_text, elements) in enumerate(chunks):
-                (export_folder / f'chunk_doc_{k}.v').write_text(chunk_text, encoding='utf-8')
-                with open(export_folder / f'chunk_elements_{k}.json', 'w') as f:
-                    json.dump([e.to_json() for e in elements], f, indent=4)
-
-            (export_folder / 'source.v').write_text(src_wo_proof_str, encoding='utf-8')
-
-            return str(filepath)
-
-        except Exception as e:
-            logger.error(f"Error processing {filepath}: {e}")
-            return None
+        # except Exception as e:
+        #     logger.error(f"Error processing {filepath}: {e}")
+        #     return None
 
 
 def main():
     parser = argparse.ArgumentParser(description="Extract and annotate Rocq/Coq vernacular elements.")
-    parser.add_argument("input_dir", type=Path, help="Directory containing .v files")
+    parser.add_argument("--config-dir", type=Path, default=Path('Pile-of-rocq/config/'), help="Directory containing yaml config files for Opam Docker")
     parser.add_argument("--output-dir", type=Path, default=Path("./export"), help="Output directory")
-    parser.add_argument("--host", type=str, default="127.0.0.1", help="Pytanque server host")
-    parser.add_argument("--port", type=int, default=5000, help="Pytanque server port")
-    parser.add_argument("--workers", type=int, default=4, help="Number of parallel worker threads")
+    parser.add_argument("--workers", type=int, default=8, help="Number of parallel worker threads")
     
     args = parser.parse_args()
-
-    if not args.input_dir.exists():
-        logger.error(f"Input directory does not exist: {args.input_dir}")
+    if not args.config_dir.exists():
+        logger.error(f"Input directory does not exist: {args.config_dir}")
         sys.exit(1)
 
-    files = list(args.input_dir.rglob("*.v"))
-    files = [Path(p) for p in files]
-    if not files:
-        logger.warning("No .v files found in input directory.")
+    config_files = list(args.config_dir.rglob("*.yaml"))
+    config_files = [Path(p) for p in config_files]
+    if not config_files:
+        logger.warning("No .yaml files found in input directory.")
         sys.exit(0)
     
-    logger.info(f"Found {len(files)} files to process.")
+    logger.info(f"Found {len(config_files)} config files to process.")
 
-    client = PytanqueExtended(args.host, args.port)
-    client.connect()
-    extractor = RocqExtractor(client, args.output_dir)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
-        results = list(tqdm(
-            executor.map(extractor.process_file, files), 
-            total=len(files), 
-            desc="Processing"
-        ))
+    for config_path in tqdm(config_files):
+        # config_path = "Pile-of-rocq/config/coq-iris.yaml"
+        print(config_path)
+        docker = None
+        try:
+            config = OpamConfig.from_yaml(config_path)
+            docker = OpamDocker(config)
+            docker.start_inference_server()
+            client = PytanqueExtended("127.0.0.1", 5000)
+            client.connect()
+            output_dir = args.output_dir / config.name
 
-    success_count = sum(1 for r in results if r is not None)
-    logger.info(f"Completed. Successfully processed {success_count}/{len(files)} files.")
+            for target in config.targets:
+                package = target.packages[0]
+                target = target.lib
+                docker.copy_coq_files_from_package_to_target(package, target)
+            # path = "/home/rocq/.opam/4.14.2+flambda/lib/coq/user-contrib/infotheo/toy_examples/expected_value_variance_ordn.v"
+            # for entry in client.get_ast(path, root="/home/rocq/.opam/4.14.2+flambda/lib/coq/user-contrib/infotheo/"):
+            #     print(entry)
+            # exit()
+            list_output_dir = []
+            list_targets = []
+            list_sources = []
+            print("READY")
+            
+            for target in config.targets:
+                target = target.lib
+                sub_sources = docker.extract_source_files_from_target(target)
+                list_sources.extend(sub_sources)
+                list_output_dir.extend([output_dir for _ in sub_sources])
+                list_targets.extend([target for _ in sub_sources])
+            
+            sub_sources = docker.extract_source_files_from_corelib()
+            list_sources.extend(sub_sources)
+            list_output_dir.extend([output_dir / 'Corelib' for _ in sub_sources])
+            list_targets.extend([None for _ in sub_sources])
+            # list_sources = [Source.from_local_path('/home/theo/.opam/mc_dev/lib/coq/user-contrib/Stdlib/Lists/ListTactics.v')]
+            # list_sources = [Source("/home/rocq/.opam/4.14.2+flambda/lib/coq/user-contrib/Stdlib/Numbers/BinNums.v", "")]
+            
+            extractor = RocqExtractor(client)
+            # for source, output_dir, target in tqdm(zip(list_sources, list_output_dir, list_targets)):
+            #     extractor.process_file(source, output_dir, target)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
+                results = list(tqdm(
+                    executor.map(extractor.process_file, list_sources, list_output_dir, list_targets), 
+                    total=len(list_sources), 
+                    desc="Processing"
+                ))
+
+            success_count = sum(1 for r in results if r is not None)
+            logger.info(f"Completed {target}. Successfully processed {success_count}/{len(results)} files.")
+        finally:
+            if docker: docker.close()
+            pass
 
 if __name__ == "__main__":
     main()
