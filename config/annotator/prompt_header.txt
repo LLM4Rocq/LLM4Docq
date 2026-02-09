@@ -1,0 +1,114 @@
+I need you to generate a comprehensive, self-contained docstring that explains the purpose, mathematical scope, and key conventions of the following Coq source file.
+
+Your docstring must be written for an audience who may not be familiar with the codebase or the Mathematical Components (MathComp) library, but who has some background in mathematics and formal methods.
+
+Requirements:
+
+    Purpose and Goal: Clearly state the main objective of the file.
+
+    Mathematical Objects: List and explain all important mathematical structures, types, and concepts manipulated in the file. Indicate how they are represented in Coq.
+
+    Key Conventions: Explain critical notational or coding conventions.
+
+    Context for Retrieval: The goal is to allow someone (or an LLM) who only reads this docstring, and not the full file, to understand the context and be able to interpret or generate comments/docstrings for specific code chunks from the file. 
+
+    No Source Code: Do not copy or paraphrase comments from the file itself, but synthesize information based on its mathematical and software engineering content.
+
+    Format: Write the answer in complete sentences and paragraphs, organized in logical sections.
+
+    Clarity and Self-Sufficiency: The docstring must be standalone, with no external references needed to grasp the file’s role.
+
+Write your answer in a coq code block.
+
+Here is the Coq source file:
+
+```coq
+{source}
+```
+
+Example of a Model Output:
+
+```coq
+
+Matrix Similarity and Diagonalizability
+
+Overview and Purpose
+====================
+This Coq source file formalizes fundamental theorems in linear algebra in finite dimension, that is, the theory of matrices over fields. Its primary focus is on the concepts of matrix similarity, conjugation, diagonalizability, and simultaneous diagonalizability (codiagonalizability), also called endomorphism reduction. The file develops a systematic theory of changing matrix representations via base change (conjugation), defines important transformations such as diagonalization and triangularization, and proves key equivalences characterizing when a matrix (or family of matrices) is diagonalizable—both individually and simultaneously. It also relates these properties to eigenspace decompositions and minimal polynomial factorizations.
+
+Intended Use and Scope
+======================
+This file introduces various canonical forms of matrices and may be useful when working with linear operators, spectral theory, representation theory, etc. in the Rocq proof assistant. All terminology, notations, and conventions used here are consistently used in the rest of the Mathematical Components library as well.
+
+
+Mathematical Objects and Their Representation
+=============================================
+
+- **Matrices Over a Field**: All matrices considered are over an abstract type `F` equipped with field structure, referred to as `fieldType`. The notation `'M[F]_n` or `'M[F]_(m, n)` is used for the space of `n×n` or `m×n` matrices with coefficients in `F`.
+
+- **Matrix Conjugation (`conjmx`)**: 
+   - Given matrices `V` (of appropriate size) and `f` (square), the conjugation (also called a change of basis) is defined as `conjmx V f = V *m f *m pinvmx V`, where `*m` is matrix multiplication and `pinvmx` computes a generalized inverse of `V`. 
+   - This operation replaces the basis for the vector space on which `f` acts, re-expressing `f` in a (possibly new) basis.
+
+- **Restriction of Matrices (`restrictmx`)**: For a matrix `V`, `restrictmx V f` denotes conjugation by the canonical basis-extracting matrix `row_base V`, i.e., a "restriction" of the linear map `f` to the image of `V`.
+
+- **Similarity and Similarity Classes**:
+   - The predicate `similar P A B` indicates that `A` is similar to `B` via conjugation by `P` (i.e., `conjmx P A = B`).
+
+   - More generally, "Similarity in" and "to" predicates (`similar_in`, `similar_to` and  `similar_in_to`) parameterize the allowed base change matrix and/or the similarity class.
+
+   - For instance predicate `similar_to P A C` holds if the conjugate `conjmx P A` belongs to `C`, expressing that the matrix `A` is similar to an element of `C` via the base change matrix `P`. This definition is mostly used as a technical device for defining diagonalizability, etc.
+
+   - Similarly, predicate  `similar_in D A B` expresses that `B` is similar to `A` via a change of base which belongs to `D`. This definition is also mostly used as a technical device for defining co-diagonalizability, etc.
+
+   - More specifically, `similar_diag P A` asserts that `A` is similar to a diagonal matrix via `P`.
+   
+   
+- **Diagonalization and Codiagonalization**:
+   - `diagonalizable A` indicates that the matrix `A` is similar to a diagonal matrix (with an invertible base change).
+   - `codiagonalizable As` extends this to a sequence `As` of matrices: all of them are simultaneously diagonalizable in the *same* basis.
+   - Analogous definitions are provided for triangular ("trigonalizable") matrices.
+
+- **Polynomial and Eigenspace Machinery**:
+   - The minimal polynomial (`mxminpoly f`) of a matrix and its properties under conjugation.
+   - Eigenspaces, eigenvalues (`eigenspace f a`), and associated decomposition of the space.
+
+- **Simultaneous Diagonalization, Commutativity**:
+   - The file proves that a family of matrices is simultaneously diagonalizable if and only if each matrix is diagonalizable and the elements of the family commute pairwise (`comm_mx f g`).
+
+Key Conventions and Notations
+=============================
+
+- ** Notations for Types and Operations**:
+    - Square brackets denote type and size information: `'M[F]_n` for square matrices of size `n` with coefficients in `F`, `'M[F]_(m, n)` for rectangular matrices with `m` rows and `n` columns and coefficients in `F`.
+    - `*m` is matrix multiplication; `A \in unitmx` expresses invertibility.
+    - `pinvmx` computes a (possibly generalized) inverse, used to facilitate base changes even with non-invertible matrices. The `mx` suffix is used to characterize predicates and operations specific to matrices.
+
+- **Scope and Implicits**:
+    - `Set Implicit Arguments` and local notational conventions are used to minimize verbosity and maintain clarity.
+    - The `ring_scope` is opened locally for convenience with ring and field operations.
+
+- **Boolean Predicates and Reflection**:
+    - Properties such as stability, similarity, diagonalizability, and commutativity are encoded as Boolean predicates (e.g., `stablemx`, `diagonalizable`).
+    - Throughout, reflection lemmas relate these Boolean predicates to classical mathematical statements, aligning with the Ssreflect/MathComp proof methodology.
+
+- **Hints and Automation**:
+    - Core facts about diagonalization are made available through Coq's hint mechanisms for proof automation. These hints are made available to the `by` tactical and `done` tactic, as well as its `\\` variant.
+
+- **Sectioning Pattern**:
+    - The file is divided into logical sections (`ConjMx`, `Similarity`, `Diag`) to structure the development from the most general conjugation properties to specific diagonalization criteria and main theorems.
+
+- **Reflection Lemmas**:
+   - Essential equivalences are expressed as `reflect` lemmas, bridging Boolean predicates and propositional statements.
+
+Summary of Main Results
+=======================
+- **Conjugation Laws**: Algebraic properties and interaction with stability, eigenvalues, and polynomials under conjugation.
+- **Diagonalization Criteria**: 
+    - A matrix is diagonalizable if and only if its minimal polynomial splits into distinct linear factors, or equivalently, if the direct sum of its eigenspaces is the whole space.
+    - A sequence of matrices is simultaneously diagonalizable if and only if they commute pairwise and are individually diagonalizable.
+- **Triangularization**: The file establishes the analogous results to that of diagonalization that hold for triangularization.
+- **Effectiveness**: The file not only proves existence but provides explicit constructions (e.g., of base change matrices, eigenvalue lists).
+```
+
+Your final output must be contained in a Coq code block.

@@ -1,0 +1,34 @@
+I need you to generate a concise, high-level header comment that summarizes the purpose and mathematical scope of the following Coq source file.
+
+The header is intended as a one-line or very short paragraph description, suitable for:
+- LLM-based table-of-contents generation,
+- quick orientation for readers browsing the codebase.
+
+Audience assumptions:
+- The reader has background in mathematics and formal methods.
+- The reader may not know this specific codebase.
+
+Requirements:
+
+- Main Focus: Clearly state the primary mathematical themes and results developed in the file.
+- Level of Detail: Keep it brief and abstract; do not enumerate definitions or theorems.
+- No Code References: Do not mention identifiers, lemmas, or implementation details.
+- Self-Contained: The header should make sense on its own.
+- Style: Neutral, descriptive, and suitable as a file header comment.
+
+Do not copy or paraphrase comments from the source file; synthesize a summary based on its mathematical content.
+Write your answer in a coq code block.
+
+Example of a Model Output:
+
+```coq
+Matrix similarity, conjugation, and diagonalization in finite-dimensional linear algebra over fields.
+```
+
+Here is the Coq source file:
+
+```coq
+{source}
+```
+
+Your final output must be contained in a Coq code block.

@@ -1,0 +1,126 @@
+Here is a some context to understand the following Coq source file from the mathcomp library:
+
+{header}
+
+
+Here is a Coq source file from the mathcomp library:
+
+```coq
+{source}
+```
+
+I need you to help me write the docstrings of elements with a "<annotation>{uid}</annotation>" decorator.
+
+To do it, write a json corresponding to a list of all docstring, in the format:
+
+```json
+{
+  {uid_1}: {docstring_1},
+  {uid_2}: {docstring_2},
+  ...
+}
+```
+
+Be careful to write the "uid" (i.e. the string inside the tag EXACTLY as it is written in it, don't change any punctuation, space or anything).
+More precisely, I want you do it for the following elements.
+
+{missing}
+
+### Guidelines for writing the docstrings
+
+#### General rules
+1. Natural language only. Do not use any mathematical symbols (like <, ≤, =, etc.).  
+2. Complete sentences. Each docstring must be at least one clear, grammatically correct sentence.  
+3. Explicit. Spell out operations and relationships in plain English (e.g. “less than” instead of “<”).
+4. Self-contained. The reader should understand the meaning of the declaration without seeing the code.  
+5. Embedding-friendly. Do not use pronouns or external references like “this lemma” or “the following.” Explicitly mention inputs and outputs.  
+6. Do not cite Coq identifiers or premises in the docstring.  
+7. State the general data category of every input and output in plain English. Use high-level terms like natural number, integer, boolean, list of integers, finite sequence, function, set, matrix, or polynomial. Avoid vague phrases such as “the first argument,” and do not mention library-specific type identifiers or constructor names.
+8. Be consistent: if the element is a lemma, start the docstring with 'This lemma states ...', apply the same rule to all other kinds of elements.
+9. Avoid referring to variable names when possible: for example, instead of writing "Defines the minimal polynomial of a matrix A as the monic polynomial of least degree that evaluates to the zero matrix when A is substituted for the variable," prefer "Defines the minimal polynomial of a matrix as the monic polynomial of least degree that evaluates to the zero matrix when substituted for the variable."
+10. Be precise when rewriting names in the JSON: always include all special characters, punctuation, and formatting exactly as they appear. For example, do not simplify "A ^f" to A ^f; the name must be copied exactly as it is written in the list of elements provided. In case of conflict in the source file, use the one provided in the list.
+
+#### Specific rules by declaration kind
+
+- **Lemma / Theorem / Definition / Fixpoint / Function**  
+  → Write a direct, explicit explanation of what the function or statement asserts.  
+
+  Example:  
+  ```coq
+  <annotation>rVpoly</annotation>
+  Definition rVpoly v := \poly_(k < d) (if insub k is Some i then v 0 i else 0).
+  ```
+
+  Expected entry in the final output:
+
+  ```json
+  {
+    ...,
+    "rVpoly": "This definition converts a row vector of ring elements into a univariate polynomial whose coefficients correspond to the vector entries in increasing degree order, treating missing degrees beyond the vector length as zero.",
+    ...
+  }
+  ```
+
+- **Record or Class**  
+  → Write a high-level summary describing the overall purpose of the structure.
+
+  Example:  
+  ```coq
+  <annotation>isBilinear</annotation>
+  HB.mixin Record isBilinear (R : nzRingType) (U U' : lmodType R) (V : zmodType)
+      (s : R -> V -> V) (s' : R -> V -> V) (f : U -> U' -> V) := {
+    zmod_morphisml_subproof : forall u', zmod_morphism (f ^~ u') ;
+    zmod_morphismr_subproof : forall u, zmod_morphism (f u) ;
+    linearl_subproof : forall u', scalable_for s (f ^~ u') ;
+    linearr_subproof : forall u, scalable_for s' (f u)
+  }.
+  ```
+  Expected entry in the final output:
+
+  ```json
+  {
+    ...
+    "isBilinear": "A record that describes when a function taking two module inputs over the same ring and returning an additive group value is bilinear.",
+    ...
+  }
+  ```
+- **Inductive or Coinductive (when the inductive type itself appears in `missing`)**  
+  → Provide a high-level explanation of the kind of objects or concepts represented.
+
+  Example:  
+  ```coq
+  <annotation>Inatmul</annotation>
+  Inductive Inatmul :=
+    | INatmul : Ione -> nat -> Inatmul
+    | IOpp : Inatmul -> Inatmul.
+  ```
+
+  Expected entry in the final output:
+  ```json
+  {
+    ...
+    "Inatmul": "An inductive representation of formal expressions combining a unit element, natural number multiplication by repeated addition, and additive inverse, used to represent ring-side scalar multiples and opposites in the term language.",
+    ...
+  }
+  ```
+
+- **Notation / Canonical / Instance / Factory**  
+  → Explain in plain English what notation or implicit mechanism is being introduced, and its purpose.
+    Beware, the name inside the annotation tag is very different from the notation itself.
+
+  Example:  
+  ```coq
+  <annotation>NOTATION_92</annotation>
+  Local Notation "x *+ n" := (natmul x n) : ring_scope.
+  ```
+
+  Expected entry in the final output:
+  ```json
+  {
+    ...
+    "NOTATION_92": "A notation taking an element of an additive group and a natural number and returning the sum of that element repeated that many times.",
+    ...
+  }
+  ```
+
+Your final JSON must be contained in a JSON code block.
