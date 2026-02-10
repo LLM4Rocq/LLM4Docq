@@ -12,12 +12,16 @@ import sys
 import yaml
 import logging
 import uuid
+from collections import defaultdict
 
 from pathlib import Path
 from typing import List, Dict, Any, Set, Optional, Tuple
+from rocq_ml_toolbox.docker.config import Target
 
 from openai import OpenAI
 from tqdm import tqdm
+
+from .duplicate import find_source_duplicates
 
 logging.basicConfig(
     level=logging.INFO,
@@ -108,7 +112,6 @@ class LLMAnnotator:
         )
 
         msg = resp.choices[0].message
-        unique_filename = "test/" + str(uuid.uuid4())
         return msg.content or ""
 
 
@@ -243,7 +246,7 @@ class AnnotationPipeline:
             logger.error(f"Error processing chunk {chunk_doc_path}: {e}")
             return None
 
-    def process_folder(self, folder_path: Path) -> None:
+    def process_folder(self, folder_path: Path, folder_copy: List[Path]=[]) -> None:
         """Orchestrates processing for a single source folder (created in Step 1)."""
         source_file = folder_path / "source.v"
         if not source_file.exists():
@@ -282,7 +285,11 @@ class AnnotationPipeline:
                 if annotations:
                     with open(output_path, "w", encoding="utf-8") as f:
                         json.dump(annotations, f, indent=4, ensure_ascii=False)
-
+                    
+                    for path_copy in folder_copy:
+                        output_copy_path = path_copy / f"annotations_{k}.json"
+                        with open(output_copy_path, "w", encoding="utf-8") as f:
+                            json.dump(annotations, f, indent=4, ensure_ascii=False)
 
 def main():
     parser = argparse.ArgumentParser(description="LLM Annotation Pipeline for Rocq")
@@ -296,7 +303,6 @@ def main():
     if not args.input_dir.exists():
         logger.error("Input directory not found.")
         sys.exit(1)
-
     try:
         annotator = LLMAnnotator(args.config)
         pipeline = AnnotationPipeline(annotator, args.templates)
@@ -304,20 +310,20 @@ def main():
         logger.error(f"Initialization failed: {e}")
         sys.exit(1)
 
-    folders = [f for f in args.input_dir.iterdir() if f.is_dir()]
+    mapping_to_do = {}
+    for list_path in find_source_duplicates('export'):
+        list_path_parent = [Path(p).parent for p in list_path]
+        mapping_to_do[list_path_parent[0]] = list_path_parent[1:]
+    
+    folders, copy_folders = zip(*mapping_to_do.items())
     if not folders:
         logger.warning("No folders found in input directory.")
         sys.exit(0)
-
     logger.info(f"Found {len(folders)} folders to process.")
 
-    for folder in folders:
-        print(folder)
-        pipeline.process_folder(folder)
-        exit()
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
         list(tqdm(
-            executor.map(pipeline.process_folder, folders),
+            executor.map(pipeline.process_folder, folders, copy_folders),
             total=len(folders),
             desc="Annotating Sources"
         ))
