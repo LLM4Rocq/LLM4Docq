@@ -195,10 +195,22 @@ class RocqExtractor:
             export_folder = output_dir / rel_name
         export_folder.mkdir(parents=True, exist_ok=True)
         output_final = (export_folder / 'source.v')
-
+        elements_path = export_folder / 'elements.json'
         if output_final.exists() and not force_process:
             return True
-        target_elements, proof_elements = self.parser.ast(source, root=root)
+        
+        if elements_path.exists() and not force_process:
+            with open(elements_path, 'r') as file:
+                content = json.load(file)
+            target_elements, proof_elements = content['target_elements'], content['proof_elements']
+        else:
+            target_elements, proof_elements = self.parser.ast(source, root=root)
+            with open(elements_path, 'w') as file:
+                json.dump({
+                    "target": [t.to_json() for t in target_elements],
+                    "proof": [t.to_json() for t in proof_elements]
+                }, file, indent=4)
+
         to_do: List[Tuple[int, str, VernacElement]] = []
         idx_notation = 0
         
@@ -258,16 +270,11 @@ class RocqExtractor:
             (export_folder / f'chunk_doc_{k}.v').write_text(chunk_text, encoding='utf-8')
             with open(export_folder / f'chunk_elements_{k}.json', 'w') as f:
                 json.dump([e.to_json() for e in elements], f, indent=4)
-
+        (export_folder / 'source_annotated.v').write_text(src_annotated_str, encoding='utf-8')
         (export_folder / 'source_wo_proof.v').write_text(src_wo_proof_str, encoding='utf-8')
         (export_folder / 'source.v').write_text(source.content, encoding='utf-8')
 
         return True
-
-        # except Exception as e:
-        #     logger.error(f"Error processing {filepath}: {e}")
-        #     return None
-
 
 def main():
     parser = argparse.ArgumentParser(description="Extract and annotate Rocq/Coq vernacular elements.")
@@ -289,25 +296,27 @@ def main():
     logger.info(f"Found {len(config_files)} config files to process.")
 
     for config_path in tqdm(config_files):
-        # config_path = "Pile-of-rocq/config/coq-iris.yaml"
+        # config_path = "Pile-of-rocq/config/coq-mathcomp.yaml"
         print(config_path)
         docker = None
         try:
             config = OpamConfig.from_yaml(config_path)
+            output_dir = Path(args.output_dir / config.name)
             docker = OpamDocker(config)
             docker.start_inference_server()
+
             client = PytanqueExtended("127.0.0.1", 5000)
             client.connect()
-            output_dir = args.output_dir / config.name
-
+            
             for target in config.targets:
                 package = target.packages[0]
-                target = target.lib
-                docker.copy_coq_files_from_package_to_target(package, target)
-            # path = "/home/rocq/.opam/4.14.2+flambda/lib/coq/user-contrib/infotheo/toy_examples/expected_value_variance_ordn.v"
-            # for entry in client.get_ast(path, root="/home/rocq/.opam/4.14.2+flambda/lib/coq/user-contrib/infotheo/"):
-            #     print(entry)
-            # exit()
+                target_lib = target.lib
+                docker.copy_coq_files_from_package_to_target(package, target_lib)
+
+                output_target_path = output_dir / target_lib 
+                output_target_path.mkdir(parents=True, exist_ok=True)
+                with open(output_target_path / 'config.json', 'w') as file:
+                    json.dump(target.to_json(), file, indent=4)
             list_output_dir = []
             list_targets = []
             list_sources = []
@@ -323,13 +332,17 @@ def main():
             sub_sources = docker.extract_source_files_from_corelib()
             list_sources.extend(sub_sources)
             list_output_dir.extend([output_dir / 'Corelib' for _ in sub_sources])
+            with open(output_dir / 'Corelib' / 'config.json', 'w') as file:
+                json.dump({
+                    "lib": "Corelib",
+                    "packages": [
+                        f"{config.user}-core.{config.version}"
+                    ]
+                }, file, indent=4)
+            # continue
             list_targets.extend([None for _ in sub_sources])
-            # list_sources = [Source.from_local_path('/home/theo/.opam/mc_dev/lib/coq/user-contrib/Stdlib/Lists/ListTactics.v')]
-            # list_sources = [Source("/home/rocq/.opam/4.14.2+flambda/lib/coq/user-contrib/Stdlib/Numbers/BinNums.v", "")]
-            
             extractor = RocqExtractor(client)
-            # for source, output_dir, target in tqdm(zip(list_sources, list_output_dir, list_targets)):
-            #     extractor.process_file(source, output_dir, target)
+            
             with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
                 results = list(tqdm(
                     executor.map(extractor.process_file, list_sources, list_output_dir, list_targets), 
@@ -338,7 +351,7 @@ def main():
                 ))
 
             success_count = sum(1 for r in results if r is not None)
-            logger.info(f"Completed {target}. Successfully processed {success_count}/{len(results)} files.")
+            logger.info(f"Completed {config.name}. Successfully processed {success_count}/{len(results)} files.")
         finally:
             if docker: docker.close()
             pass
