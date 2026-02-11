@@ -60,7 +60,7 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Launching sglang on all nodes"
 
 srun --output="SLURM_Logs/%x_%j_node%t.out" \
      --error="SLURM_Logs/%x_%j_node%t.err" \
-     bash -c 'python3 -m sglang.launch_server --model-path "'"$MODEL"'" --grammar-backend "xgrammar" --tp "'"$TP_SIZE"'" --dist-init-addr "'"$NCCL_INIT_ADDR"'" --nnodes "'"$SLURM_NNODES"'" --node-rank "$SLURM_PROCID"' &
+     bash -c 'python3 -m sglang.launch_server --model-path "'"$MODEL"'" --trust-remote-code --tool-call-parser kimi_k2 --reasoning-parser kimi_k2 --grammar-backend "xgrammar" --tp "'"$TP_SIZE"'" --dist-init-addr "'"$NCCL_INIT_ADDR"'" --nnodes "'"$SLURM_NNODES"'" --node-rank "$SLURM_PROCID"' &
 
 
 # Wait for the server to start
