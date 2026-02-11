@@ -11,12 +11,9 @@ import re
 import sys
 import yaml
 import logging
-import uuid
-from collections import defaultdict
 
 from pathlib import Path
 from typing import List, Dict, Any, Set, Optional, Tuple
-from rocq_ml_toolbox.docker.config import Target
 
 from openai import OpenAI
 from tqdm import tqdm
