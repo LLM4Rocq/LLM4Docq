@@ -123,4 +123,4 @@ More precisely, I want you do it for the following elements.
   }
   ```
 
-Your final JSON must be contained in a JSON code block.
+Your final answer must ONLY be a json inside a json block.
