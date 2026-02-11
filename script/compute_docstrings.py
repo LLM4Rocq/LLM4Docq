@@ -85,8 +85,7 @@ class LLMAnnotator:
         with open(config_path, "r", encoding="utf-8") as f:
             self.config = yaml.safe_load(f) or {}
 
-        config = self.config.get("sglang", {}) or {}
-        base_url = config.get("base_url", "https://openrouter.ai/api/v1")
+        base_url = self.config.get("base_url", "https://openrouter.ai/api/v1")
         self.client = OpenAI(base_url=base_url)
 
         self.params = self.config.get("parameters", {}) or {}
@@ -201,20 +200,20 @@ class AnnotationPipeline:
 
                 response_text = self.annotator.call_llm(
                     messages=[{"role": "user", "content": prompt}],
-                    response_format={
-                        "type": "json_schema",
-                        "json_schema": {
-                            "name": "docstring_map",
-                            "schema": docstrings_json_schema(allowed_uids),
-                            "strict": True,
-                        },
-                    },
+                    # response_format={
+                    #     "type": "json_schema",
+                    #     "json_schema": {
+                    #         "name": "docstring_map",
+                    #         "schema": docstrings_json_schema(allowed_uids),
+                    #         "strict": True,
+                    #     },
+                    # }
                 )
 
                 try:
                     cleaned = clean_json_response(response_text)
-                    payload = json.loads(cleaned)
-                    batch_map = items_to_mapping(payload)
+                    batch_map = json.loads(cleaned)
+                    # batch_map = items_to_mapping(payload)
                 except Exception:
                     logger.warning(
                         f"Failed to parse structured JSON for {chunk_doc_path.name} (Attempt {attempts})"
@@ -290,7 +289,7 @@ class AnnotationPipeline:
 
 def main():
     parser = argparse.ArgumentParser(description="LLM Annotation Pipeline for Rocq")
-    parser.add_argument("--input_dir", type=Path, default=Path("export/"), help="Root folder containing exported source folders (from Step 1)")
+    parser.add_argument("--input-dir", type=Path, default=Path("export/"), help="Root folder containing exported source folders (from Step 1)")
     parser.add_argument("--config", type=Path, default=Path("config/annotator/config.yaml"), help="Path to YAML config")
     parser.add_argument("--templates", type=Path, default=Path("config/annotator"), help="Folder containing prompt_header.txt and prompt_docstrings.txt")
     parser.add_argument("--workers", type=int, default=4, help="Number of parallel folder processors")
@@ -308,7 +307,7 @@ def main():
         sys.exit(1)
 
     mapping_to_do = {}
-    for list_path in find_source_duplicates('export'):
+    for list_path in find_source_duplicates(args.input_dir):
         list_path_parent = [Path(p).parent for p in list_path]
         mapping_to_do[list_path_parent[0]] = list_path_parent[1:]
     
