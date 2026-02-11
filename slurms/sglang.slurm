@@ -17,7 +17,7 @@
 #SBATCH --qos=qos_gpu_h100-dev
 
 module purge
-module load arch/h100 cuda/12.8.0 nccl/2.25.1-1-cuda
+module load arch/h100 cuda/12.8.0 nccl/2.25.1-1-cuda miniforge/25.9.1
 
 # Activate virtual env
 
@@ -26,7 +26,7 @@ conda activate sglang
 
 # Define parameters
 
-MODEL="/lustre/fsn1/projects/rech/tdm/ulu88xb/hf_home/hub/models--moonshotai--Kimi-K2.5"
+MODEL="/lustre/fsn1/projects/rech/tdm/ulu88xb/hf_home/hub/models--moonshotai--Kimi-K2.5/snapshots/3367c8d1c68584429fab7faf845a32d5195b6ac1/"
 
 TP_SIZE=16
 
