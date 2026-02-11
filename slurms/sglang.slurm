@@ -10,11 +10,11 @@
 #SBATCH --ntasks-per-node=1           # Each task will see all GPUs of the node
 #SBATCH --cpus-per-task=24
 #SBATCH --gres=gpu:4
-#SBATCH --time=02:00:00
+#SBATCH --time=20:00:00
 #SBATCH --hint=nomultithread          # no hyperthreading
 #SBATCH --constraint=h100             # h100 gpus
-#SBATCH --account=PROJ@h100           # account
-#SBATCH --qos=qos_gpu_h100-dev
+#SBATCH --account=tdm@h100           # account
+#SBATCH --qos=qos_gpu_h100-t3
 
 module purge
 module load arch/h100 cuda/12.8.0 nccl/2.25.1-1-cuda miniforge/25.9.1
@@ -86,4 +86,8 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server running on $HEAD_NODE is ready"
 
 # Keep the script running until the SLURM job times out
 
-wait
+export OPENAI_API_KEY=""
+cd /lustre/fsn1/projects/rech/tdm/ulu88xb/LLM4Docq
+python -m script.compute_docstrings --workers 64
+
+EOF
