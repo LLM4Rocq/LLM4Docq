@@ -166,7 +166,8 @@ class AnnotationPipeline:
         self,
         chunk_doc_path: Path,
         chunk_elements_path: Path,
-        header_context: str
+        header_context: str,
+        done_uid: Set[str]=set()
     ) -> Optional[Dict[str, str]]:
         """
         Annotate a specific chunk with retry logic for missing elements.
@@ -175,7 +176,7 @@ class AnnotationPipeline:
         try:
             chunk_doc = load_file_content(chunk_doc_path)
             elements_data = json.loads(load_file_content(chunk_elements_path))
-            required_uids = [e["data"]["uid"] for e in elements_data]
+            required_uids = [e["data"]["uid"] for e in elements_data if e not in done_uid]
 
             if not required_uids:
                 return {}
@@ -253,12 +254,21 @@ class AnnotationPipeline:
             one_liner = self.generate_one_liner(source_file)
             with open(one_liner_path, 'w') as file:
                 file.write(one_liner)
+            for path_copy in folder_copy:
+                one_liner_copy_path = path_copy / "one_liner.txt"
+                with open(one_liner_copy_path, "w") as file:
+                    file.write(one_liner)
+
     
         header_path = folder_path / 'header.txt'
         if not header_path.exists():
             header = self.generate_header(source_file)
             with open(header_path, 'w') as file:
                 file.write(header)
+            for path_copy in folder_copy:
+                header_copy_path = path_copy / "header.txt"
+                with open(header_copy_path, "w") as file:
+                    file.write(header)
         
         with open(header_path, 'r') as file:
             header = file.read()
@@ -277,15 +287,22 @@ class AnnotationPipeline:
             output_path = folder_path / f"annotations_{k}.json"
 
             if not output_path.exists():
-                annotations = self.process_chunk(chunk_doc, chunk_elem, header)
-                if annotations:
-                    with open(output_path, "w", encoding="utf-8") as f:
-                        json.dump(annotations, f, indent=4, ensure_ascii=False)
-                    
-                    for path_copy in folder_copy:
-                        output_copy_path = path_copy / f"annotations_{k}.json"
-                        with open(output_copy_path, "w", encoding="utf-8") as f:
-                            json.dump(annotations, f, indent=4, ensure_ascii=False)
+                new_annotations = self.process_chunk(chunk_doc, chunk_elem, header)
+            else:
+                with open(output_path, 'r') as file:
+                    prev_annotations = json.load(file)
+                new_annotations = self.process_chunk(chunk_doc, chunk_elem, header, done_uid=set(prev_annotations.keys()))
+                new_annotations = prev_annotations | new_annotations
+            
+            if new_annotations:
+                with open(output_path, "w", encoding="utf-8") as f:
+                    json.dump(new_annotations, f, indent=4, ensure_ascii=False)
+                
+                for path_copy in folder_copy:
+                    output_copy_path = path_copy / f"annotations_{k}.json"
+                    with open(output_copy_path, "w", encoding="utf-8") as f:
+                        json.dump(new_annotations, f, indent=4, ensure_ascii=False)
+
 
 def main():
     parser = argparse.ArgumentParser(description="LLM Annotation Pipeline for Rocq")
