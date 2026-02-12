@@ -1,4 +1,5 @@
 base_url: "http://127.0.0.1:30000/v1"
+max_retries: 5
 parameters:
     model: "/lustre/fsn1/projects/rech/tdm/ulu88xb/hf_home/hub/models--moonshotai--Kimi-K2.5/snapshots/3367c8d1c68584429fab7faf845a32d5195b6ac1/"
     temperature: 1.0
