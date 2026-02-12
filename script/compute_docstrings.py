@@ -11,6 +11,7 @@ import re
 import sys
 import yaml
 import logging
+import random
 
 from pathlib import Path
 from typing import List, Dict, Any, Set, Optional, Tuple
@@ -249,6 +250,19 @@ class AnnotationPipeline:
         if not source_file.exists():
             return
 
+        lock_path = folder_path / '_lock'
+        if lock_path.exists():
+            return
+
+        with open(lock_path, 'w') as file:
+            pass
+        
+        for path_copy in folder_copy:
+            lock_copy_path = path_copy / '_lock'
+            with open(lock_copy_path, 'w') as file:
+                pass
+        
+        
         one_liner_path = folder_path / 'one_liner.txt'
         if not one_liner_path.exists():
             one_liner = self.generate_one_liner(source_file)
@@ -328,7 +342,9 @@ def main():
         list_path_parent = [Path(p).parent for p in list_path]
         mapping_to_do[list_path_parent[0]] = list_path_parent[1:]
     
-    folders, copy_folders = zip(*mapping_to_do.items())
+    items = list(mapping_to_do.items())
+    random.shuffle(items)
+    folders, copy_folders = zip(*items)
     if not folders:
         logger.warning("No folders found in input directory.")
         sys.exit(0)
