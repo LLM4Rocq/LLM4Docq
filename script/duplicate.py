@@ -117,14 +117,19 @@ def find_source_duplicates(
     """
     # 1) Collect + group by size
     by_size: Dict[int, List[FileInfo]] = defaultdict(list)
+    all_files: List[FileInfo] = []
 
     for fi in iter_v_files(root):
         by_size[fi.size].append(fi)
-
+        all_files.append(fi)
+    
+    if not all_files:
+        return []
+    
     size_candidates = {sz: lst for sz, lst in by_size.items() if len(lst) > 1}
 
     if not size_candidates:
-        return []
+        return [[fi.path] for fi in all_files]
 
     # 2) Quick fingerprint within same-size groups
     by_quick: Dict[Tuple[int, str], List[FileInfo]] = defaultdict(list)
@@ -136,21 +141,21 @@ def find_source_duplicates(
             return fi, None
 
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futures = []
-        for sz, files in size_candidates.items():
-            for fi in files:
-                futures.append(ex.submit(_quick, fi))
+        futures = [ex.submit(_quick, fi)
+                   for files in size_candidates.values()
+                   for fi in files]
+
         for fut in as_completed(futures):
             fi, qh = fut.result()
-            if qh is None:
-                continue
-            by_quick[(fi.size, qh)].append(fi)
+            if qh is not None:
+                by_quick[(fi.size, qh)].append(fi)
 
     quick_candidates = {k: v for k, v in by_quick.items() if len(v) > 1}
-    if not quick_candidates:
-        return []
 
-    # 3) Full hash for quick-candidate groups
+    if not quick_candidates:
+        return [[fi.path] for fi in all_files]
+
+    # 3) Full hash
     by_full: Dict[str, List[FileInfo]] = defaultdict(list)
 
     def _full(fi: FileInfo) -> Tuple[FileInfo, Optional[str]]:
@@ -160,29 +165,37 @@ def find_source_duplicates(
             return fi, None
 
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futures = []
-        for _, files in quick_candidates.items():
-            for fi in files:
-                futures.append(ex.submit(_full, fi))
+        futures = [ex.submit(_full, fi)
+                   for files in quick_candidates.values()
+                   for fi in files]
+
         for fut in as_completed(futures):
             fi, fh = fut.result()
-            if fh is None:
-                continue
-            by_full[fh].append(fi)
+            if fh is not None:
+                by_full[fh].append(fi)
 
-    full_candidates = [files for files in by_full.values() if len(files) > 1]
-    if not full_candidates:
-        return []
-
-    # 4) Verify equality to rule out any hash collision / read errors
+    # 4) Verify equality
     duplicates: List[List[str]] = []
-    for group in full_candidates:
+    duplicate_paths: Set[str] = set()
+
+    for group in by_full.values():
+        if len(group) < 2:
+            continue
+
         ref = group[0].path
         confirmed = [ref]
+
         for fi in group[1:]:
             if files_equal(ref, fi.path):
                 confirmed.append(fi.path)
+
         if len(confirmed) > 1:
             duplicates.append(confirmed)
+            duplicate_paths.update(confirmed)
+
+    # 5) Add singletons
+    for fi in all_files:
+        if fi.path not in duplicate_paths:
+            duplicates.append([fi.path])
 
     return duplicates
