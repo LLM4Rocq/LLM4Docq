@@ -16,6 +16,7 @@ import random
 from pathlib import Path
 from typing import List, Dict, Any, Set, Optional, Tuple
 
+import openai
 from openai import OpenAI
 from tqdm import tqdm
 
@@ -177,13 +178,12 @@ class AnnotationPipeline:
         try:
             chunk_doc = load_file_content(chunk_doc_path)
             elements_data = json.loads(load_file_content(chunk_elements_path))
-            required_uids = [e["data"]["uid"] for e in elements_data if e["data"]["uid"] not in done_uid]
+            missing_uids = [e["data"]["uid"] for e in elements_data if e["data"]["uid"] not in done_uid]
 
-            if not required_uids:
+            if not missing_uids:
                 return {}
 
             final_annotations: Dict[str, str] = {}
-            missing_uids: List[str] = required_uids
             attempts = 0
 
             while missing_uids and attempts < self.annotator.max_retries + 1:
@@ -302,7 +302,8 @@ class AnnotationPipeline:
                     with open(output_path, 'r') as file:
                         prev_annotations = json.load(file)
                     new_annotations = self.process_chunk(chunk_doc, chunk_elem, header, done_uid=set(prev_annotations.keys()))
-                    new_annotations = prev_annotations | new_annotations
+                    if new_annotations:
+                        new_annotations = prev_annotations | new_annotations
                 
                 if new_annotations:
                     with open(output_path, "w", encoding="utf-8") as f:
@@ -312,10 +313,15 @@ class AnnotationPipeline:
                         output_copy_path = path_copy / f"annotations_{k}.json"
                         with open(output_copy_path, "w", encoding="utf-8") as f:
                             json.dump(new_annotations, f, indent=4, ensure_ascii=False)
+        except openai.BadRequestError:
+            # IGNORE BadRequest, 
+            pass
         finally:
             for lock_path in lock_paths:
-                lock_path.unlink()
-
+                try:
+                    lock_path.unlink()
+                except FileNotFoundError:
+                    pass
 
 def main():
     parser = argparse.ArgumentParser(description="LLM Annotation Pipeline for Rocq")
