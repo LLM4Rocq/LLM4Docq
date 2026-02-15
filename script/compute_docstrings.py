@@ -169,7 +169,8 @@ class AnnotationPipeline:
         chunk_doc_path: Path,
         chunk_elements_path: Path,
         header_context: str,
-        done_uid: Set[str]=set()
+        done_uid: Set[str]=set(),
+        cache: Dict[str, str]={}
     ) -> Optional[Dict[str, str]]:
         """
         Annotate a specific chunk with retry logic for missing elements.
@@ -178,12 +179,20 @@ class AnnotationPipeline:
         try:
             chunk_doc = load_file_content(chunk_doc_path)
             elements_data = json.loads(load_file_content(chunk_elements_path))
-            missing_uids = [e["data"]["uid"] for e in elements_data if e["data"]["uid"] not in done_uid]
+            missing_uids:List[str] = [e["data"]["uid"] for e in elements_data if e["data"]["uid"] not in done_uid]
+            final_annotations: Dict[str, str] = {}
+
+            new_missing_uids = []
+            for uid in missing_uids:
+                if uid in cache:
+                    final_annotations[uid] = cache[uid]
+                elif not uid.startswith('None') and not uid.startswith('NOTATION'):
+                    # required unambiguous identifier
+                    new_missing_uids.append(uid)
 
             if not missing_uids:
-                return {}
+                return final_annotations
 
-            final_annotations: Dict[str, str] = {}
             attempts = 0
 
             while missing_uids and attempts < self.annotator.max_retries + 1:
@@ -284,6 +293,12 @@ class AnnotationPipeline:
                 header = file.read()
             chunk_docs = sorted(list(folder_path.glob("chunk_doc_*.v")))
 
+            cache_elem_path = folder_path / f"cache.json"
+            cache_elem = {}
+            if cache_elem_path.exists():
+                with open(cache_elem_path, 'r') as file:
+                    cache_elem = json.load(file)
+            
             for chunk_doc in chunk_docs:
                 match = re.search(r"chunk_doc_(\d+)\.v", chunk_doc.name)
                 if not match:
@@ -297,11 +312,11 @@ class AnnotationPipeline:
                 output_path = folder_path / f"annotations_{k}.json"
 
                 if not output_path.exists():
-                    new_annotations = self.process_chunk(chunk_doc, chunk_elem, header)
+                    new_annotations = self.process_chunk(chunk_doc, chunk_elem, header, cache=cache_elem)
                 else:
                     with open(output_path, 'r') as file:
                         prev_annotations = json.load(file)
-                    new_annotations = self.process_chunk(chunk_doc, chunk_elem, header, done_uid=set(prev_annotations.keys()))
+                    new_annotations = self.process_chunk(chunk_doc, chunk_elem, header, done_uid=set(prev_annotations.keys()), cache=cache_elem)
                     if new_annotations:
                         new_annotations = prev_annotations | new_annotations
                 
