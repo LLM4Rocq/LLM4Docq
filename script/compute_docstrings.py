@@ -407,15 +407,91 @@ class EntryProcessor:
         self.one_liner_template = (templates_dir / "prompt_one_liner.txt").read_text(encoding="utf-8")
         self.task_template = (templates_dir / "prompt_docstrings.txt").read_text(encoding="utf-8")
 
-    def _generate_one_liner(self, source_content: str) -> str:
-        prompt = self.one_liner_template.replace("{source}", source_content)
-        response = self.annotator.call([{"role": "user", "content": prompt}])
-        return clean_coq_response(response)
+    def _is_context_too_long_error(self, exc: Exception) -> bool:
+        msg = str(exc).lower()
+        return (
+            "context length" in msg
+            or "input (" in msg and "tokens" in msg and "longer than the model's context length" in msg
+            or "maximum context length" in msg
+        )
 
-    def _generate_header(self, source_content: str) -> str:
-        prompt = self.header_template.replace("{source}", source_content)
-        response = self.annotator.call([{"role": "user", "content": prompt}])
-        return clean_coq_response(response)
+    def _generate_with_halving_source(
+        self,
+        *,
+        template: str,
+        source_content: str,
+        field_name: str,
+        env_name: str,
+        line_idx: int,
+        stats: EntryRunStats,
+    ) -> str:
+        current = source_content
+        while True:
+            prompt = template.replace("{source}", current)
+            try:
+                stats.llm_calls += 1
+                response = self.annotator.call([{"role": "user", "content": prompt}])
+                if len(current) < len(source_content):
+                    logger.info(
+                        "%s line %d: generated %s after trimming source (%d -> %d chars)",
+                        env_name,
+                        line_idx,
+                        field_name,
+                        len(source_content),
+                        len(current),
+                    )
+                return clean_coq_response(response)
+            except Exception as exc:
+                if not self._is_context_too_long_error(exc):
+                    raise
+                if len(current) <= 1:
+                    raise
+                new_len = max(len(current) // 2, 1)
+                if new_len == len(current):
+                    raise
+                logger.warning(
+                    "%s line %d: %s prompt too long, retrying with half source (%d -> %d chars)",
+                    env_name,
+                    line_idx,
+                    field_name,
+                    len(current),
+                    new_len,
+                )
+                current = current[:new_len]
+
+    def _generate_one_liner(
+        self,
+        *,
+        source_content: str,
+        env_name: str,
+        line_idx: int,
+        stats: EntryRunStats,
+    ) -> str:
+        return self._generate_with_halving_source(
+            template=self.one_liner_template,
+            source_content=source_content,
+            field_name="one_liner",
+            env_name=env_name,
+            line_idx=line_idx,
+            stats=stats,
+        )
+
+    def _generate_header(
+        self,
+        *,
+        source_content: str,
+        env_name: str,
+        line_idx: int,
+        stats: EntryRunStats,
+    ) -> str:
+        return self._generate_with_halving_source(
+            template=self.header_template,
+            source_content=source_content,
+            field_name="header",
+            env_name=env_name,
+            line_idx=line_idx,
+            stats=stats,
+        )
 
     def _parse_docstring_mapping(self, text: str, allowed: set[str]) -> Dict[str, str]:
         cleaned = clean_json_response(text)
@@ -541,9 +617,13 @@ class EntryProcessor:
 
             if not state.get("one_liner"):
                 try:
-                    state["one_liner"] = self._generate_one_liner(source_content)
+                    state["one_liner"] = self._generate_one_liner(
+                        source_content=source_content,
+                        env_name=env_name,
+                        line_idx=line_idx,
+                        stats=stats,
+                    )
                     stats.generated_one_liner = True
-                    stats.llm_calls += 1
                     changed = True
                 except Exception as exc:
                     logger.error("%s line %d: failed to generate one_liner: %s", env_name, line_idx, exc)
@@ -551,9 +631,13 @@ class EntryProcessor:
 
             if not state.get("header"):
                 try:
-                    state["header"] = self._generate_header(source_content)
+                    state["header"] = self._generate_header(
+                        source_content=source_content,
+                        env_name=env_name,
+                        line_idx=line_idx,
+                        stats=stats,
+                    )
                     stats.generated_header = True
-                    stats.llm_calls += 1
                     changed = True
                 except Exception as exc:
                     logger.error("%s line %d: failed to generate header: %s", env_name, line_idx, exc)
