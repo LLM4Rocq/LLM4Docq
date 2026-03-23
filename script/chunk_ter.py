@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-"""
-Chunk pre-exported Rocq JSONL files and reuse legacy docstrings.
+"""Minimal chunker for Pile-of-Rocq exports.
+
+This script prepares per-source chunks consumed by `compute_docstrings.py`.
 
 Input format (one JSON object per line):
-{
-    "library": <str>,
-    "diags": <list>,
-    "source": {"path": <str>, "content": <str>, ...},
-    "toc": <list[vernac element json]>
-}
+- `library` (str)
+- `source.path` (str)
+- `source.content` (str)
+- `toc` (list)
 
-Output format (one JSON object per line, per environment):
+Output format (one JSON object per line, per env):
 - original fields
-- `chunks`: list of chunks to annotate
-- `cache_field`: map {new_uid: docstring} for already computed elements
+- `entry_key`
+- `chunks` (list of `{chunk_id, chunk_doc, chunk_elements}`)
+- `cache_field` (always present; copied if already available, else `{}`)
 """
 
 from __future__ import annotations
@@ -28,8 +28,7 @@ import re
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
-from threading import Lock
+from pathlib import Path
 from typing import Any, DefaultDict, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from tqdm import tqdm
@@ -89,7 +88,6 @@ class ChunkConfig:
 @dataclass
 class EntryStats:
     targets: int = 0
-    cached: int = 0
     chunks: int = 0
 
 
@@ -98,15 +96,53 @@ class EnvStats:
     env: str
     entries: int = 0
     targets: int = 0
-    cached: int = 0
     chunks: int = 0
 
 
+def _sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _as_string_map(value: Any) -> Dict[str, str]:
+    if not isinstance(value, Mapping):
+        return {}
+    out: Dict[str, str] = {}
+    for key, doc in value.items():
+        if isinstance(key, str) and isinstance(doc, str):
+            out[key] = doc
+    return out
+
+
+def entry_key(entry: Mapping[str, Any]) -> str:
+    library = str(entry.get("library", ""))
+    source = entry.get("source")
+    if not isinstance(source, Mapping):
+        source_path = ""
+        source_content = ""
+    else:
+        source_path = str(source.get("path", ""))
+        source_content = str(source.get("content", ""))
+
+    digest = _sha256_text(source_content)
+    raw = f"{library}|{source_path}|{digest}"
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()
+
+
+def span_offsets(element: Mapping[str, Any]) -> Optional[Tuple[int, int]]:
+    span = element.get("span")
+    if not isinstance(span, Mapping):
+        return None
+    bp = span.get("bp")
+    ep = span.get("ep")
+    if not isinstance(bp, int) or not isinstance(ep, int):
+        return None
+    if bp < 0 or ep < bp:
+        return None
+    return bp, ep
+
+
 def remove_ocaml_comments(src: str, strict: bool = False) -> str:
-    """
-    Remove OCaml-style comments (* ... *) from source string.
-    Handles nested comments and string/char literals.
-    """
+    """Remove OCaml-style comments (* ... *) from source string."""
     lines: List[Tuple[str, bool]] = []
     buf: List[str] = []
     had_comment = False
@@ -204,7 +240,6 @@ def remove_ocaml_comments(src: str, strict: bool = False) -> str:
 
 
 def normalize_text(text: str) -> str:
-    """Normalize whitespace and reduce consecutive newlines."""
     lines = [line.strip() for line in text.splitlines()]
     new_text = "\n".join(lines)
     while "\n\n\n" in new_text:
@@ -212,182 +247,13 @@ def normalize_text(text: str) -> str:
     return new_text
 
 
-def span_offsets(element: Mapping[str, Any]) -> Optional[Tuple[int, int]]:
-    span = element.get("span")
-    if not isinstance(span, Mapping):
-        return None
-    bp = span.get("bp")
-    ep = span.get("ep")
-    if not isinstance(bp, int) or not isinstance(ep, int):
-        return None
-    if bp < 0 or ep < bp:
-        return None
-    return bp, ep
-
-
-def element_cache_key(element: Mapping[str, Any]) -> Optional[str]:
-    offsets = span_offsets(element)
-    if offsets is None:
-        return None
-    bp, ep = offsets
-    return f"{ep}-{bp}-{element.get('name')}"
-
-
-def source_relative_without_ext(source_path: str, library: str) -> str:
-    normalized = source_path.replace("\\", "/")
-    markers = [f"/{library}/"]
-    if library == "Corelib":
-        markers = [
-            "/theories/",
-            "/user-contrib/Corelib_duplicate/",
-            "/Corelib/",
-        ]
-
-    rel = None
-    for marker in markers:
-        if marker in normalized:
-            rel = normalized.split(marker, 1)[1]
-            break
-    if rel is None:
-        rel = PurePosixPath(normalized).name
-
-    rel_path = PurePosixPath(rel)
-    if rel_path.suffix:
-        rel_path = rel_path.with_suffix("")
-    return rel_path.as_posix()
-
-
-class LegacyDocstringCache:
-    """Lookup docstrings from old export_v2 folders."""
-
-    def __init__(self, root: Path) -> None:
-        self.root = root
-        self._lock = Lock()
-        self._index_ready = False
-        self._folders_by_lib_rel: DefaultDict[Tuple[str, str], List[Path]] = defaultdict(list)
-        self._source_hash_by_folder: Dict[Path, str] = {}
-        self._docstrings_by_folder: Dict[Path, Dict[str, str]] = {}
-
-    def _ensure_index(self) -> None:
-        if self._index_ready or not self.root.exists():
-            return
-        with self._lock:
-            if self._index_ready:
-                return
-            logger.info("Building legacy source index from %s ...", self.root)
-            for source_file in self.root.glob("*/*/**/source.v"):
-                try:
-                    rel = source_file.relative_to(self.root)
-                except ValueError:
-                    continue
-                parts = rel.parts
-                if len(parts) < 4:
-                    continue
-                library = parts[1]
-                rel_no_ext = PurePosixPath(*parts[2:-1]).as_posix()
-                self._folders_by_lib_rel[(library, rel_no_ext)].append(source_file.parent)
-            self._index_ready = True
-            logger.info(
-                "Legacy index built (%d library/path entries).",
-                len(self._folders_by_lib_rel),
-            )
-
-    def _folder_source_hash(self, folder: Path) -> Optional[str]:
-        with self._lock:
-            if folder in self._source_hash_by_folder:
-                return self._source_hash_by_folder[folder]
-
-        source_path = folder / "source.v"
-        if not source_path.exists():
-            return None
-        digest = hashlib.sha256(source_path.read_bytes()).hexdigest()
-        with self._lock:
-            self._source_hash_by_folder[folder] = digest
-        return digest
-
-    def _load_folder_docstrings(self, folder: Path) -> Dict[str, str]:
-        with self._lock:
-            if folder in self._docstrings_by_folder:
-                return self._docstrings_by_folder[folder]
-
-        mapping: Dict[str, str] = {}
-        for annotations_path in sorted(folder.glob("annotations_*.json")):
-            match = re.fullmatch(r"annotations_(\d+)\.json", annotations_path.name)
-            if not match:
-                continue
-            chunk_id = match.group(1)
-            elements_path = folder / f"chunk_elements_{chunk_id}.json"
-            if not elements_path.exists():
-                continue
-
-            try:
-                annotations = json.loads(annotations_path.read_text(encoding="utf-8"))
-                elements = json.loads(elements_path.read_text(encoding="utf-8"))
-            except json.JSONDecodeError:
-                continue
-
-            if not isinstance(annotations, Mapping) or not isinstance(elements, list):
-                continue
-
-            for element in elements:
-                if not isinstance(element, Mapping):
-                    continue
-                uid = element.get("data", {}).get("uid") if isinstance(element.get("data"), Mapping) else None
-                if not isinstance(uid, str):
-                    continue
-                docstring = annotations.get(uid)
-                if not isinstance(docstring, str):
-                    continue
-                cache_key = element_cache_key(element)
-                if cache_key is None or cache_key in mapping:
-                    continue
-                mapping[cache_key] = docstring
-
-        with self._lock:
-            self._docstrings_by_folder[folder] = mapping
-        return mapping
-
-    def lookup(
-        self,
-        env_name: str,
-        library: str,
-        rel_no_ext: str,
-        source_content: str,
-    ) -> Dict[str, str]:
-        if not self.root.exists():
-            return {}
-
-        expected_hash = hashlib.sha256(source_content.encode("utf-8")).hexdigest()
-
-        exact_folder = self.root / env_name / library / rel_no_ext
-        candidates: List[Path] = []
-        if exact_folder.exists():
-            candidates.append(exact_folder)
-
-        self._ensure_index()
-        for folder in self._folders_by_lib_rel.get((library, rel_no_ext), []):
-            if folder != exact_folder:
-                candidates.append(folder)
-
-        seen: set[Path] = set()
-        for folder in candidates:
-            if folder in seen:
-                continue
-            seen.add(folder)
-            folder_hash = self._folder_source_hash(folder)
-            if folder_hash != expected_hash:
-                continue
-            return self._load_folder_docstrings(folder)
-
-        return {}
-
-
 class RocqChunker:
     def __init__(self, cfg: ChunkConfig):
         self.cfg = cfg
 
     def extract_target_and_proof(
-        self, toc: Sequence[Mapping[str, Any]]
+        self,
+        toc: Sequence[Mapping[str, Any]],
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         target_elements: List[Dict[str, Any]] = []
         proof_elements: List[Dict[str, Any]] = []
@@ -436,6 +302,27 @@ class RocqChunker:
 
         return target_elements, proof_elements
 
+    def _make_safe_uid(self, raw_uid: str, used: set[str]) -> str:
+        safe = "".join(ch if ch in UID_SAFE_CHARS else "_" for ch in raw_uid)
+        safe = safe.strip("._-")
+        if not safe:
+            safe = "uid"
+
+        if safe not in used:
+            return safe
+
+        digest = hashlib.sha1(raw_uid.encode("utf-8")).hexdigest()[:8]
+        candidate = f"{safe}_{digest}"
+        if candidate not in used:
+            return candidate
+
+        idx = 1
+        while True:
+            candidate = f"{safe}_{digest}_{idx}"
+            if candidate not in used:
+                return candidate
+            idx += 1
+
     def assign_uids(self, target_elements: List[Dict[str, Any]]) -> None:
         idx_notation = sum(1 for e in target_elements if e.get("kind") in NOTATION_KINDS)
         idx_uid: DefaultDict[str, int] = defaultdict(int)
@@ -469,30 +356,6 @@ class RocqChunker:
             idx_uid[fqn] += 1
             data["uid"] = uid
             element["data"] = data
-
-    def _make_safe_uid(self, raw_uid: str, used: set[str]) -> str:
-        """
-        Make uid robust to comment stripping and annotation parsing.
-        """
-        safe = "".join(ch if ch in UID_SAFE_CHARS else "_" for ch in raw_uid)
-        safe = safe.strip("._-")
-        if not safe:
-            safe = "uid"
-
-        if safe not in used:
-            return safe
-
-        digest = hashlib.sha1(raw_uid.encode("utf-8")).hexdigest()[:8]
-        candidate = f"{safe}_{digest}"
-        if candidate not in used:
-            return candidate
-
-        idx = 1
-        while True:
-            candidate = f"{safe}_{digest}_{idx}"
-            if candidate not in used:
-                return candidate
-            idx += 1
 
     def rewrite_source(
         self,
@@ -599,102 +462,78 @@ class RocqChunker:
         return context_prefix or full_doc
 
 
-class ChunkTerPipeline:
-    def __init__(self, chunker: RocqChunker, legacy_cache: LegacyDocstringCache):
-        self.chunker = chunker
-        self.legacy_cache = legacy_cache
+def process_entry(chunker: RocqChunker, entry: Mapping[str, Any]) -> Tuple[Dict[str, Any], EntryStats]:
+    library = entry.get("library")
+    source = entry.get("source")
+    toc = entry.get("toc")
 
-    def process_entry(self, env_name: str, entry: Mapping[str, Any]) -> Tuple[Dict[str, Any], EntryStats]:
-        library = entry.get("library")
-        source = entry.get("source")
-        toc = entry.get("toc")
+    if not isinstance(library, str):
+        raise ValueError("missing or invalid `library` field")
+    if not isinstance(source, Mapping):
+        raise ValueError("missing or invalid `source` field")
+    if not isinstance(toc, list):
+        raise ValueError("missing or invalid `toc` field")
 
-        if not isinstance(library, str):
-            raise ValueError("missing or invalid `library` field")
-        if not isinstance(source, Mapping):
-            raise ValueError("missing or invalid `source` field")
-        if not isinstance(toc, list):
-            raise ValueError("missing or invalid `toc` field")
+    source_content = source.get("content")
+    if not isinstance(source_content, str):
+        raise ValueError("invalid `source.content`")
 
-        source_path = source.get("path")
-        source_content = source.get("content")
-        if not isinstance(source_path, str) or not isinstance(source_content, str):
-            raise ValueError("invalid `source.path` or `source.content`")
+    target_elements, proof_elements = chunker.extract_target_and_proof(toc)
+    chunker.assign_uids(target_elements)
 
-        target_elements, proof_elements = self.chunker.extract_target_and_proof(toc)
-        self.chunker.assign_uids(target_elements)
+    annotated_source, _ = chunker.rewrite_source(
+        source_content=source_content,
+        target_elements=target_elements,
+        proof_elements=proof_elements,
+    )
 
-        rel_no_ext = source_relative_without_ext(source_path, library)
-        old_doc_by_key = self.legacy_cache.lookup(env_name, library, rel_no_ext, source_content)
+    uid_map: Dict[str, Mapping[str, Any]] = {}
+    for element in target_elements:
+        data = element.get("data")
+        uid = data.get("uid") if isinstance(data, Mapping) else None
+        if isinstance(uid, str):
+            uid_map[uid] = element
 
-        cache_field: Dict[str, str] = {}
-        chunk_targets: List[Dict[str, Any]] = []
-
-        for element in target_elements:
-            data = element.get("data")
-            uid = data.get("uid") if isinstance(data, Mapping) else None
-            if not isinstance(uid, str):
-                continue
-            cache_key = element_cache_key(element)
-            docstring = old_doc_by_key.get(cache_key) if cache_key is not None else None
-            if isinstance(docstring, str):
-                cache_field[uid] = docstring
-            else:
-                chunk_targets.append(element)
-
-        annotated_source, _ = self.chunker.rewrite_source(
-            source_content=source_content,
-            target_elements=chunk_targets,
-            proof_elements=proof_elements,
+    chunks_raw = chunker.chunk_doc(annotated_source, uid_map=uid_map)
+    chunks: List[Dict[str, Any]] = []
+    for chunk_id, (chunk_doc, elements) in enumerate(chunks_raw):
+        chunks.append(
+            {
+                "chunk_id": chunk_id,
+                "chunk_doc": chunk_doc,
+                "chunk_elements": elements,
+            }
         )
 
-        uid_map: Dict[str, Mapping[str, Any]] = {}
-        for element in chunk_targets:
-            data = element.get("data")
-            uid = data.get("uid") if isinstance(data, Mapping) else None
-            if isinstance(uid, str):
-                uid_map[uid] = element
+    out = dict(entry)
+    out["entry_key"] = entry_key(entry)
+    out["chunks"] = chunks
+    out["cache_field"] = _as_string_map(entry.get("cache_field"))
 
-        chunks_raw = self.chunker.chunk_doc(annotated_source, uid_map=uid_map)
-        chunks: List[Dict[str, Any]] = []
-        for chunk_id, (chunk_doc, elements) in enumerate(chunks_raw):
-            chunks.append(
-                {
-                    "chunk_id": chunk_id,
-                    "chunk_doc": chunk_doc,
-                    "chunk_elements": elements,
-                }
-            )
+    annotations = _as_string_map(entry.get("annotations"))
+    if annotations:
+        out["annotations"] = annotations
 
-        out = dict(entry)
-        out["chunks"] = chunks
-        out["cache_field"] = cache_field
-
-        stats = EntryStats(
-            targets=len(target_elements),
-            cached=len(cache_field),
-            chunks=len(chunks),
-        )
-        return out, stats
+    stats = EntryStats(targets=len(target_elements), chunks=len(chunks))
+    return out, stats
 
 
-def iter_env_files(input_dir: Path) -> List[Path]:
-    return sorted(
+def iter_env_files(input_dir: Path, selected_envs: Optional[set[str]] = None) -> List[Path]:
+    files = sorted(
         p
         for p in input_dir.iterdir()
         if p.is_file() and p.suffix in {".json", ".jsonl"}
     )
+    if selected_envs is None:
+        return files
+    return [p for p in files if p.stem in selected_envs]
 
 
-def process_env_file(
-    env_file: Path,
-    output_dir: Path,
-    pipeline: ChunkTerPipeline,
-) -> EnvStats:
+def process_env_file(env_file: Path, output_dir: Path, chunker: RocqChunker) -> EnvStats:
     env_name = env_file.stem
     output_file = output_dir / f"{env_name}.jsonl"
-
     stats = EnvStats(env=env_name)
+
     with env_file.open("r", encoding="utf-8") as file_in, output_file.open("w", encoding="utf-8") as file_out:
         for line_idx, line in enumerate(file_in, start=1):
             if not line.strip():
@@ -703,37 +542,47 @@ def process_env_file(
                 entry = json.loads(line)
                 if not isinstance(entry, Mapping):
                     raise ValueError("line is not a JSON object")
-                transformed, entry_stats = pipeline.process_entry(env_name, entry)
+                transformed, entry_stats = process_entry(chunker, entry)
             except Exception as exc:
                 raise RuntimeError(f"{env_file}:{line_idx}: {exc}") from exc
 
             file_out.write(json.dumps(transformed, ensure_ascii=False) + "\n")
-
             stats.entries += 1
             stats.targets += entry_stats.targets
-            stats.cached += entry_stats.cached
             stats.chunks += entry_stats.chunks
 
     logger.info(
-        "Processed %s -> %s (%d entries, %d targets, %d cached, %d chunks)",
+        "Processed %s -> %s (entries=%d targets=%d chunks=%d)",
         env_file.name,
         output_file.name,
         stats.entries,
         stats.targets,
-        stats.cached,
         stats.chunks,
     )
     return stats
 
+
+def _default_input_dir() -> Path:
+    candidates = [
+        Path("../Pile-of-rocq/exported_v3"),
+        Path("../Pile-of-rocq/export_v3"),
+        Path("../Pile-of-rocq/export_v2"),
+    ]
+    for candidate in candidates:
+        if candidate.exists() and candidate.is_dir():
+            return candidate
+    return candidates[0]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Chunk precomputed Rocq JSONL exports and reuse old docstrings."
+        description="Build chunk_ter JSONL files for compute_docstrings.py from Pile-of-Rocq exports."
     )
     parser.add_argument(
-        "--input_dir",
+        "--input-dir",
         type=Path,
-        default=Path('Pile-of-rocq/export'),
-        help="Directory containing per-env JSON/JSONL files (one JSON object per line).",
+        default=_default_input_dir(),
+        help="Directory containing per-env JSON/JSONL export files.",
     )
     parser.add_argument(
         "--output-dir",
@@ -742,32 +591,29 @@ def main() -> None:
         help="Directory where output per-env JSONL files are written.",
     )
     parser.add_argument(
-        "--legacy-root",
-        type=Path,
-        default=Path("export_v2/export/theostos"),
-        help="Root of old export_v2 data used as cache source.",
+        "--env",
+        action="append",
+        default=[],
+        help="Environment name (file stem). Repeat for multiple envs.",
     )
-    parser.add_argument("--workers", type=int, default=1, help="Number of env files to process in parallel.")
-    parser.add_argument("--prefix-size", type=int, default=50, help="Max number of context lines kept before a chunk.")
+    parser.add_argument("--workers", type=int, default=1, help="Number of env files processed in parallel.")
+    parser.add_argument("--prefix-size", type=int, default=50, help="Max context lines kept before a chunk.")
     parser.add_argument("--max-lines", type=int, default=100, help="Max source lines per chunk window.")
     parser.add_argument("--max-elements", type=int, default=25, help="Max target elements per chunk window.")
     args = parser.parse_args()
 
-    if not args.input_dir.exists():
-        logger.error("Input directory does not exist: %s", args.input_dir)
-        sys.exit(1)
-    if not args.input_dir.is_dir():
-        logger.error("Input path is not a directory: %s", args.input_dir)
+    if not args.input_dir.exists() or not args.input_dir.is_dir():
+        logger.error("Input directory does not exist or is not a directory: %s", args.input_dir)
         sys.exit(1)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    env_files = iter_env_files(args.input_dir)
+    selected_envs = set(args.env) if args.env else None
+    env_files = iter_env_files(args.input_dir, selected_envs=selected_envs)
     if not env_files:
         logger.warning("No .json/.jsonl files found in %s", args.input_dir)
         return
 
     logger.info("Found %d env files in %s", len(env_files), args.input_dir)
-    logger.info("Legacy cache root: %s", args.legacy_root)
 
     chunker = RocqChunker(
         ChunkConfig(
@@ -776,18 +622,15 @@ def main() -> None:
             max_elements=args.max_elements,
         )
     )
-    legacy_cache = LegacyDocstringCache(args.legacy_root)
-    pipeline = ChunkTerPipeline(chunker=chunker, legacy_cache=legacy_cache)
 
     all_stats: List[EnvStats] = []
     if args.workers <= 1:
-        iterator = tqdm(env_files, desc="Chunking env files")
-        for env_file in iterator:
-            all_stats.append(process_env_file(env_file=env_file, output_dir=args.output_dir, pipeline=pipeline))
+        for env_file in tqdm(env_files, desc="Chunking env files"):
+            all_stats.append(process_env_file(env_file=env_file, output_dir=args.output_dir, chunker=chunker))
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
             futures = [
-                executor.submit(process_env_file, env_file=env_file, output_dir=args.output_dir, pipeline=pipeline)
+                executor.submit(process_env_file, env_file=env_file, output_dir=args.output_dir, chunker=chunker)
                 for env_file in env_files
             ]
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Chunking env files"):
@@ -795,16 +638,13 @@ def main() -> None:
 
     total_entries = sum(s.entries for s in all_stats)
     total_targets = sum(s.targets for s in all_stats)
-    total_cached = sum(s.cached for s in all_stats)
     total_chunks = sum(s.chunks for s in all_stats)
 
     logger.info(
-        "Done. %d env files, %d entries, %d targets, %d cached (%.2f%%), %d chunks.",
+        "Done. env_files=%d entries=%d targets=%d chunks=%d",
         len(all_stats),
         total_entries,
         total_targets,
-        total_cached,
-        (100.0 * total_cached / total_targets) if total_targets else 0.0,
         total_chunks,
     )
 
