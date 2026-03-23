@@ -5,7 +5,7 @@ LLM annotation pipeline for the chunk_ter JSONL format.
 Input (per env file, one JSON object per line):
 - source metadata and TOC
 - chunks: [{chunk_id, chunk_doc, chunk_elements}, ...]
-- cache_field: {uid: docstring} already available from legacy exports
+- cache_field: {uid: docstring} already prefilled by chunk_ter reuse
 
 Output (per env file, one JSON object per line):
 - original entry
@@ -30,7 +30,6 @@ import logging
 import os
 import re
 import sys
-import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -138,13 +137,30 @@ def now_iso() -> str:
     return dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _to_non_empty_string(value: Any) -> Optional[str]:
+    if isinstance(value, str) and value.strip():
+        return value
+    return None
+
+
+def _as_string_map(value: Any) -> Dict[str, str]:
+    if not isinstance(value, Mapping):
+        return {}
+    out: Dict[str, str] = {}
+    for key, text in value.items():
+        if not isinstance(key, str):
+            continue
+        if not isinstance(text, str) or not text.strip():
+            continue
+        out[key] = text
+    return out
+
+
 @dataclass
 class EntryRunStats:
     llm_calls: int = 0
     annotated_uids: int = 0
     cache_uids: int = 0
-    used_legacy_header: bool = False
-    used_legacy_one_liner: bool = False
     generated_header: bool = False
     generated_one_liner: bool = False
     skipped_locked: bool = False
@@ -158,8 +174,6 @@ class EnvRunStats:
     llm_calls: int = 0
     annotated_uids: int = 0
     cache_uids: int = 0
-    legacy_headers: int = 0
-    legacy_one_liners: int = 0
     generated_headers: int = 0
     generated_one_liners: int = 0
     skipped_locked: int = 0
@@ -174,8 +188,6 @@ class EnvRunStats:
         self.llm_calls += entry_stats.llm_calls
         self.annotated_uids += entry_stats.annotated_uids
         self.cache_uids += entry_stats.cache_uids
-        self.legacy_headers += int(entry_stats.used_legacy_header)
-        self.legacy_one_liners += int(entry_stats.used_legacy_one_liner)
         self.generated_headers += int(entry_stats.generated_header)
         self.generated_one_liners += int(entry_stats.generated_one_liner)
         self.skipped_locked += int(entry_stats.skipped_locked)
@@ -217,114 +229,6 @@ class LLMAnnotator:
             **self.params,
         )
         return response.choices[0].message.content or ""
-
-
-class LegacyTextCache:
-    """
-    Lookup one_liner/header from export_v2 folders.
-    """
-
-    def __init__(self, root: Path):
-        self.root = root
-        self._lock = threading.Lock()
-        self._index_ready = False
-        self._folders_by_lib_rel: Dict[Tuple[str, str], List[Path]] = {}
-        self._source_hash_by_folder: Dict[Path, str] = {}
-
-    def _ensure_index(self) -> None:
-        if self._index_ready or not self.root.exists():
-            return
-        with self._lock:
-            if self._index_ready:
-                return
-            logger.info("Building legacy text index from %s ...", self.root)
-            mapping: Dict[Tuple[str, str], List[Path]] = {}
-            candidate_folders: set[Path] = set()
-            patterns = [
-                "*/*/**/source.v",
-                "*/*/**/source.sha256",
-                "*/*/**/one_liner.txt",
-                "*/*/**/header.txt",
-            ]
-            for pattern in patterns:
-                for path in self.root.glob(pattern):
-                    candidate_folders.add(path.parent)
-
-            for folder in sorted(candidate_folders):
-                try:
-                    rel = folder.relative_to(self.root)
-                except ValueError:
-                    continue
-                parts = rel.parts
-                if len(parts) < 3:
-                    continue
-                library = parts[1]
-                rel_no_ext = PurePosixPath(*parts[2:]).as_posix()
-                key = (library, rel_no_ext)
-                mapping.setdefault(key, []).append(folder)
-            self._folders_by_lib_rel = mapping
-            self._index_ready = True
-            logger.info("Legacy text index ready (%d keys).", len(mapping))
-
-    def _folder_source_hash(self, folder: Path) -> Optional[str]:
-        with self._lock:
-            if folder in self._source_hash_by_folder:
-                return self._source_hash_by_folder[folder]
-        sha_path = folder / "source.sha256"
-        if sha_path.exists():
-            digest = sha_path.read_text(encoding="utf-8").strip()
-            if digest:
-                with self._lock:
-                    self._source_hash_by_folder[folder] = digest
-                return digest
-        source_file = folder / "source.v"
-        if not source_file.exists():
-            return None
-        digest = hashlib.sha256(source_file.read_bytes()).hexdigest()
-        with self._lock:
-            self._source_hash_by_folder[folder] = digest
-        return digest
-
-    def _read_optional(self, path: Path) -> Optional[str]:
-        if not path.exists():
-            return None
-        text = path.read_text(encoding="utf-8").strip()
-        return text if text else None
-
-    def lookup(
-        self,
-        env_name: str,
-        library: str,
-        source_path: str,
-        source_content: str,
-    ) -> Tuple[Optional[str], Optional[str]]:
-        if not self.root.exists():
-            return None, None
-
-        rel_no_ext = source_relative_without_ext(source_path, library)
-        expected_hash = hashlib.sha256(source_content.encode("utf-8")).hexdigest()
-
-        candidates: List[Path] = []
-        exact = self.root / env_name / library / rel_no_ext
-        if exact.exists():
-            candidates.append(exact)
-
-        self._ensure_index()
-        for folder in self._folders_by_lib_rel.get((library, rel_no_ext), []):
-            if folder != exact:
-                candidates.append(folder)
-
-        seen: set[Path] = set()
-        for folder in candidates:
-            if folder in seen:
-                continue
-            seen.add(folder)
-            if self._folder_source_hash(folder) != expected_hash:
-                continue
-            one_liner = self._read_optional(folder / "one_liner.txt")
-            header = self._read_optional(folder / "header.txt")
-            return one_liner, header
-        return None, None
 
 
 class StateStore:
@@ -394,12 +298,10 @@ class EntryProcessor:
         self,
         annotator: LLMAnnotator,
         templates_dir: Path,
-        legacy_cache: LegacyTextCache,
         state_store: StateStore,
         lock_stale_seconds: int,
     ):
         self.annotator = annotator
-        self.legacy_cache = legacy_cache
         self.state_store = state_store
         self.lock_stale_seconds = lock_stale_seconds
 
@@ -599,22 +501,6 @@ class EntryProcessor:
             if not isinstance(source_content, str) or not isinstance(source_path, str) or not isinstance(library, str):
                 raise ValueError("missing source fields or library")
 
-            if not state.get("one_liner") or not state.get("header"):
-                legacy_one_liner, legacy_header = self.legacy_cache.lookup(
-                    env_name=env_name,
-                    library=library,
-                    source_path=source_path,
-                    source_content=source_content,
-                )
-                if not state.get("one_liner") and legacy_one_liner:
-                    state["one_liner"] = legacy_one_liner
-                    stats.used_legacy_one_liner = True
-                    changed = True
-                if not state.get("header") and legacy_header:
-                    state["header"] = legacy_header
-                    stats.used_legacy_header = True
-                    changed = True
-
             if not state.get("one_liner"):
                 try:
                     state["one_liner"] = self._generate_one_liner(
@@ -697,8 +583,32 @@ class EntryProcessor:
 
     def _build_or_load_state(self, env_name: str, key: str, entry: Mapping[str, Any]) -> Dict[str, Any]:
         state = self.state_store.load(env_name, key)
+        entry_one_liner = _to_non_empty_string(entry.get("one_liner"))
+        entry_header = _to_non_empty_string(entry.get("header"))
+        entry_annotations = _as_string_map(entry.get("annotations"))
+
         if state:
+            changed = False
+
+            if not _to_non_empty_string(state.get("one_liner")) and entry_one_liner is not None:
+                state["one_liner"] = entry_one_liner
+                changed = True
+            if not _to_non_empty_string(state.get("header")) and entry_header is not None:
+                state["header"] = entry_header
+                changed = True
+
+            annotations = _as_string_map(state.get("annotations"))
+            for uid, docstring in entry_annotations.items():
+                if uid not in annotations:
+                    annotations[uid] = docstring
+                    changed = True
+            state["annotations"] = annotations
+
+            if changed:
+                state["updated_at"] = now_iso()
+                self.state_store.save(env_name, key, state)
             return state
+
         source = entry.get("source")
         if not isinstance(source, Mapping):
             source = {}
@@ -707,9 +617,9 @@ class EntryProcessor:
             "library": entry.get("library"),
             "source_path": source.get("path"),
             "source_sha256": source_content_hash(entry),
-            "one_liner": None,
-            "header": None,
-            "annotations": {},
+            "one_liner": entry_one_liner,
+            "header": entry_header,
+            "annotations": entry_annotations,
             "updated_at": now_iso(),
         }
 
@@ -929,10 +839,13 @@ class TOCBuilder:
         return stats
 
 
-def iter_env_files(input_dir: Path) -> List[Path]:
-    return sorted(
+def iter_env_files(input_dir: Path, selected_envs: Optional[set[str]] = None) -> List[Path]:
+    files = sorted(
         p for p in input_dir.iterdir() if p.is_file() and p.suffix in {".json", ".jsonl"}
     )
+    if selected_envs is None:
+        return files
+    return [p for p in files if p.stem in selected_envs]
 
 
 def process_env_file(
@@ -942,7 +855,6 @@ def process_env_file(
     config_path: Path,
     templates_dir: Path,
     dir_prompt_template: str,
-    legacy_cache: LegacyTextCache,
     state_store: StateStore,
     lock_stale_seconds: int,
 ) -> EnvRunStats:
@@ -956,7 +868,6 @@ def process_env_file(
     processor = EntryProcessor(
         annotator=annotator,
         templates_dir=templates_dir,
-        legacy_cache=legacy_cache,
         state_store=state_store,
         lock_stale_seconds=lock_stale_seconds,
     )
@@ -1022,7 +933,7 @@ def process_env_file(
     logger.info(
         (
             "Processed %s -> %s | entries=%d llm_calls=%d annotated=%d "
-            "cache=%d legacy_header=%d legacy_one_liner=%d generated_header=%d "
+            "cache=%d generated_header=%d "
             "generated_one_liner=%d locked=%d errors=%d toc_dirs=%d toc_files=%d toc_llm_calls=%d toc_reused=%d"
         ),
         env_file.name,
@@ -1031,8 +942,6 @@ def process_env_file(
         stats.llm_calls,
         stats.annotated_uids,
         stats.cache_uids,
-        stats.legacy_headers,
-        stats.legacy_one_liners,
         stats.generated_headers,
         stats.generated_one_liners,
         stats.skipped_locked,
@@ -1072,12 +981,6 @@ def main() -> None:
         help="Directory for resumable per-entry state and lock files.",
     )
     parser.add_argument(
-        "--legacy-root",
-        type=Path,
-        default=Path("export_v2/export/theostos"),
-        help="Legacy export root used to hydrate one_liner/header.",
-    )
-    parser.add_argument(
         "--config",
         type=Path,
         default=Path("config/annotator/config.yaml"),
@@ -1094,6 +997,12 @@ def main() -> None:
         type=Path,
         default=Path("config/annotator/prompt_dir_one_liner.txt"),
         help="Prompt template for directory one-liner generation.",
+    )
+    parser.add_argument(
+        "--env",
+        action="append",
+        default=[],
+        help="Environment name (file stem). Repeat for multiple envs.",
     )
     parser.add_argument("--workers", type=int, default=4, help="Number of env files processed in parallel.")
     parser.add_argument(
@@ -1121,7 +1030,8 @@ def main() -> None:
         logger.error("Directory prompt template not found: %s", args.dir_template)
         sys.exit(1)
 
-    env_files = iter_env_files(args.input_dir)
+    selected_envs = set(args.env) if args.env else None
+    env_files = iter_env_files(args.input_dir, selected_envs=selected_envs)
     if not env_files:
         logger.warning("No JSON/JSONL files found in %s", args.input_dir)
         return
@@ -1131,14 +1041,12 @@ def main() -> None:
     toc_output_dir.mkdir(parents=True, exist_ok=True)
     dir_prompt_template = args.dir_template.read_text(encoding="utf-8")
     state_store = StateStore(args.state_dir)
-    legacy_cache = LegacyTextCache(args.legacy_root)
 
     logger.info("Found %d env files", len(env_files))
     logger.info("Input dir: %s", args.input_dir)
     logger.info("Output dir: %s", args.output_dir)
     logger.info("TOC output dir: %s", toc_output_dir)
     logger.info("State dir: %s", args.state_dir)
-    logger.info("Legacy root: %s", args.legacy_root)
     logger.info("Workers: %d", args.workers)
 
     all_stats: List[EnvRunStats] = []
@@ -1152,7 +1060,6 @@ def main() -> None:
                     config_path=args.config,
                     templates_dir=args.templates,
                     dir_prompt_template=dir_prompt_template,
-                    legacy_cache=legacy_cache,
                     state_store=state_store,
                     lock_stale_seconds=args.lock_stale_seconds,
                 )
@@ -1168,7 +1075,6 @@ def main() -> None:
                     config_path=args.config,
                     templates_dir=args.templates,
                     dir_prompt_template=dir_prompt_template,
-                    legacy_cache=legacy_cache,
                     state_store=state_store,
                     lock_stale_seconds=args.lock_stale_seconds,
                 )
