@@ -30,6 +30,7 @@ import logging
 import os
 import re
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -267,8 +268,13 @@ class StateStore:
 @contextlib.contextmanager
 def entry_lock(lock_path: Path, stale_seconds: int) -> Iterator[bool]:
     lock_path.parent.mkdir(parents=True, exist_ok=True)
-    if lock_path.exists():
-        age = time.time() - lock_path.stat().st_mtime
+    try:
+        stat = lock_path.stat()
+    except FileNotFoundError:
+        stat = None
+
+    if stat is not None:
+        age = time.time() - stat.st_mtime
         if age > stale_seconds:
             logger.warning("Removing stale lock: %s", lock_path)
             try:
@@ -280,17 +286,25 @@ def entry_lock(lock_path: Path, stale_seconds: int) -> Iterator[bool]:
             return
 
     fd: Optional[int] = None
+    acquired = False
     try:
-        fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        try:
+            fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            # Another process acquired the lock between exists/stat check and open.
+            yield False
+            return
         os.write(fd, f"pid={os.getpid()} started={now_iso()}\n".encode("utf-8"))
+        acquired = True
         yield True
     finally:
         if fd is not None:
             os.close(fd)
-        try:
-            lock_path.unlink()
-        except FileNotFoundError:
-            pass
+        if acquired:
+            try:
+                lock_path.unlink()
+            except FileNotFoundError:
+                pass
 
 
 class EntryProcessor:
@@ -857,6 +871,7 @@ def process_env_file(
     dir_prompt_template: str,
     state_store: StateStore,
     lock_stale_seconds: int,
+    entry_workers: int,
 ) -> EnvRunStats:
     env_name = env_file.stem
     stats = EnvRunStats(env=env_name)
@@ -878,49 +893,132 @@ def process_env_file(
     )
     toc_records: List[FileTOCRecord] = []
 
+    def _toc_record_from_output(out_entry: Mapping[str, Any]) -> Optional[FileTOCRecord]:
+        ident = file_identity(out_entry)
+        out_entry_key = out_entry.get("entry_key")
+        one_liner = out_entry.get("one_liner")
+        annotations = out_entry.get("annotations")
+        if ident is None or not isinstance(out_entry_key, str):
+            return None
+        _, full_rel, node_id = ident
+        one_liner_text = one_liner if isinstance(one_liner, str) and one_liner.strip() else "Missing one-liner"
+        annotation_count = len(annotations) if isinstance(annotations, Mapping) else 0
+        return FileTOCRecord(
+            entry_key=out_entry_key,
+            node_id=node_id,
+            rel_path=full_rel,
+            name=PurePosixPath(full_rel).name,
+            one_liner=one_liner_text,
+            annotation_count=annotation_count,
+        )
+
+    def _process_line(
+        line_idx: int,
+        line: str,
+        local_processor: EntryProcessor,
+    ) -> Tuple[Dict[str, Any], EntryRunStats, Optional[FileTOCRecord]]:
+        entry: Optional[Mapping[str, Any]] = None
+        try:
+            entry = json.loads(line)
+            if not isinstance(entry, Mapping):
+                raise ValueError("line is not a JSON object")
+            out_entry, entry_stats = local_processor.process_entry(env_name, line_idx, entry)
+        except Exception as exc:
+            logger.error("%s line %d: %s", env_name, line_idx, exc)
+            entry_stats = EntryRunStats(had_error=True)
+            if isinstance(entry, Mapping):
+                out_entry = dict(entry)
+            else:
+                out_entry = {"_error": str(exc)}
+
+        toc_record = _toc_record_from_output(out_entry) if isinstance(out_entry, Mapping) else None
+        return out_entry, entry_stats, toc_record
+
     with env_file.open("r", encoding="utf-8") as in_f, temp_output_path.open("w", encoding="utf-8") as out_f:
-        for line_idx, line in enumerate(in_f, start=1):
-            if not line.strip():
-                continue
-            entry: Optional[Mapping[str, Any]] = None
-            try:
-                entry = json.loads(line)
-                if not isinstance(entry, Mapping):
-                    raise ValueError("line is not a JSON object")
-                out_entry, entry_stats = processor.process_entry(env_name, line_idx, entry)
-            except Exception as exc:
-                logger.error("%s line %d: %s", env_name, line_idx, exc)
-                entry_stats = EntryRunStats(had_error=True)
-                if "entry" in locals() and isinstance(entry, Mapping):
-                    out_entry = dict(entry)
-                else:
-                    out_entry = {"_error": str(exc)}
+        if entry_workers <= 1:
+            for line_idx, line in enumerate(in_f, start=1):
+                if not line.strip():
+                    continue
+                out_entry, entry_stats, toc_record = _process_line(
+                    line_idx=line_idx,
+                    line=line,
+                    local_processor=processor,
+                )
+                out_f.write(json.dumps(out_entry, ensure_ascii=False) + "\n")
+                stats.add(entry_stats)
+                if toc_record is not None:
+                    toc_records.append(toc_record)
+        else:
+            thread_local = threading.local()
 
-            out_f.write(json.dumps(out_entry, ensure_ascii=False) + "\n")
-            stats.add(entry_stats)
-
-            if isinstance(out_entry, Mapping):
-                ident = file_identity(out_entry)
-                out_entry_key = out_entry.get("entry_key")
-                one_liner = out_entry.get("one_liner")
-                annotations = out_entry.get("annotations")
-                if (
-                    ident is not None
-                    and isinstance(out_entry_key, str)
-                ):
-                    _, full_rel, node_id = ident
-                    one_liner_text = one_liner if isinstance(one_liner, str) and one_liner.strip() else "Missing one-liner"
-                    annotation_count = len(annotations) if isinstance(annotations, Mapping) else 0
-                    toc_records.append(
-                        FileTOCRecord(
-                            entry_key=out_entry_key,
-                            node_id=node_id,
-                            rel_path=full_rel,
-                            name=PurePosixPath(full_rel).name,
-                            one_liner=one_liner_text,
-                            annotation_count=annotation_count,
-                        )
+            def _thread_processor() -> EntryProcessor:
+                current = getattr(thread_local, "processor", None)
+                if current is None:
+                    current = EntryProcessor(
+                        annotator=LLMAnnotator(config_path),
+                        templates_dir=templates_dir,
+                        state_store=state_store,
+                        lock_stale_seconds=lock_stale_seconds,
                     )
+                    thread_local.processor = current
+                return current
+
+            def _run_task(
+                seq: int,
+                line_idx: int,
+                line: str,
+            ) -> Tuple[int, Dict[str, Any], EntryRunStats, Optional[FileTOCRecord]]:
+                local = _thread_processor()
+                out_entry, entry_stats, toc_record = _process_line(
+                    line_idx=line_idx,
+                    line=line,
+                    local_processor=local,
+                )
+                return seq, out_entry, entry_stats, toc_record
+
+            max_in_flight = max(entry_workers * 4, entry_workers)
+            pending: Dict[concurrent.futures.Future[Tuple[int, Dict[str, Any], EntryRunStats, Optional[FileTOCRecord]]], int] = {}
+            ready: Dict[int, Tuple[Dict[str, Any], EntryRunStats, Optional[FileTOCRecord]]] = {}
+            next_to_write = 0
+            seq = 0
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=entry_workers) as executor:
+                for line_idx, line in enumerate(in_f, start=1):
+                    if not line.strip():
+                        continue
+                    future = executor.submit(_run_task, seq, line_idx, line)
+                    pending[future] = seq
+                    seq += 1
+
+                    while len(pending) >= max_in_flight:
+                        done, _ = concurrent.futures.wait(
+                            pending,
+                            return_when=concurrent.futures.FIRST_COMPLETED,
+                        )
+                        for finished in done:
+                            idx, out_entry, entry_stats, toc_record = finished.result()
+                            ready[idx] = (out_entry, entry_stats, toc_record)
+                            del pending[finished]
+
+                        while next_to_write in ready:
+                            out_entry, entry_stats, toc_record = ready.pop(next_to_write)
+                            out_f.write(json.dumps(out_entry, ensure_ascii=False) + "\n")
+                            stats.add(entry_stats)
+                            if toc_record is not None:
+                                toc_records.append(toc_record)
+                            next_to_write += 1
+
+                for finished in concurrent.futures.as_completed(list(pending.keys())):
+                    idx, out_entry, entry_stats, toc_record = finished.result()
+                    ready[idx] = (out_entry, entry_stats, toc_record)
+
+                while next_to_write in ready:
+                    out_entry, entry_stats, toc_record = ready.pop(next_to_write)
+                    out_f.write(json.dumps(out_entry, ensure_ascii=False) + "\n")
+                    stats.add(entry_stats)
+                    if toc_record is not None:
+                        toc_records.append(toc_record)
+                    next_to_write += 1
 
     temp_output_path.replace(output_path)
     toc_path = toc_output_dir / f"{env_name}.toc.json"
@@ -1006,6 +1104,12 @@ def main() -> None:
     )
     parser.add_argument("--workers", type=int, default=4, help="Number of env files processed in parallel.")
     parser.add_argument(
+        "--entry-workers",
+        type=int,
+        default=1,
+        help="Parallel workers per env file (source-file level).",
+    )
+    parser.add_argument(
         "--lock-stale-seconds",
         type=int,
         default=4 * 60 * 60,
@@ -1048,6 +1152,13 @@ def main() -> None:
     logger.info("TOC output dir: %s", toc_output_dir)
     logger.info("State dir: %s", args.state_dir)
     logger.info("Workers: %d", args.workers)
+    logger.info("Entry workers: %d", args.entry_workers)
+    if args.workers > 1 and args.entry_workers > 1:
+        logger.warning(
+            "Using both env-level and entry-level parallelism (%d x %d threads).",
+            args.workers,
+            args.entry_workers,
+        )
 
     all_stats: List[EnvRunStats] = []
     if args.workers <= 1:
@@ -1062,6 +1173,7 @@ def main() -> None:
                     dir_prompt_template=dir_prompt_template,
                     state_store=state_store,
                     lock_stale_seconds=args.lock_stale_seconds,
+                    entry_workers=args.entry_workers,
                 )
             )
     else:
@@ -1077,6 +1189,7 @@ def main() -> None:
                     dir_prompt_template=dir_prompt_template,
                     state_store=state_store,
                     lock_stale_seconds=args.lock_stale_seconds,
+                    entry_workers=args.entry_workers,
                 )
                 for env_file in env_files
             ]
