@@ -871,7 +871,7 @@ def process_env_file(
     dir_prompt_template: str,
     state_store: StateStore,
     lock_stale_seconds: int,
-    entry_workers: int,
+    workers: int,
 ) -> EnvRunStats:
     env_name = env_file.stem
     stats = EnvRunStats(env=env_name)
@@ -935,7 +935,7 @@ def process_env_file(
         return out_entry, entry_stats, toc_record
 
     with env_file.open("r", encoding="utf-8") as in_f, temp_output_path.open("w", encoding="utf-8") as out_f:
-        if entry_workers <= 1:
+        if workers <= 1:
             for line_idx, line in enumerate(in_f, start=1):
                 if not line.strip():
                     continue
@@ -976,13 +976,13 @@ def process_env_file(
                 )
                 return seq, out_entry, entry_stats, toc_record
 
-            max_in_flight = max(entry_workers * 4, entry_workers)
+            max_in_flight = max(workers * 4, workers)
             pending: Dict[concurrent.futures.Future[Tuple[int, Dict[str, Any], EntryRunStats, Optional[FileTOCRecord]]], int] = {}
             ready: Dict[int, Tuple[Dict[str, Any], EntryRunStats, Optional[FileTOCRecord]]] = {}
             next_to_write = 0
             seq = 0
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=entry_workers) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
                 for line_idx, line in enumerate(in_f, start=1):
                     if not line.strip():
                         continue
@@ -1102,9 +1102,8 @@ def main() -> None:
         default=[],
         help="Environment name (file stem). Repeat for multiple envs.",
     )
-    parser.add_argument("--workers", type=int, default=4, help="Number of env files processed in parallel.")
     parser.add_argument(
-        "--entry-workers",
+        "--workers",
         type=int,
         default=1,
         help="Parallel workers per env file (source-file level).",
@@ -1152,49 +1151,22 @@ def main() -> None:
     logger.info("TOC output dir: %s", toc_output_dir)
     logger.info("State dir: %s", args.state_dir)
     logger.info("Workers: %d", args.workers)
-    logger.info("Entry workers: %d", args.entry_workers)
-    if args.workers > 1 and args.entry_workers > 1:
-        logger.warning(
-            "Using both env-level and entry-level parallelism (%d x %d threads).",
-            args.workers,
-            args.entry_workers,
-        )
 
     all_stats: List[EnvRunStats] = []
-    if args.workers <= 1:
-        for env_file in tqdm(env_files, desc="Annotating env files"):
-            all_stats.append(
-                process_env_file(
-                    env_file=env_file,
-                    output_dir=args.output_dir,
-                    toc_output_dir=toc_output_dir,
-                    config_path=args.config,
-                    templates_dir=args.templates,
-                    dir_prompt_template=dir_prompt_template,
-                    state_store=state_store,
-                    lock_stale_seconds=args.lock_stale_seconds,
-                    entry_workers=args.entry_workers,
-                )
+    for env_file in tqdm(env_files, desc="Annotating env files"):
+        all_stats.append(
+            process_env_file(
+                env_file=env_file,
+                output_dir=args.output_dir,
+                toc_output_dir=toc_output_dir,
+                config_path=args.config,
+                templates_dir=args.templates,
+                dir_prompt_template=dir_prompt_template,
+                state_store=state_store,
+                lock_stale_seconds=args.lock_stale_seconds,
+                workers=args.workers,
             )
-    else:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
-            futures = [
-                executor.submit(
-                    process_env_file,
-                    env_file=env_file,
-                    output_dir=args.output_dir,
-                    toc_output_dir=toc_output_dir,
-                    config_path=args.config,
-                    templates_dir=args.templates,
-                    dir_prompt_template=dir_prompt_template,
-                    state_store=state_store,
-                    lock_stale_seconds=args.lock_stale_seconds,
-                    entry_workers=args.entry_workers,
-                )
-                for env_file in env_files
-            ]
-            for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Annotating env files"):
-                all_stats.append(future.result())
+        )
 
     total_entries = sum(s.entries for s in all_stats)
     total_llm_calls = sum(s.llm_calls for s in all_stats)
