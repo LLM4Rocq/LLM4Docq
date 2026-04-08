@@ -145,3 +145,13 @@ python -m script.peek_env_toc \
   --file Corelib/Lists/List.v \
   --max-docstrings 20
 ```
+
+## Retrieval
+
+Retrieval tooling (embedding precompute + HTTP server + client) now lives in:
+
+- `src/retrieval/`
+
+See the standalone guide:
+
+- [src/retrieval/README.md](src/retrieval/README.md)
