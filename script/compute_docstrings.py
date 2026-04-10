@@ -157,6 +157,35 @@ def _as_string_map(value: Any) -> Dict[str, str]:
     return out
 
 
+def _inject_toc_docstrings(toc_value: Any, annotations: Mapping[str, str]) -> Any:
+    if not isinstance(toc_value, list):
+        return toc_value
+
+    def _walk(nodes: List[Any]) -> List[Any]:
+        out_nodes: List[Any] = []
+        for raw in nodes:
+            if not isinstance(raw, Mapping):
+                out_nodes.append(raw)
+                continue
+
+            node = dict(raw)
+            data = node.get("data")
+            uid = data.get("uid") if isinstance(data, Mapping) else None
+            if isinstance(uid, str):
+                doc = annotations.get(uid)
+                if isinstance(doc, str):
+                    node["docstring"] = doc
+
+            members = node.get("members")
+            if isinstance(members, list):
+                node["members"] = _walk(list(members))
+
+            out_nodes.append(node)
+        return out_nodes
+
+    return _walk(list(toc_value))
+
+
 @dataclass
 class EntryRunStats:
     llm_calls: int = 0
@@ -649,6 +678,7 @@ class EntryProcessor:
             out["header"] = header
         if isinstance(annotations, Mapping):
             out["annotations"] = dict(annotations)
+            out["toc"] = _inject_toc_docstrings(out.get("toc"), out["annotations"])
         if isinstance(entry_key_value, str):
             out["entry_key"] = entry_key_value
         ident = file_identity(entry)
@@ -1057,7 +1087,7 @@ def main() -> None:
     parser.add_argument(
         "--input-dir",
         type=Path,
-        default=Path("chunk_ter_output"),
+        default=Path("chunk_ter_output_v2"),
         help="Directory containing chunk_ter per-env JSON/JSONL files.",
     )
     parser.add_argument(
@@ -1105,13 +1135,13 @@ def main() -> None:
     parser.add_argument(
         "--workers",
         type=int,
-        default=1,
+        default=64,
         help="Parallel workers per env file (source-file level).",
     )
     parser.add_argument(
         "--lock-stale-seconds",
         type=int,
-        default=4 * 60 * 60,
+        default=20* 60,
         help="Treat lock files older than this threshold as stale.",
     )
     parser.add_argument("--log-level", type=str, default="INFO", help="Logging level.")
