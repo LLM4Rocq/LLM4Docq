@@ -5,6 +5,10 @@ The script downloads one environment slice (or all environments) from HF
 (streaming by default), extracts TOC docstrings, computes embeddings in
 batches, and writes one `.pt` file per library.
 
+Each exported text is: `<full source statement> + <docstring>`.
+Localizations include both byte offsets (`start_bp`, `end_bp`) and derived
+line/character positions computed from UTF-8 source content.
+
 Supported HF row formats:
 1. Raw rows containing `library`, `source`, `toc`.
 2. `source_blobs` rows containing `entry_json` (serialized raw row).
@@ -13,6 +17,7 @@ Supported HF row formats:
 from __future__ import annotations
 
 import argparse
+import bisect
 import json
 import re
 import shutil
@@ -101,11 +106,158 @@ def _parse_range(range_obj: Any) -> Dict[str, Optional[int]]:
 
 def _parse_span(span_obj: Any) -> Dict[str, Optional[int]]:
     if not isinstance(span_obj, Mapping):
-        return {"span_bp": None, "span_ep": None}
+        return {"start_bp": None, "end_bp": None}
+    start_bp = _to_int(span_obj.get("start_bp"))
+    end_bp = _to_int(span_obj.get("end_bp"))
+    if start_bp is None:
+        start_bp = _to_int(span_obj.get("bp"))
+    if end_bp is None:
+        end_bp = _to_int(span_obj.get("ep"))
     return {
-        "span_bp": _to_int(span_obj.get("bp")),
-        "span_ep": _to_int(span_obj.get("ep")),
+        "start_bp": start_bp,
+        "end_bp": end_bp,
     }
+
+
+def _normalize_bp_ep(bp: Optional[int], ep: Optional[int]) -> Tuple[Optional[int], Optional[int]]:
+    if isinstance(bp, int) and bp < 0:
+        bp = 0
+    if isinstance(ep, int) and ep < 0:
+        ep = None
+    if isinstance(bp, int) and isinstance(ep, int) and ep < bp:
+        ep = bp
+    return bp, ep
+
+
+def _extract_bp_ep(row: Mapping[str, Any]) -> Tuple[Optional[int], Optional[int]]:
+    start_bp = _to_int(row.get("start_bp"))
+    end_bp = _to_int(row.get("end_bp"))
+    if start_bp is None:
+        start_bp = _to_int(row.get("span_bp"))
+    if end_bp is None:
+        end_bp = _to_int(row.get("span_ep"))
+
+    if start_bp is None or end_bp is None:
+        span_obj = row.get("span")
+        if isinstance(span_obj, Mapping):
+            parsed = _parse_span(span_obj)
+            if start_bp is None:
+                start_bp = parsed["start_bp"]
+            if end_bp is None:
+                end_bp = parsed["end_bp"]
+
+    if start_bp is None:
+        start_bp = _to_int(row.get("bp"))
+    if end_bp is None:
+        end_bp = _to_int(row.get("ep"))
+    return _normalize_bp_ep(start_bp, end_bp)
+
+
+def _build_line_start_offsets(content_bytes: bytes) -> List[int]:
+    starts = [0]
+    cursor = 0
+    while True:
+        idx = content_bytes.find(b"\n", cursor)
+        if idx < 0:
+            break
+        starts.append(idx + 1)
+        cursor = idx + 1
+    return starts
+
+
+@dataclass
+class SourceTextView:
+    content: str
+    content_bytes: bytes
+    line_starts: List[int]
+
+
+def _build_source_text_view(source_content: Optional[str]) -> Optional[SourceTextView]:
+    if not isinstance(source_content, str):
+        return None
+    content_bytes = source_content.encode("utf-8")
+    return SourceTextView(
+        content=source_content,
+        content_bytes=content_bytes,
+        line_starts=_build_line_start_offsets(content_bytes),
+    )
+
+
+def _byte_offset_to_line_char(content_bytes: bytes, line_starts: Sequence[int], offset: int) -> Tuple[int, int]:
+    offset = max(0, min(offset, len(content_bytes)))
+    line = bisect.bisect_right(line_starts, offset) - 1
+    if line < 0:
+        line = 0
+    line_start = line_starts[line] if line < len(line_starts) else 0
+    segment = content_bytes[line_start:offset]
+    character = len(segment.decode("utf-8", errors="ignore"))
+    return line, character
+
+
+def _localization_from_offsets(
+    source_view: Optional[SourceTextView],
+    bp: Optional[int],
+    ep: Optional[int],
+    range_hint: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Optional[int]]:
+    bp, ep = _normalize_bp_ep(bp, ep)
+    out: Dict[str, Optional[int]] = {
+        "start_bp": bp,
+        "end_bp": ep,
+        "start_line": None,
+        "start_character": None,
+        "end_line": None,
+        "end_character": None,
+    }
+
+    if source_view is not None and (bp is not None or ep is not None):
+        content_bytes = source_view.content_bytes
+        line_starts = source_view.line_starts
+        if bp is not None:
+            start_line, start_char = _byte_offset_to_line_char(content_bytes, line_starts, bp)
+            out["start_line"] = start_line
+            out["start_character"] = start_char
+        if ep is not None:
+            end_line, end_char = _byte_offset_to_line_char(content_bytes, line_starts, ep)
+            out["end_line"] = end_line
+            out["end_character"] = end_char
+
+    if isinstance(range_hint, Mapping):
+        parsed = _parse_range(range_hint)
+        if out["start_line"] is None:
+            out["start_line"] = parsed["start_line"]
+        if out["start_character"] is None:
+            out["start_character"] = parsed["start_character"]
+        if out["end_line"] is None:
+            out["end_line"] = parsed["end_line"]
+        if out["end_character"] is None:
+            out["end_character"] = parsed["end_character"]
+
+    return out
+
+
+def _statement_from_offsets(source_view: Optional[SourceTextView], bp: Optional[int], ep: Optional[int]) -> str:
+    if source_view is None:
+        return ""
+    bp, ep = _normalize_bp_ep(bp, ep)
+    if bp is None or ep is None:
+        return ""
+    content_bytes = source_view.content_bytes
+    bp = max(0, min(bp, len(content_bytes)))
+    ep = max(bp, min(ep, len(content_bytes)))
+    if ep <= bp:
+        return ""
+    return content_bytes[bp:ep].decode("utf-8", errors="replace").strip()
+
+
+def _merge_statement_and_docstring(statement: str, docstring: str) -> str:
+    statement = statement.strip()
+    docstring = docstring.strip()
+    if statement and docstring:
+        return f"{statement}\n\n{docstring}"
+    if statement:
+        return statement
+    return docstring
 
 
 def _safe_filename(value: str) -> str:
@@ -125,6 +277,8 @@ def _iter_with_first(first: Any, iterator: Iterator[Any]) -> Iterator[Any]:
 class DocRecord:
     library: str
     docstring: str
+    docstring_raw: str
+    statement: str
     logical_path: Optional[str]
     relative_path: str
     source_path: str
@@ -143,6 +297,7 @@ def _extract_doc_records(entry: Mapping[str, Any]) -> List[DocRecord]:
     source_path = _to_str(source.get("path")) or ""
     logical_path = _to_str(source.get("logical_path"))
     relative_path = _source_relative_path(source_path, library)
+    source_view = _build_source_text_view(_to_str(source.get("content")))
 
     annotations = _as_string_map(entry.get("annotations"))
     cache_field = _as_string_map(entry.get("cache_field"))
@@ -162,18 +317,26 @@ def _extract_doc_records(entry: Mapping[str, Any]) -> List[DocRecord]:
                 data = {}
 
             uid = _to_str(data.get("uid"))
-            doc = _non_empty_str(raw.get("docstring"))
-            if doc is None and isinstance(uid, str):
-                doc = annotations.get(uid) or cache_field.get(uid)
+            doc_raw = _non_empty_str(raw.get("docstring"))
+            if doc_raw is None and isinstance(uid, str):
+                doc_raw = annotations.get(uid) or cache_field.get(uid)
 
-            if doc is not None:
-                localization = {}
-                localization.update(_parse_range(raw.get("range")))
-                localization.update(_parse_span(raw.get("span")))
+            if doc_raw is not None:
+                bp, ep = _extract_bp_ep(raw)
+                localization = _localization_from_offsets(
+                    source_view=source_view,
+                    bp=bp,
+                    ep=ep,
+                    range_hint=raw.get("range"),
+                )
+                statement = _statement_from_offsets(source_view=source_view, bp=bp, ep=ep)
+                embedding_text = _merge_statement_and_docstring(statement=statement, docstring=doc_raw)
                 out.append(
                     DocRecord(
                         library=library,
-                        docstring=doc,
+                        docstring=embedding_text,
+                        docstring_raw=doc_raw,
+                        statement=statement,
                         logical_path=logical_path,
                         relative_path=relative_path,
                         source_path=source_path,
@@ -640,6 +803,8 @@ def _spool_docstrings_by_library(
                     json.dumps(
                         {
                             "docstring": record.docstring,
+                            "docstring_raw": record.docstring_raw,
+                            "statement": record.statement,
                             "logical_path": record.logical_path,
                             "relative_path": record.relative_path,
                             "source_path": record.source_path,
@@ -663,11 +828,12 @@ def _spool_docstrings_by_library(
     return path_by_library, dict(counts), total
 
 
-def _source_meta_from_table_row(row: Mapping[str, Any]) -> Optional[Dict[str, Optional[str]]]:
+def _source_meta_from_table_row(row: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
     library = _to_str(row.get("library"))
     source_path = _to_str(row.get("source_path"))
     if not isinstance(library, str) or not isinstance(source_path, str):
         return None
+    source_content = _to_str(row.get("content"))
 
     return {
         "library": library,
@@ -675,18 +841,30 @@ def _source_meta_from_table_row(row: Mapping[str, Any]) -> Optional[Dict[str, Op
         "logical_path": _to_str(row.get("logical_path")),
         "relative_path": _source_relative_path(source_path, library),
         "source_id": _to_str(row.get("source_id")),
+        "source_view": _build_source_text_view(source_content),
     }
 
 
-def _toc_localization_from_table_row(row: Mapping[str, Any]) -> Dict[str, Optional[int]]:
-    return {
-        "start_line": _to_int(row.get("range_start_line")),
-        "start_character": _to_int(row.get("range_start_character")),
-        "end_line": _to_int(row.get("range_end_line")),
-        "end_character": _to_int(row.get("range_end_character")),
-        "span_bp": _to_int(row.get("span_bp")),
-        "span_ep": _to_int(row.get("span_ep")),
-    }
+def _toc_localization_from_table_row(
+    row: Mapping[str, Any],
+    source_view: Optional[SourceTextView],
+) -> Dict[str, Optional[int]]:
+    start_bp, end_bp = _extract_bp_ep(row)
+    return _localization_from_offsets(
+        source_view=source_view,
+        bp=start_bp,
+        ep=end_bp,
+        range_hint={
+            "start": {
+                "line": _to_int(row.get("range_start_line")),
+                "character": _to_int(row.get("range_start_character")),
+            },
+            "end": {
+                "line": _to_int(row.get("range_end_line")),
+                "character": _to_int(row.get("range_end_character")),
+            },
+        },
+    )
 
 
 def _write_spooled_record(
@@ -696,6 +874,8 @@ def _write_spooled_record(
     logical_path: Optional[str],
     relative_path: str,
     docstring: str,
+    docstring_raw: str,
+    statement: str,
     uid: Optional[str],
     kind: Optional[str],
     name: Optional[str],
@@ -705,6 +885,8 @@ def _write_spooled_record(
         json.dumps(
             {
                 "docstring": docstring,
+                "docstring_raw": docstring_raw,
+                "statement": statement,
                 "logical_path": logical_path,
                 "relative_path": relative_path,
                 "source_path": source_path,
@@ -730,8 +912,8 @@ def _spool_docstrings_by_library_from_tables(
     counts: Dict[str, int] = defaultdict(int)
     total = 0
 
-    source_list: List[Dict[str, Optional[str]]] = []
-    source_by_id: Dict[str, Dict[str, Optional[str]]] = {}
+    source_list: List[Dict[str, Any]] = []
+    source_by_id: Dict[str, Dict[str, Any]] = {}
     for src_row in sources_rows:
         if not isinstance(src_row, Mapping):
             continue
@@ -783,6 +965,14 @@ def _spool_docstrings_by_library_from_tables(
                 relative_path = source_meta["relative_path"]
                 if not isinstance(library, str) or not isinstance(source_path, str) or not isinstance(relative_path, str):
                     continue
+                source_view = source_meta.get("source_view")
+                localization = _toc_localization_from_table_row(toc_row, source_view)
+                statement = _statement_from_offsets(
+                    source_view=source_view,
+                    bp=localization.get("start_bp"),
+                    ep=localization.get("end_bp"),
+                )
+                embedding_text = _merge_statement_and_docstring(statement=statement, docstring=docstring)
 
                 handle = _open_library_writer(
                     library=library,
@@ -797,11 +987,13 @@ def _spool_docstrings_by_library_from_tables(
                     source_path=source_path,
                     logical_path=source_meta.get("logical_path"),
                     relative_path=relative_path,
-                    docstring=docstring,
+                    docstring=embedding_text,
+                    docstring_raw=docstring,
+                    statement=statement,
                     uid=_to_str(toc_row.get("data_uid")),
                     kind=_to_str(toc_row.get("kind")),
                     name=_to_str(toc_row.get("name")),
-                    localization=_toc_localization_from_table_row(toc_row),
+                    localization=localization,
                 )
                 counts[library] += 1
                 total += 1
@@ -840,6 +1032,14 @@ def _spool_docstrings_by_library_from_tables(
                 relative_path = current_source["relative_path"]
                 if not isinstance(library, str) or not isinstance(source_path, str) or not isinstance(relative_path, str):
                     continue
+                source_view = current_source.get("source_view")
+                localization = _toc_localization_from_table_row(toc_row, source_view)
+                statement = _statement_from_offsets(
+                    source_view=source_view,
+                    bp=localization.get("start_bp"),
+                    ep=localization.get("end_bp"),
+                )
+                embedding_text = _merge_statement_and_docstring(statement=statement, docstring=docstring)
 
                 handle = _open_library_writer(
                     library=library,
@@ -854,11 +1054,13 @@ def _spool_docstrings_by_library_from_tables(
                     source_path=source_path,
                     logical_path=current_source.get("logical_path"),
                     relative_path=relative_path,
-                    docstring=docstring,
+                    docstring=embedding_text,
+                    docstring_raw=docstring,
+                    statement=statement,
                     uid=_to_str(toc_row.get("data_uid")),
                     kind=_to_str(toc_row.get("kind")),
                     name=_to_str(toc_row.get("name")),
-                    localization=_toc_localization_from_table_row(toc_row),
+                    localization=localization,
                 )
                 counts[library] += 1
                 total += 1
@@ -903,6 +1105,8 @@ def _embed_records_for_library(
     import torch  # type: ignore
 
     docstrings: List[str] = []
+    docstrings_raw: List[str] = []
+    statements: List[str] = []
     logical_paths: List[Optional[str]] = []
     relative_paths: List[str] = []
     source_paths: List[str] = []
@@ -928,6 +1132,8 @@ def _embed_records_for_library(
             chunks.append(embedder.encode(batch_texts))
             for meta, doc in zip(batch_meta, batch_texts):
                 docstrings.append(doc)
+                docstrings_raw.append(_to_str(meta.get("docstring_raw")) or "")
+                statements.append(_to_str(meta.get("statement")) or "")
                 logical_paths.append(_to_str(meta.get("logical_path")))
                 relative_paths.append(_to_str(meta.get("relative_path")) or "")
                 source_paths.append(_to_str(meta.get("source_path")) or "")
@@ -945,6 +1151,8 @@ def _embed_records_for_library(
         chunks.append(embedder.encode(batch_texts))
         for meta, doc in zip(batch_meta, batch_texts):
             docstrings.append(doc)
+            docstrings_raw.append(_to_str(meta.get("docstring_raw")) or "")
+            statements.append(_to_str(meta.get("statement")) or "")
             logical_paths.append(_to_str(meta.get("logical_path")))
             relative_paths.append(_to_str(meta.get("relative_path")) or "")
             source_paths.append(_to_str(meta.get("source_path")) or "")
@@ -962,7 +1170,10 @@ def _embed_records_for_library(
         )
 
     return {
+        "format_version": 2,
         "docstrings": docstrings,
+        "docstrings_raw": docstrings_raw,
+        "statements": statements,
         "logical_paths": logical_paths,
         "relative_paths": relative_paths,
         "source_paths": source_paths,
@@ -1029,6 +1240,7 @@ def _process_env(
             "hf_split": args.hf_split,
             "hf_revision": args.hf_revision,
             "row_mode": row_mode,
+            "format_version": 2,
             "streaming": bool(args.streaming),
             "model_name": args.model_name,
             "device": args.device,

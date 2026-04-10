@@ -11,8 +11,11 @@ Input layout (produced by precompute_embeddings.py):
       ...
 
 Each .pt file is expected to contain:
+  - format_version: int (must be 2)
   - embeddings: torch.Tensor [N, D]
   - docstrings: list[str]
+  - docstrings_raw: list[str]
+  - statements: list[str]
   - logical_paths: list[str | None]
   - localizations: list[dict]
 
@@ -41,6 +44,7 @@ from pydantic import BaseModel, Field
 
 
 DEFAULT_EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-4B"
+EMBEDDING_PAYLOAD_FORMAT_VERSION = 2
 
 
 def _default_device() -> str:
@@ -57,6 +61,15 @@ def _to_str(value: Any) -> Optional[str]:
     if isinstance(value, str):
         return value
     return str(value)
+
+
+def _to_int(value: Any) -> Optional[int]:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _as_string_list(value: Any, expected_len: int, fallback: str = "") -> List[str]:
@@ -234,6 +247,8 @@ class EnvRuntime:
     index: Any
     model_name: str
     docstrings: List[str]
+    docstrings_raw: List[str]
+    statements: List[str]
     logical_paths: List[Optional[str]]
     localizations: List[Dict[str, Any]]
     relative_paths: List[str]
@@ -274,10 +289,18 @@ class RetrievalService:
     def list_envs(self) -> List[str]:
         if not self.embeddings_root.exists():
             return []
+        cache_dir_resolved = self.cache_dir.resolve()
         envs: List[str] = []
         for path in sorted(self.embeddings_root.iterdir()):
             if not path.is_dir():
                 continue
+            if path.name.startswith("."):
+                continue
+            try:
+                if path.resolve() == cache_dir_resolved:
+                    continue
+            except OSError:
+                pass
             if any(path.glob("*.pt")):
                 envs.append(path.name)
         return envs
@@ -321,6 +344,8 @@ class RetrievalService:
                     "rank": rank,
                     "score": float(score),
                     "docstring": runtime.docstrings[idx],
+                    "docstring_raw": runtime.docstrings_raw[idx],
+                    "statement": runtime.statements[idx],
                     "logical_path": runtime.logical_paths[idx],
                     "localization": runtime.localizations[idx],
                     "relative_path": runtime.relative_paths[idx],
@@ -363,6 +388,11 @@ class RetrievalService:
         env_dir = self.embeddings_root / env
         if not env_dir.exists() or not env_dir.is_dir():
             raise FileNotFoundError(f"Unknown environment: {env}")
+        try:
+            if env_dir.resolve() == self.cache_dir.resolve():
+                raise FileNotFoundError(f"Unknown environment: {env}")
+        except OSError:
+            pass
         files = sorted(p for p in env_dir.glob("*.pt") if p.is_file())
         if not files:
             raise FileNotFoundError(f"No .pt embedding files found for env: {env}")
@@ -389,7 +419,10 @@ class RetrievalService:
         index_path, meta_path = self._cache_paths(env, fingerprint)
 
         if index_path.exists() and meta_path.exists():
-            return self._load_cached_runtime(env, fingerprint, index_path, meta_path)
+            try:
+                return self._load_cached_runtime(env, fingerprint, index_path, meta_path)
+            except RuntimeError as exc:
+                print(f"[cache] rebuilding env={env} after cache load failure: {exc}")
 
         runtime = self._build_runtime(env, fingerprint, pt_files)
         self._save_runtime_cache(runtime, index_path, meta_path)
@@ -412,8 +445,16 @@ class RetrievalService:
         meta = torch.load(meta_path, map_location="cpu")
         if not isinstance(meta, Mapping):
             raise RuntimeError(f"Invalid cache metadata format: {meta_path}")
+        format_version = _to_int(meta.get("format_version"))
+        if format_version != EMBEDDING_PAYLOAD_FORMAT_VERSION:
+            raise RuntimeError(
+                f"Unsupported cache metadata format_version={format_version} for env={env}. "
+                "Delete the cache directory and restart the server."
+            )
 
         docstrings = _as_string_list(meta.get("docstrings"), expected_len=int(meta.get("size", 0)), fallback="")
+        docstrings_raw = _as_string_list(meta.get("docstrings_raw"), expected_len=len(docstrings), fallback="")
+        statements = _as_string_list(meta.get("statements"), expected_len=len(docstrings), fallback="")
         logical_paths = _as_optional_string_list(meta.get("logical_paths"), expected_len=len(docstrings))
         localizations = _as_mapping_list(meta.get("localizations"), expected_len=len(docstrings))
         relative_paths = _as_string_list(meta.get("relative_paths"), expected_len=len(docstrings), fallback="")
@@ -430,6 +471,8 @@ class RetrievalService:
             index=index,
             model_name=model_name,
             docstrings=docstrings,
+            docstrings_raw=docstrings_raw,
+            statements=statements,
             logical_paths=logical_paths,
             localizations=localizations,
             relative_paths=relative_paths,
@@ -446,6 +489,8 @@ class RetrievalService:
 
         vectors: List[np.ndarray] = []
         docstrings: List[str] = []
+        docstrings_raw: List[str] = []
+        statements: List[str] = []
         logical_paths: List[Optional[str]] = []
         localizations: List[Dict[str, Any]] = []
         relative_paths: List[str] = []
@@ -456,6 +501,12 @@ class RetrievalService:
             payload = torch.load(path, map_location="cpu")
             if not isinstance(payload, Mapping):
                 continue
+            format_version = _to_int(payload.get("format_version"))
+            if format_version != EMBEDDING_PAYLOAD_FORMAT_VERSION:
+                raise RuntimeError(
+                    f"{path}: unsupported embedding payload format_version={format_version}. "
+                    "Run src/retrieval/migrate_embeddings_format.py to upgrade existing files."
+                )
 
             emb = payload.get("embeddings")
             if emb is None:
@@ -472,6 +523,8 @@ class RetrievalService:
                 continue
 
             ds = _as_string_list(payload.get("docstrings"), expected_len=n, fallback="")
+            dr = _as_string_list(payload.get("docstrings_raw"), expected_len=n, fallback="")
+            st = _as_string_list(payload.get("statements"), expected_len=n, fallback="")
             lp = _as_optional_string_list(payload.get("logical_paths"), expected_len=n)
             loc = _as_mapping_list(payload.get("localizations"), expected_len=n)
             rp = _as_string_list(payload.get("relative_paths"), expected_len=n, fallback="")
@@ -480,6 +533,8 @@ class RetrievalService:
 
             vectors.append(arr)
             docstrings.extend(ds)
+            docstrings_raw.extend(dr)
+            statements.extend(st)
             logical_paths.extend(lp)
             localizations.extend(loc)
             relative_paths.extend(rp)
@@ -515,6 +570,8 @@ class RetrievalService:
             index=index,
             model_name=model_name,
             docstrings=docstrings,
+            docstrings_raw=docstrings_raw,
+            statements=statements,
             logical_paths=logical_paths,
             localizations=localizations,
             relative_paths=relative_paths,
@@ -534,12 +591,15 @@ class RetrievalService:
         faiss.write_index(runtime.index, str(index_path))
 
         meta = {
+            "format_version": EMBEDDING_PAYLOAD_FORMAT_VERSION,
             "env": runtime.env,
             "fingerprint": runtime.fingerprint,
             "size": runtime.size,
             "dim": runtime.index.d,
             "model_name": runtime.model_name,
             "docstrings": runtime.docstrings,
+            "docstrings_raw": runtime.docstrings_raw,
+            "statements": runtime.statements,
             "logical_paths": runtime.logical_paths,
             "localizations": runtime.localizations,
             "relative_paths": runtime.relative_paths,
