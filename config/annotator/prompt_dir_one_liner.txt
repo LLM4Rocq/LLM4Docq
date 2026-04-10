@@ -1,0 +1,17 @@
+You are writing a compact one-line description for a Coq library directory.
+
+Directory path:
+{dir_path}
+
+Direct children and their summaries:
+{children}
+
+Requirements:
+- Output exactly one sentence.
+- Keep it short (about 8 to 20 words).
+- Mention the main mathematical/software theme of the directory.
+- Do not list filenames.
+- Do not use markdown or code blocks.
+- Use plain, neutral English.
+
+Return only the sentence.
