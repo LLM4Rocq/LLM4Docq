@@ -24,6 +24,8 @@ module load arch/h100 cuda/12.8.0 nccl/2.25.1-1-cuda miniforge/25.9.1
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Activating environment on node $SLURM_PROCID"
 conda activate sglang
 
+export LD_PRELOAD=$HOME/.conda/envs/sglang/lib/python3.12/site-packages/nvidia/cudnn/lib/libcudnn.so.9
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 # Define parameters
 
 MODEL="/lustre/fsn1/projects/rech/tdm/ulu88xb/hf_home/hub/models--moonshotai--Kimi-K2.5/snapshots/3367c8d1c68584429fab7faf845a32d5195b6ac1/"
