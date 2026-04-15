@@ -14,6 +14,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--env", required=True, help="Environment name.")
     parser.add_argument("--query", required=True, help="Natural-language query.")
     parser.add_argument("--k", type=int, default=5, help="Top-k results.")
+    parser.add_argument(
+        "--library",
+        action="append",
+        default=[],
+        help="Restrict retrieval to one or more libraries (repeatable).",
+    )
+    parser.add_argument(
+        "--kind",
+        action="append",
+        default=[],
+        help="Restrict retrieval to one or more TOC kinds (repeatable).",
+    )
     return parser.parse_args()
 
 
@@ -27,6 +39,10 @@ def main() -> None:
         "env": args.env,
         "k": args.k,
     }
+    if args.library:
+        payload["libraries"] = list(args.library)
+    if args.kind:
+        payload["kinds"] = list(args.kind)
     data = json.dumps(payload).encode("utf-8")
     url = args.base_url.rstrip("/") + "/search"
 

@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm4docq-retrieval"
+version = "0.1.0"
+description = "Retrieval server and embedding tooling for LLM4Docq docstrings."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.110",
+  "numpy>=1.24",
+  "pydantic>=2,<3",
+  "uvicorn>=0.29",
+]
+
+[project.optional-dependencies]
+retrieval = [
+  "datasets>=2.19",
+  "faiss-cpu>=1.8.0",
+  "torch>=2.1",
+  "transformers>=4.45",
+]
+
+[project.scripts]
+rocq-ml-retrieval-server = "retrieval.server:main"
+rocq-ml-retrieval-client = "retrieval.client:main"
+rocq-ml-precompute-embeddings = "retrieval.precompute_embeddings:main"
+rocq-ml-migrate-embeddings-format = "retrieval.migrate_embeddings_format:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["retrieval*"]

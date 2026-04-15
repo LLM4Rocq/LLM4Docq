@@ -18,10 +18,13 @@ Each .pt file is expected to contain:
   - statements: list[str]
   - logical_paths: list[str | None]
   - localizations: list[dict]
+  - kinds: list[str | None] (optional but recommended)
+  - names: list[str | None] (optional)
 
 The server exposes:
   - GET  /health
   - GET  /envs
+  - GET  /get_libraries?env=<env>
   - POST /search
 
 And caches one FAISS index per env on disk so it is not rebuilt every run.
@@ -251,6 +254,8 @@ class EnvRuntime:
     statements: List[str]
     logical_paths: List[Optional[str]]
     localizations: List[Dict[str, Any]]
+    kinds: List[Optional[str]]
+    names: List[Optional[str]]
     relative_paths: List[str]
     libraries: List[str]
     fingerprint: str
@@ -258,6 +263,14 @@ class EnvRuntime:
     @property
     def size(self) -> int:
         return len(self.docstrings)
+
+    @property
+    def available_libraries(self) -> List[str]:
+        return sorted({lib for lib in self.libraries if isinstance(lib, str) and lib})
+
+    @property
+    def available_kinds(self) -> List[str]:
+        return sorted({kind for kind in self.kinds if isinstance(kind, str) and kind})
 
 
 class RetrievalService:
@@ -305,7 +318,86 @@ class RetrievalService:
                 envs.append(path.name)
         return envs
 
-    def search(self, query: str, env: str, k: int) -> Dict[str, Any]:
+    def list_libraries(self, env: str) -> List[str]:
+        if not isinstance(env, str) or not env.strip():
+            raise ValueError("env must be a non-empty string.")
+        runtime = self._get_env_runtime(env.strip())
+        return runtime.available_libraries
+
+    def _normalize_filter_values(self, values: Optional[Sequence[str]]) -> Optional[List[str]]:
+        if values is None:
+            return None
+        out: List[str] = []
+        seen: set[str] = set()
+        for value in values:
+            text = _to_str(value)
+            if not isinstance(text, str):
+                continue
+            text = text.strip()
+            if not text:
+                continue
+            if text in seen:
+                continue
+            seen.add(text)
+            out.append(text)
+        if not out:
+            return None
+        return out
+
+    def _build_allowed_mask(
+        self,
+        runtime: EnvRuntime,
+        *,
+        libraries: Optional[Sequence[str]],
+        kinds: Optional[Sequence[str]],
+    ) -> Tuple[np.ndarray, Optional[List[str]], Optional[List[str]]]:
+        selected_libraries = self._normalize_filter_values(libraries)
+        selected_kinds = self._normalize_filter_values(kinds)
+
+        if selected_libraries is not None:
+            available = set(runtime.available_libraries)
+            unknown = [lib for lib in selected_libraries if lib not in available]
+            if unknown:
+                raise ValueError(
+                    "Unknown libraries for env "
+                    f"{runtime.env}: {unknown}. Available: {runtime.available_libraries}"
+                )
+
+        if selected_kinds is not None:
+            available = set(runtime.available_kinds)
+            unknown = [kind for kind in selected_kinds if kind not in available]
+            if unknown:
+                raise ValueError(
+                    "Unknown kinds for env "
+                    f"{runtime.env}: {unknown}. Available: {runtime.available_kinds}"
+                )
+
+        allowed = np.ones(runtime.size, dtype=bool)
+
+        if selected_libraries is not None:
+            selected_set = set(selected_libraries)
+            lib_mask = np.fromiter((lib in selected_set for lib in runtime.libraries), dtype=bool, count=runtime.size)
+            allowed &= lib_mask
+
+        if selected_kinds is not None:
+            selected_set = set(selected_kinds)
+            kind_mask = np.fromiter(
+                ((isinstance(kind, str) and kind in selected_set) for kind in runtime.kinds),
+                dtype=bool,
+                count=runtime.size,
+            )
+            allowed &= kind_mask
+
+        return allowed, selected_libraries, selected_kinds
+
+    def search(
+        self,
+        query: str,
+        env: str,
+        k: int,
+        libraries: Optional[Sequence[str]] = None,
+        kinds: Optional[Sequence[str]] = None,
+    ) -> Dict[str, Any]:
         if not isinstance(query, str) or not query.strip():
             raise ValueError("query must be a non-empty string.")
         if not isinstance(env, str) or not env.strip():
@@ -314,6 +406,13 @@ class RetrievalService:
             raise ValueError("k must be >= 1.")
 
         runtime = self._get_env_runtime(env.strip())
+        allowed_mask, selected_libraries, selected_kinds = self._build_allowed_mask(
+            runtime,
+            libraries=libraries,
+            kinds=kinds,
+        )
+        candidate_count = int(allowed_mask.sum())
+
         model = self.embedder_pool.get(runtime.model_name)
         qvec = model.encode([query.strip()])
 
@@ -322,7 +421,7 @@ class RetrievalService:
                 f"Query embedding dim ({qvec.shape[1]}) does not match index dim ({runtime.index.d})."
             )
 
-        kk = min(k, runtime.size)
+        kk = min(k, candidate_count)
         if kk == 0:
             return {
                 "env": runtime.env,
@@ -331,27 +430,43 @@ class RetrievalService:
                 "returned": 0,
                 "model_name": runtime.model_name,
                 "index_size": runtime.size,
+                "candidate_count": candidate_count,
+                "libraries": selected_libraries if selected_libraries is not None else runtime.available_libraries,
+                "kinds": selected_kinds if selected_kinds is not None else runtime.available_kinds,
                 "results": [],
             }
 
-        scores, ids = runtime.index.search(qvec, kk)
         hits: List[Dict[str, Any]] = []
-        for rank, (idx, score) in enumerate(zip(ids[0].tolist(), scores[0].tolist()), start=1):
-            if idx < 0:
-                continue
-            hits.append(
-                {
-                    "rank": rank,
-                    "score": float(score),
-                    "docstring": runtime.docstrings[idx],
-                    "docstring_raw": runtime.docstrings_raw[idx],
-                    "statement": runtime.statements[idx],
-                    "logical_path": runtime.logical_paths[idx],
-                    "localization": runtime.localizations[idx],
-                    "relative_path": runtime.relative_paths[idx],
-                    "library": runtime.libraries[idx],
-                }
-            )
+        search_k = min(max(kk * 4, 32), runtime.size)
+
+        while True:
+            scores, ids = runtime.index.search(qvec, search_k)
+            for idx, score in zip(ids[0].tolist(), scores[0].tolist()):
+                if idx < 0:
+                    continue
+                if not allowed_mask[idx]:
+                    continue
+                hits.append(
+                    {
+                        "rank": len(hits) + 1,
+                        "score": float(score),
+                        "docstring": runtime.docstrings[idx],
+                        "docstring_raw": runtime.docstrings_raw[idx],
+                        "statement": runtime.statements[idx],
+                        "logical_path": runtime.logical_paths[idx],
+                        "localization": runtime.localizations[idx],
+                        "relative_path": runtime.relative_paths[idx],
+                        "library": runtime.libraries[idx],
+                        "kind": runtime.kinds[idx],
+                        "name": runtime.names[idx],
+                    }
+                )
+                if len(hits) >= kk:
+                    break
+
+            if len(hits) >= kk or search_k >= runtime.size:
+                break
+            search_k = min(runtime.size, search_k * 2)
 
         return {
             "env": runtime.env,
@@ -360,6 +475,9 @@ class RetrievalService:
             "returned": len(hits),
             "model_name": runtime.model_name,
             "index_size": runtime.size,
+            "candidate_count": candidate_count,
+            "libraries": selected_libraries if selected_libraries is not None else runtime.available_libraries,
+            "kinds": selected_kinds if selected_kinds is not None else runtime.available_kinds,
             "results": hits,
         }
 
@@ -457,6 +575,8 @@ class RetrievalService:
         statements = _as_string_list(meta.get("statements"), expected_len=len(docstrings), fallback="")
         logical_paths = _as_optional_string_list(meta.get("logical_paths"), expected_len=len(docstrings))
         localizations = _as_mapping_list(meta.get("localizations"), expected_len=len(docstrings))
+        kinds = _as_optional_string_list(meta.get("kinds"), expected_len=len(docstrings))
+        names = _as_optional_string_list(meta.get("names"), expected_len=len(docstrings))
         relative_paths = _as_string_list(meta.get("relative_paths"), expected_len=len(docstrings), fallback="")
         libraries = _as_string_list(meta.get("libraries"), expected_len=len(docstrings), fallback="")
 
@@ -475,6 +595,8 @@ class RetrievalService:
             statements=statements,
             logical_paths=logical_paths,
             localizations=localizations,
+            kinds=kinds,
+            names=names,
             relative_paths=relative_paths,
             libraries=libraries,
             fingerprint=fingerprint,
@@ -493,6 +615,8 @@ class RetrievalService:
         statements: List[str] = []
         logical_paths: List[Optional[str]] = []
         localizations: List[Dict[str, Any]] = []
+        kinds: List[Optional[str]] = []
+        names: List[Optional[str]] = []
         relative_paths: List[str] = []
         libraries: List[str] = []
         model_counter: Counter[str] = Counter()
@@ -527,6 +651,8 @@ class RetrievalService:
             st = _as_string_list(payload.get("statements"), expected_len=n, fallback="")
             lp = _as_optional_string_list(payload.get("logical_paths"), expected_len=n)
             loc = _as_mapping_list(payload.get("localizations"), expected_len=n)
+            kd = _as_optional_string_list(payload.get("kinds"), expected_len=n)
+            nm = _as_optional_string_list(payload.get("names"), expected_len=n)
             rp = _as_string_list(payload.get("relative_paths"), expected_len=n, fallback="")
             lib_field = _to_str(payload.get("library"))
             libs = [lib_field or path.stem] * n
@@ -537,6 +663,8 @@ class RetrievalService:
             statements.extend(st)
             logical_paths.extend(lp)
             localizations.extend(loc)
+            kinds.extend(kd)
+            names.extend(nm)
             relative_paths.extend(rp)
             libraries.extend(libs)
 
@@ -574,6 +702,8 @@ class RetrievalService:
             statements=statements,
             logical_paths=logical_paths,
             localizations=localizations,
+            kinds=kinds,
+            names=names,
             relative_paths=relative_paths,
             libraries=libraries,
             fingerprint=fingerprint,
@@ -602,6 +732,8 @@ class RetrievalService:
             "statements": runtime.statements,
             "logical_paths": runtime.logical_paths,
             "localizations": runtime.localizations,
+            "kinds": runtime.kinds,
+            "names": runtime.names,
             "relative_paths": runtime.relative_paths,
             "libraries": runtime.libraries,
         }
@@ -612,6 +744,8 @@ class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1)
     env: str = Field(..., min_length=1)
     k: int = Field(default=10, ge=1, le=1000)
+    libraries: Optional[List[str]] = None
+    kinds: Optional[List[str]] = None
 
 
 def create_app(service: RetrievalService) -> FastAPI:
@@ -625,10 +759,25 @@ def create_app(service: RetrievalService) -> FastAPI:
     def list_envs() -> Dict[str, Any]:
         return {"environments": service.list_envs()}
 
+    @app.get("/get_libraries")
+    def get_libraries(env: str) -> Dict[str, Any]:
+        try:
+            return {"env": env, "libraries": service.list_libraries(env)}
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     @app.post("/search")
     def search(req: SearchRequest) -> Dict[str, Any]:
         try:
-            return service.search(query=req.query, env=req.env, k=req.k)
+            return service.search(
+                query=req.query,
+                env=req.env,
+                k=req.k,
+                libraries=req.libraries,
+                kinds=req.kinds,
+            )
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except ValueError as exc:

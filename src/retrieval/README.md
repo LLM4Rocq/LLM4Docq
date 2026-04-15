@@ -67,15 +67,22 @@ Then run the server with `--embeddings-root envs_v2`.
 ## 2) Run Retrieval Server
 
 ```bash
-python src/retrieval/server.py \
+rocq-ml-retrieval-server \
   --embeddings-root envs \
   --host 0.0.0.0 \
   --port 8010
 ```
 
+If you are running from source, install once to get CLI commands:
+
+```bash
+pip install -e .
+```
+
 Endpoints:
 - `GET /health`
 - `GET /envs`
+- `GET /get_libraries?env=<env>`
 - `POST /search`
 
 `POST /search` body:
@@ -84,14 +91,21 @@ Endpoints:
 {
   "query": "group homomorphism between finite groups",
   "env": "coq-mathcomp",
-  "k": 5
+  "k": 5,
+  "libraries": ["mathcomp"],
+  "kinds": ["definition", "notation"]
 }
 ```
+
+- `libraries` is optional (default: all libraries in the env).
+- `kinds` is optional (default: all kinds in the env).
 
 Response includes:
 - `docstring`
 - `docstring_raw`
 - `statement`
+- `kind`
+- `name`
 - `logical_path`
 - `localization`
 - nearest-neighbor `score`
@@ -103,9 +117,11 @@ FAISS cache:
 ## 3) Minimal Client
 
 ```bash
-python src/retrieval/client.py \
+rocq-ml-retrieval-client \
   --base-url http://127.0.0.1:8010 \
   --env coq-mathcomp \
   --query "group homomorphism between finite groups" \
-  --k 5
+  --k 5 \
+  --library mathcomp \
+  --kind definition
 ```
