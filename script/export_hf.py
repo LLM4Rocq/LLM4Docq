@@ -744,6 +744,11 @@ def _schemas(with_lossless_blobs: bool) -> Dict[str, pa.Schema]:
         ),
         "toc_nodes": pa.schema(
             [
+                ("env_id", pa.string()),
+                ("source_id", pa.string()),
+                ("source_path_canonical", pa.string()),
+                ("toc_id", pa.string()),
+                ("parent_toc_id", pa.string()),
                 ("preorder_index", pa.int64()),
                 ("sibling_index", pa.int64()),
                 ("depth", pa.int64()),
@@ -751,6 +756,10 @@ def _schemas(with_lossless_blobs: bool) -> Dict[str, pa.Schema]:
                 ("name", pa.string()),
                 ("span_bp", pa.int64()),
                 ("span_ep", pa.int64()),
+                ("range_start_line", pa.int64()),
+                ("range_start_character", pa.int64()),
+                ("range_end_line", pa.int64()),
+                ("range_end_character", pa.int64()),
                 ("docstring", pa.string()),
                 ("data_uid", pa.string()),
                 ("data_extra_json", pa.string()),
@@ -1106,6 +1115,7 @@ def _pick_docstring(uid: Optional[str], annotations: Mapping[str, str], cache_fi
 def _iter_toc_rows(
     env_id: str,
     source_id: str,
+    source_path_canonical: str,
     nodes: Any,
     annotation_bundle: Optional[AnnotationBundle],
     stats: TocBuildStats,
@@ -1185,6 +1195,11 @@ def _iter_toc_rows(
                     stats.annotated_rows += 1
 
             row = {
+                "env_id": env_id,
+                "source_id": source_id,
+                "source_path_canonical": source_path_canonical,
+                "toc_id": toc_id,
+                "parent_toc_id": parent_toc_id,
                 "preorder_index": preorder_idx,
                 "sibling_index": sibling_idx,
                 "depth": depth,
@@ -1192,6 +1207,10 @@ def _iter_toc_rows(
                 "name": name,
                 "span_bp": span["bp"],
                 "span_ep": span["ep"],
+                "range_start_line": rng["start_line"],
+                "range_start_character": rng["start_character"],
+                "range_end_line": rng["end_line"],
+                "range_end_character": rng["end_character"],
                 "docstring": docstring,
                 "data_uid": data_uid,
                 "data_extra_json": data_extra_json,
@@ -1654,7 +1673,7 @@ def _convert_env(
                 )
 
             toc_build_stats = TocBuildStats()
-            for toc_row in _iter_toc_rows(env_id, source_id, toc_nodes, ann_bundle, toc_build_stats):
+            for toc_row in _iter_toc_rows(env_id, source_id, canonical_path, toc_nodes, ann_bundle, toc_build_stats):
                 writers["toc_nodes"].write(toc_row)
 
             stats.toc_rows += toc_build_stats.total_rows

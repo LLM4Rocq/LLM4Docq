@@ -133,6 +133,11 @@ def _show_file_docstrings(env_dir: Path, file_row: Dict[str, Any], max_docstring
 
     toc_nodes_path = env_dir / "toc_nodes.parquet"
     dataset = ds.dataset(str(toc_nodes_path), format="parquet")
+    schema_names = set(dataset.schema.names)
+    if "source_id" not in schema_names:
+        print("[docstrings] toc_nodes has no source_id column in this export.")
+        print("[docstrings] re-export with updated script/export_hf.py or patch toc_nodes first.")
+        return
     table = dataset.to_table(
         columns=["kind", "name", "docstring"],
         filter=ds.field("source_id") == source_id,
