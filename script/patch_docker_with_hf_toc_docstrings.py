@@ -831,6 +831,7 @@ def _push_image(client: docker.DockerClient, repository: str, tag: str) -> Optio
 
 def _run_job(
     *,
+    docker_client: docker.DockerClient,
     job: EnvJob,
     sources_path: Path,
     toc_nodes_path: Path,
@@ -1172,6 +1173,7 @@ def main() -> None:
             )
 
             result = _run_job(
+                docker_client=docker_client,
                 job=job,
                 sources_path=sources_path,
                 toc_nodes_path=toc_nodes_path,
