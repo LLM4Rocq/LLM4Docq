@@ -63,6 +63,17 @@ class EnvJob:
     config: OpamConfig
 
 
+RETRIEVAL_RUNTIME_DEPENDENCIES: Tuple[str, ...] = (
+    "numpy>=1.24",
+    "pydantic>=2,<3",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "torch>=2.1",
+    "transformers>=4.45",
+    "faiss-cpu>=1.8.0",
+)
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -118,12 +129,46 @@ def _put_archive(opam_docker: OpamDocker, dest_dir: str, archive_bytes: bytes) -
         raise RuntimeError(f"failed to put archive into container at {dest_dir}")
 
 
+def _exec_in_container(
+    opam_docker: OpamDocker,
+    cmd: Sequence[str] | str,
+    *,
+    user: Optional[str] = None,
+    check: bool = True,
+) -> str:
+    opam_docker._ensure_running()  # noqa: SLF001
+    api = opam_docker.client.api
+    exec_id = api.exec_create(
+        opam_docker.container.id,
+        cmd,
+        stdout=True,
+        stderr=True,
+        tty=False,
+        user=user or opam_docker.config.user,
+    )["Id"]
+    stdout, stderr = api.exec_start(exec_id, demux=True)
+    status = api.exec_inspect(exec_id)
+    code = int(status.get("ExitCode", 1))
+
+    out_text = (stdout or b"").decode("utf-8", errors="replace")
+    err_text = (stderr or b"").decode("utf-8", errors="replace")
+    if check and code != 0:
+        raise RuntimeError(
+            f"Command failed in container (exit={code}).\n"
+            f"cmd={cmd}\n"
+            f"stdout:\n{out_text}\n"
+            f"stderr:\n{err_text}"
+        )
+    return out_text
+
+
 def _sync_retrieval_project_and_install(
     opam_docker: OpamDocker,
     config: OpamConfig,
     project_root: Path,
     *,
     container_project_dir: Optional[str],
+    install_runtime_dependencies: bool,
 ) -> str:
     home_dir = f"/home/{config.user}"
     target_dir = container_project_dir or f"{home_dir}/LLM4Docq"
@@ -137,27 +182,100 @@ def _sync_retrieval_project_and_install(
     ]
 
     buf = io.BytesIO()
+
+    def _writable_permissions(info: tarfile.TarInfo) -> tarfile.TarInfo:
+        # Keep copied sources writable inside the container so pip metadata/build
+        # steps can create temporary egg-info artifacts when needed.
+        if info.isdir():
+            info.mode = 0o777
+        elif info.issym():
+            pass
+        elif info.mode & 0o111:
+            info.mode = 0o777
+        else:
+            info.mode = 0o666
+        return info
+
     with tarfile.open(fileobj=buf, mode="w") as tar:
         for rel in include_paths:
             src = project_root / rel
             if not src.exists():
                 raise FileNotFoundError(f"missing required project file for retrieval install: {src}")
-            tar.add(str(src), arcname=f"{target_name}/{rel.as_posix()}")
+            tar.add(str(src), arcname=f"{target_name}/{rel.as_posix()}", filter=_writable_permissions)
     buf.seek(0)
 
     opam_docker.exec_cmd(["bash", "-lc", f"mkdir -p {shlex.quote(target_parent)}"])
     _put_archive(opam_docker, target_parent, buf.getvalue())
 
     pip_path = f"/home/{config.user}/miniconda/envs/rocq-ml/bin/pip"
-    install_cmd = (
+    python_path = f"/home/{config.user}/miniconda/envs/rocq-ml/bin/python"
+    server_bin_path = f"/home/{config.user}/miniconda/envs/rocq-ml/bin/rocq-ml-retrieval-server"
+
+    _exec_in_container(
+        opam_docker,
+        ["bash", "-lc", f"chmod -R a+rwX {shlex.quote(target_dir)}"],
+        user="root",
+    )
+
+    install_pkg_cmd = (
         "set -e\n"
         f"if [ -x {shlex.quote(pip_path)} ]; then\n"
-        f"  {shlex.quote(pip_path)} install --no-deps -e {shlex.quote(target_dir)}\n"
+        f"  {shlex.quote(pip_path)} install --no-build-isolation --no-deps {shlex.quote(target_dir)}\n"
         "else\n"
-        f"  python3 -m pip install --no-deps -e {shlex.quote(target_dir)}\n"
+        f"  python3 -m pip install --no-build-isolation --no-deps {shlex.quote(target_dir)}\n"
         "fi\n"
     )
-    opam_docker.exec_cmd(["bash", "-lc", install_cmd])
+    _exec_in_container(opam_docker, ["bash", "-lc", install_pkg_cmd], user="root")
+
+    if install_runtime_dependencies:
+        dep_args = " ".join(shlex.quote(dep) for dep in RETRIEVAL_RUNTIME_DEPENDENCIES)
+        install_deps_cmd = (
+            "set -e\n"
+            f"if [ -x {shlex.quote(pip_path)} ]; then\n"
+            f"  {shlex.quote(pip_path)} install --no-cache-dir {dep_args}\n"
+            "else\n"
+            f"  python3 -m pip install --no-cache-dir {dep_args}\n"
+            "fi\n"
+        )
+        _exec_in_container(opam_docker, ["bash", "-lc", install_deps_cmd], user="root")
+
+        verify_deps_cmd = (
+            "set -e\n"
+            f"if [ -x {shlex.quote(python_path)} ]; then\n"
+            f"  {shlex.quote(python_path)} - <<'PY'\n"
+            "import faiss  # noqa: F401\n"
+            "import fastapi  # noqa: F401\n"
+            "import torch  # noqa: F401\n"
+            "import transformers  # noqa: F401\n"
+            "import uvicorn  # noqa: F401\n"
+            "print('retrieval runtime deps: ok')\n"
+            "PY\n"
+            "else\n"
+            "  python3 - <<'PY'\n"
+            "import faiss  # noqa: F401\n"
+            "import fastapi  # noqa: F401\n"
+            "import torch  # noqa: F401\n"
+            "import transformers  # noqa: F401\n"
+            "import uvicorn  # noqa: F401\n"
+            "print('retrieval runtime deps: ok')\n"
+            "PY\n"
+            "fi\n"
+        )
+        _exec_in_container(opam_docker, ["bash", "-lc", verify_deps_cmd], user="root")
+
+    _exec_in_container(
+        opam_docker,
+        [
+            "bash",
+            "-lc",
+            (
+                "set -e\n"
+                f"test -x {shlex.quote(server_bin_path)}\n"
+                f"{shlex.quote(server_bin_path)} --help >/dev/null\n"
+            ),
+        ],
+        user="root",
+    )
     return target_dir
 
 
@@ -713,6 +831,7 @@ def _push_image(client: docker.DockerClient, repository: str, tag: str) -> Optio
 
 def _run_job(
     *,
+    docker_client: docker.DockerClient,
     job: EnvJob,
     sources_path: Path,
     toc_nodes_path: Path,
@@ -724,6 +843,7 @@ def _run_job(
     push: bool,
     require_source_id: bool,
     install_retrieval_server: bool,
+    install_retrieval_runtime_deps: bool,
     project_root: Path,
     container_retrieval_project_dir: Optional[str],
     copy_embeddings: bool,
@@ -784,6 +904,7 @@ def _run_job(
                 config,
                 project_root=project_root,
                 container_project_dir=container_retrieval_project_dir,
+                install_runtime_dependencies=install_retrieval_runtime_deps,
             )
 
         if copy_embeddings:
@@ -904,6 +1025,15 @@ def parse_args() -> argparse.Namespace:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Copy/install retrieval server package in each patched container.",
+    )
+    parser.add_argument(
+        "--install-retrieval-runtime-deps",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Install retrieval runtime dependencies in-container "
+            "(torch/transformers/faiss-cpu + FastAPI stack)."
+        ),
     )
     parser.add_argument(
         "--container-retrieval-project-dir",
@@ -1043,6 +1173,7 @@ def main() -> None:
             )
 
             result = _run_job(
+                docker_client=docker_client,
                 job=job,
                 sources_path=sources_path,
                 toc_nodes_path=toc_nodes_path,
@@ -1054,6 +1185,7 @@ def main() -> None:
                 push=bool(args.push),
                 require_source_id=not bool(args.allow_missing_source_id),
                 install_retrieval_server=bool(args.install_retrieval_server),
+                install_retrieval_runtime_deps=bool(args.install_retrieval_runtime_deps),
                 project_root=project_root,
                 container_retrieval_project_dir=args.container_retrieval_project_dir,
                 copy_embeddings=bool(args.copy_embeddings),

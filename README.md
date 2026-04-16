@@ -1,14 +1,86 @@
 # LLM4Docq
 
-Docstring pipeline for Rocq/Coq sources.
+Docstring/retrieval tooling built on top of the Pile-of-Rocq data pipeline.
 
-The flow is:
+## Relationship with Pile-of-Rocq
+
+This repository extends:
+
+- https://github.com/LLM4Rocq/Pile-of-rocq
+
+Use the upstream README for extraction/export details and dataset exploration conventions:
+
+- https://github.com/LLM4Rocq/Pile-of-rocq/blob/main/README.md
+
+## Quick Start (Use Existing Data)
+
+If you only want to consume docstrings/retrieval, you do not need to run the generation pipeline below.
+
+### 1) Explore docstrings from Hugging Face
+
+Public dataset:
+
+- https://huggingface.co/datasets/theostos/pile-of-rocq
+
+Structure (single-repo layout):
+
+- one folder per environment: `<env>/`
+- one parquet table per artifact:
+  - `sources.parquet`
+  - `toc_nodes.parquet` (includes `docstring`, `source_id`, spans, kind/name)
+  - `env_toc.parquet`
+  - `proofs.parquet`, `proof_steps.parquet`, `step_deps.parquet`, `proof_axioms.parquet`, `env_metadata.parquet`
+- HF configs are `<env>-<table>`, for example `coq-mathcomp-toc_nodes`
+
+Minimal Python snippet:
+
+```python
+from datasets import load_dataset
+
+repo = "theostos/pile-of-rocq"
+env = "coq-mathcomp"
+
+toc_nodes = load_dataset(repo, f"{env}-toc_nodes", split="train")
+print("rows:", len(toc_nodes))
+print("columns:", toc_nodes.column_names)
+
+target = next(
+    row for row in toc_nodes
+    if (row.get("docstring") or "").strip() and row.get("kind") in {"definition", "notation", "theorem"}
+)
+print(target["kind"], target.get("name"))
+print((target.get("docstring") or "")[:300])
+```
+
+### 2) Start retrieval server from Docker image
+
+Docker images are published at:
+
+- https://hub.docker.com/u/theostos
+
+Run one image and expose retrieval on port `8010`:
+
+```bash
+docker run --rm -p 8010:8010 theostos/coq-mathcomp:9.0-2.5.0 rocq-ml-retrieval-server \
+  --embeddings-root /home/rocq/docstring_embeddings \
+  --host 0.0.0.0 \
+  --port 8010
+```
+
+Optional quick check:
+
+```bash
+curl -s http://127.0.0.1:8010/envs
+```
+
+## Generate / Update Data
+
+Pipeline flow:
 1. `script/chunk.py`
 2. `script/compute_docstrings.py`
 3. `script/merge_docstrings_exports.py`
-4. `script/enrich_export_v2_docstrings.py` (optional, in-place backfill of `export_v2`)
-5. `script/export_hf.py`
-6. `script/peek_env_toc.py` (inspection/debug)
+4. `script/export_hf.py`
+5. `script/peek_env_toc.py` (inspection/debug)
 
 ## Chunk
 
@@ -84,35 +156,7 @@ python -m script.merge_docstrings_exports \
   --report-path exported_v3/merged/coverage_report.json
 ```
 
-## Step 4 (optional): Backfill `export_v2` in place with annotations + TOC docstrings
-
-Use this when you want `export_v2/*.jsonl` to directly include:
-- `annotations` copied from a docstring export (for example `annotated_jsonl_4`)
-- TOC target `data.uid`
-- TOC target `docstring`
-
-All envs, in place:
-
-```bash
-python script/enrich_export_v2_docstrings.py \
-  --export-dir export_v2 \
-  --annotated-dir annotated_jsonl_4 \
-  --strict-missing
-```
-
-Single env:
-
-```bash
-python script/enrich_export_v2_docstrings.py \
-  --export-dir export_v2 \
-  --annotated-dir annotated_jsonl_4 \
-  --env coq-actuary \
-  --strict-missing
-```
-
-`--strict-missing` aborts if any `export_v2` row has no matching annotation row.
-
-## Step 5: Export HF-ready parquet (docstring + env_toc)
+## Step 4: Export HF-ready parquet (docstring + env_toc)
 
 ```bash
 python -m script.export_hf \
@@ -130,7 +174,7 @@ Output per env contains normalized tables, including:
 - Most previously `*_json` columns are now native nested Arrow/Parquet fields (lists/structs).
 - `diags` table is not exported.
 
-## Step 6: Push to Hugging Face
+## Step 5: Push to Hugging Face
 
 Login:
 
@@ -154,7 +198,7 @@ python -m script.export_hf \
 You do not need to pre-create the dataset repo manually; the script creates it if needed.
 In `single-repo` mode, configs are `<env>-<table>` subsets (for example `coq-actuary-toc_nodes`).
 
-## Step 7: Quick inspection
+## Step 6: Quick inspection
 
 Browse env TOC:
 
